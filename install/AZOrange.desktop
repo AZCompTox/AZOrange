@@ -1,0 +1,11 @@
+#!/usr/bin/env xdg-open
+
+[Desktop Entry]
+Version=0.3
+Type=Application
+Icon[en_US]=AZO_INSTALL_DIR/orange/OrangeCanvas/icons/CanvasIcon.png
+Terminal=False
+Name[en_US]=AZOrange
+Exec=AZO_INSTALL_DIR/startAZOrange
+Name=AZOrange
+Icon=AZO_INSTALL_DIR/orange/OrangeCanvas/icons/CanvasIcon.png
