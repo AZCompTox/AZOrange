@@ -33,8 +33,8 @@ Testing AZOrange installation
 2) Load the AZOrange environment:
         source <installDir>/templateProfile
 3) Change to the tests directory:
-        cd <installDir>/tests/source
+        cd <installDir>/tests
 4) Start the tests:
-        ./runOpenTests.bash
+        ./runOpenTests.sh
 
 
