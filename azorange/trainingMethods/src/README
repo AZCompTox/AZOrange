@@ -1,0 +1,12 @@
+The C-level and the python API (created by SWIG) between the OpenCV random forest implementation and AZOrange 
+consists of the following source files:
+randomForest.cc
+randomForest.h
+randomForest.i     # Interface file for swig
+swigit.sh          # Creates the randomForest.py module, which uses _randomForest.so
+compile.sh         # Compiles the C-code into an executable
+
+Example of how to run the randomForest executable:
+setenv LD_LIBRARY_PATH /opt/az/unsupported/azorange/orangeDependencies/opencv/lib:$LD_LIBRARY_PATH
+
+./randomForest.exe ./Train.tab ./Train.RFmodel 10 104  20 1 false false 0 100 0.1 0  

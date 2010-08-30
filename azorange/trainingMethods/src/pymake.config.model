@@ -1,0 +1,853 @@
+#!python
+
+###############################################################################
+## WARNING                                                                    #
+#  if you add options don't forget to add in the pymake file                  #
+#       optionargs.remove('myoption')                                         #
+#  If you don't, because of the follwing pymake command                       #
+#       #Building name of object subdirectory                                 #
+#       objsdir = join('OBJS', target_platform + '__' \                       #
+#               + string.join(options,'_'))                                   #
+#       print '*** Running pymake using following options: ' \                #
+#               + string.join(map(lambda o: '-'+o, options))                  #
+# you will create useless OBJS repertory                                      #
+# (unless the option changes the resulting OBJS files)                        #
+###############################################################################
+
+import os, os.path
+from plearn.utilities.ppath import ppath
+from plearn.utilities.svn   import repository_revision
+
+####
+# Some useful variables that have been defined in pymake.
+# Please use them instead of defining new variables in pymake, if they are
+# specific to PLearn or to some options defined in the configuration file.
+#
+# optionargs: list containing all the options that were preceded by a dash (-)
+#             in the command-line. They can be names of options defined in
+#             this configuration file, or generic pymake options.
+#
+# otherargs: list containing all the other options that were on the
+#            command-line, usually file or directory names.
+#
+# platform: the architecture of the current machine.
+#
+# target_platform: the architecture for which we are compiling
+#                  (we might be cross-compiling, the typical case is compiling
+#                  i386 (32-bits) binaries on an x86-64 (64-bits) machines).
+#                  You can usually use this variable rather than checking for
+#                  "force_32bits" (see below).
+#
+# force_32bits: indicates that we are on a 64-bits machine, but we want to
+#               produce i386 (32-bits) binaries.
+#
+# distribute: we are producing a makefile, not a binary
+# vcproj: we are producing a Visual Studio project file, not a binary
+#
+# create_so: we link the object files in a (Unix) library, not an executable
+# create_dll: we link the object files in a Windows library, not an executable
+#####
+
+
+# Qt Specific stuff
+
+qtdir = '/usr/lib/qt-3.1/'
+
+# PLearn specific directories:
+
+# New: The PPath configuration file contains all PLearn relative settings
+plearndir = ppath('PLEARNDIR')
+libdir    = ppath('PLEARN_LIBDIR')
+homedir   = ppath('HOME')
+
+# Force use of ssh @ Apstat & Lisa
+domain_name = socket.getfqdn();
+if domain_name.endswith('apstat.com') or domain_name.endswith('iro.umontreal.ca') or domain_name.endswith('public'):
+    rshcommand= 'ssh -x'
+
+default_nice_value = 1
+
+# List of directories in which to look for .h includes and corresponding
+# .cc files to compile and link with your program (no need to include
+# the current directory, it is implicit)
+sourcedirs = [ plearndir ]
+
+# will be added as list of includes (-I...) to all compilations
+mandatory_includedirs = []
+
+# List of all C preprocessor variables possibly initialized at compilation
+# time, and that are not defined or redefined in the code
+cpp_variables = []
+
+# Global preprocessing definitions
+cpp_definitions = []
+
+# We add -fPIC, as it is requested to make a shared '.so' file, it does not
+# have any speed impact, and is ignored by the compiler if it cannot use it.
+# We do not add it under Windows since it generates a useless compiler warning.
+if platform != 'win32':
+    compileflags += ' -fPIC'
+
+# The platform variable contains the type of platform from which pymake has been invoked. 
+# This is something like 'linux-i386', 'linux-alpha', 'sunos5', 'irix6', 'irix6-n32' etc...
+# Feel free to use it to adapt configuration to that platform.
+
+# (sys.byteorder does not exist in older versions of python)
+if platform=='linux-i386':
+    cpp_definitions += [ 'LINUX', 'LITTLEENDIAN' ]
+elif platform=='linux-ppc':
+    cpp_definitions += [ 'LINUXPPC', 'BIGENDIAN' ]
+elif platform=='linux-alpha':
+    cpp_definitions += [ 'SPARC', 'BIGENDIAN' ]
+elif platform=='linux-ia64':
+    cpp_definitions += [ 'LINUX', 'LITTLEENDIAN' ]
+elif platform=='linux-x86_64':
+    cpp_definitions += [ 'LINUX', 'LITTLEENDIAN' ]
+elif platform=='sunos5' :
+    cpp_definitions += [ 'SPARC', 'BIGENDIAN' ]
+elif platform=='irix6'  :
+    cpp_definitions += [ 'SGI', 'BIGENDIAN' ]
+elif platform=='irix6-n32' :
+    cpp_definitions += [ 'SGI', 'BIGENDIAN' ]
+elif platform=='darwin' :
+    if sys.byteorder == 'little':
+        cpp_definitions += [ 'DARWIN', 'LITTLEENDIAN' ]
+    else:
+        cpp_definitions += [ 'DARWIN', 'BIGENDIAN' ]
+        # compileflags += ' -fno-coalesce' # cc1plus says unrecognized commands
+elif platform=='win32' :
+    cpp_definitions += [ 'WIN32', '_MINGW_', 'LITTLEENDIAN' ]
+    # When using the standard Win32 Python (instead of the built-in Cygwin
+    # Python), the platform is 'win32' instead of 'cygwin', even if we are
+    # using it from Cygwin.
+    # However, just like for the 'cygwin' platform below, the -symlinkobjs
+    # pymake option is required.
+    symlinkobjs = 1
+elif platform=='cygwin' :
+    cpp_definitions += [ 'WIN32', 'LITTLEENDIAN' ]
+    # Cygwin limitations impose to use the -symlinkobjs pymake option,
+    # otherwise the link dies with weird error messages.
+    symlinkobjs = 1
+else:
+    print 'Unknown platform: ' + platform
+    sys.exit()
+
+# Platform-specific variables:
+cpp_variables += [ 'LINUX', 'LINUXPPC', 'SPARC', 'SGI', 'WIN32', '_MINGW_', 'DARWIN' ]
+# Endianness
+cpp_variables += [ 'BIGENDIAN', 'LITTLEENDIAN' ]
+
+# It used to be an option, but now that every compilers are supposed to
+# handle C++ exceptions, it is always defined.
+cpp_variables += [ 'USE_EXCEPTIONS' ]
+cpp_definitions += [ 'USE_EXCEPTIONS' ]
+
+
+#####  Repository Revision String Generation  ###############################
+
+def PL_repository_revision():
+    #return PL_default_repository_revision()
+    return "PL_AZ_HPC_PACKAGE"
+
+def PL_default_repository_revision():
+  from plearn.utilities.version_control import update_repository_revision
+  return "PL" + update_repository_revision('plearn', plearndir,
+                                           os.path.join(ppath('HOME'), '.plearn'),
+                                           os.path.join( plearndir, "plearn", "base",
+                                                  "pl_repository_revision.cc" ))
+
+from plearn.pytest.core import pytest_defines
+optionalLibrary( name = 'pytest_defines',
+                 triggers = 'pytest/defines.h',
+                 includedirs = [ os.path.join(ppath('HOME'), '.plearn') ], 
+                 compileroptions = [ '-DPYTEST_DEFINES=\\"', pytest_defines, '\\"' ],
+                 linkeroptions   = '', compile_as_source = True )
+
+optionalLibrary( name = 'plearn_repository_revision',
+                 triggers = 'pl_repository_revision.h',
+                 compileroptions = [ '-DPL_REPOSITORY_REVISION=\\"', PL_repository_revision, '\\"' ],
+                 linkeroptions   = '')
+
+
+#####  Optional Libraries  ##################################################
+
+# Add available external libraries In the order in which the linkeroptions
+# must appear on the linker command line (typically most basic libraries
+# last) If you do not give any specific triggers, any included .h file
+# found in the specified includedirs will trigger the library Triggers can
+# be a list of includes that will trigger the use of the library, and they
+# can have wildcards (such as ['GreatLibInc/*.h','Magick*.h'] for instance)
+
+optionalLibrary( name = 'xml',
+                 includedirs = [os.path.join(libdir,'xml/gcc_3.2/xerces-c-src2_1_0/include'), 
+                                os.path.join(libdir,'xml/gcc_3.2/xerces-c-src2_1_0/include/xercesc'), 
+                                os.path.join(libdir,'xml/gcc_3.2/xml-xalan/c/src')],
+                 linkeroptions = (' -Xlinker -rpath -Xlinker ' +
+                                  os.path.join(libdir,'xml/gcc_3.2/xerces-c-src2_1_0/lib') +
+                                  ' -Xlinker -rpath -Xlinker ' +
+                                  os.path.join(libdir,'xml/gcc_3.2/xml-xalan/lib') + ' -L' +
+                                  os.path.join(libdir,'xml/gcc_3.2/xerces-c-src2_1_0/lib') + ' -L' +
+                                  os.path.join(libdir,'xml/gcc_3.2/xml-xalan/lib') + ' -lxalan-c1_4_0 -lxerces-c' ) )
+
+optionalLibrary( name = 'xml-apstat',
+                 includedirs = ['/usr/include/xercesc', '/usr/include/xalanc'],
+                 linkeroptions = ( ' -lxalan-c -lxerces-c' ) )
+
+
+optionalLibrary( name = 'arpack',
+                 triggers = 'arpack_proto.h',
+                 linkeroptions = '-L'+ libdir +'/ARPACK/OBJS/' + target_platform + ' -larpack -lg2c' )
+
+optionalLibrary( name = 'opengl',
+                 triggers = 'GL/gl.h',
+                 linkeroptions = '-lGL -lGLU -lglut'
+                 )
+
+#optionalLibrary( name = 'wxwindows',
+#                 triggers = 'wx/*.h',
+#                 includedirs = ['/u/lisa/local/'+target_platform+'/Install/wxWindows/wxGTK-2.2.9/lib/wx/include/gtk-2.2',
+#                                '/u/lisa/local/'+target_platform+'/Install/wxWindows/wxGTK-2.2.9/include',
+#                                '/usr/include/gtk-1.2', '/usr/include/glib-1.2', '/usr/lib/glib/include', '/usr/X11R6/include'],
+#                 compileroptions = '-MMD -Wno-long-long',
+#                 cpp_definitions = [ 'wxINSTALL_PREFIX=\"/u/lisa/local/'+target_platform+'/\"', '__WXGTK__', 'GTK_NO_CHECK_CASTS', '_REENTRANT' ]
+#                 linkeroptions = '/u/lisa/local/'+target_platform+'/Install/wxWindows/wxGTK-2.2.9/lib/libwx_gtk-2.2.so.6.2.6 -L/usr/lib -L/usr/X11R6/lib -lgtk -lgdk -rdynamic -lgmodule -lgthread -lglib -lpthread -ldl -lXi -lXext -lX11 -lm  -lpng -ljpeg -ltiff  -ldl -lpthread -lz -lm' )
+
+
+if platform == 'win32':
+    optionalLibrary( name = 'pdcurses',
+                     triggers = 'curses.h',
+                     linkeroptions = '-lpdcurses'
+                   )
+else:
+    optionalLibrary( name = 'ncurses',
+                     triggers = 'curses.h',
+                     linkeroptions = '-lncurses'
+                   )
+
+if target_platform=='linux-x86_64':
+    wn_includedirs = '/u/lisa/WordNet/LINUX_64/v2.0/include'
+    wn_linkeroptions = '-L /u/lisa/WordNet/LINUX_64/v2.0/lib -lwn'
+else:
+    wn_includedirs = '/u/lisa/WordNet/v2.0/include'
+    wn_linkeroptions = '-L /u/lisa/WordNet/v2.0/lib -lwn'
+
+optionalLibrary( name = 'wordnet',
+                 triggers = 'wn.h',
+                 includedirs = wn_includedirs,
+                 linkeroptions = wn_linkeroptions
+                 )
+
+## If someone some day wants to link against X libraries
+# optionalLibrary( name = 'X',
+#                  triggers='?',
+#                  includedirs = '?',
+#                  linkeroptions = '-L/usr/X11R6/lib/ -lXi -lXext -lX11/'
+#                  )
+
+
+linkeroptions_tail = ''
+
+
+#####  Global List of pymake Options  #######################################
+
+# List of lists of mutually exclusive pymake options.
+# First option that appears in each group is the default, and is assumed if you
+# do not specify any option from that group.
+options_choices = [
+  [ 'g++', 'g++3', 'g++no-cygwin', 'icc', 'icc8', 'icc9', 'mpi',
+    'purify', 'quantify', 'vc++' ],
+  
+  [ 'dbg', 'opt', 'pintel', 'gprof', 'optdbggprof', 'safegprof',
+    'safeopt', 'safeoptdbg', 'checkopt', 'genericvc++', 'pydbg' ],
+  
+  [ 'double', 'float' ],
+  
+  # [ 'throwerrors', 'exiterrors' ],
+  [ 'autopython', 'python23', 'python24', 'python25', 'nopython' ],
+  
+  [ 'blas', 'noblas' ],
+  [ 'defblas', 'nolibblas', 'p3blas','p4blas','athlonblas','pentiumblas',
+    'mammouthblas', 'veclib', 'scs', 'goto', 'lisa' ],
+  
+  [ 'logging=dbg', 'logging=mand', 'logging=imp', 'logging=normal',
+    'logging=extreme', 'logging=dbg-profile' ],
+
+  [ 'numpy', 'numarray' ]
+
+]
+
+### Using Python code snippets in C++ code
+### TODO Using /u/lisa/... is quite ugly. But the PLEARN_LIBDIR ppath may also
+### be problematic (it should be different depending on the platform) => must
+### find a better way to know where to find the libraries.
+### TODO Should find a way to automatically find python version ?
+
+
+pyver = sys.version.split()[0][0:3]
+pyoption = 'python%s' % pyver.replace('.', '')
+#verify/set optionargs for python and numpy
+python_choices= [x for x in options_choices if 'autopython' in x][0]
+if [x for x in python_choices if x in optionargs]==[]:
+    optionargs.append('autopython')
+numpy_choices= [x for x in options_choices if 'numpy' in x][0]
+if [x for x in numpy_choices if x in optionargs]==[]:
+    optionargs.append('numpy')
+#auto-detected python version, if needed
+if 'autopython' in optionargs:
+    optionargs.remove('autopython')
+    optionargs += [ pyoption ]
+
+if not 'nopython' in optionargs:
+    # First find which version of python is installed.
+    python_includedirs=[]
+    if domain_name.endswith('iro.umontreal.ca'):
+        optionargs += [ pyoption ]
+        python_version = pyver
+        python_lib_root = '/usr/lib'
+        if platform == 'cygwin':
+            numpy_includedirs = [ ]
+            numpy_site_packages = '$HOME/local-cygwin/lib/python%s/site-packages/numarray' % pyver
+        elif platform == 'win32':
+            python_version = '2.5'
+            python_lib_root = 'C:\\Python25\\libs'
+            numpy_site_packages = []
+            numpy_includedirs = []
+        else:
+            numpy_includedirs = [ '/u/lisa/local/' + target_platform + '/include/', '/usr/include/python'+python_version ]
+            ### NB: The '-lutil' is necessary on i386 LISA computers.
+            numpy_site_packages = '/u/lisa/local/' + target_platform + '/lib/python%s/site-packages/numarray -lutil' % pyver
+    elif domain_name.endswith('.ms'):
+        numpy_includedirs = []
+        numpy_site_packages = join(homedir, '../delallea/local/lib/python2.5/site-packages/numarray -lutil')
+        optionargs += [ 'python25' ]
+        python_version = '2.5'
+        python_lib_root = '/home/delallea/local/lib'
+        linkeroptions_tail += '-lunwind -lcprts' # -lgcc_eh
+    elif domain_name.endswith('.rqchp.qc.ca'):
+        numpy_includedirs   = [ '/usr/network.ALTIX/python-2.4.1/include' ]
+        numpy_site_packages = join(homedir, '../delallea/local/lib/python2.4/site-packages/numarray -lutil')
+        optionargs += [ 'python24' ]
+        python_version = '2.4'
+        python_lib_root = '/usr/network.ALTIX/python-2.4.1/lib'
+        linkeroptions_tail += '-lcprts -lifcore -lcxa' # -lunwind -lguide' # -lguide_stats -lifcoremt -lifport -limf -lipr'
+    elif platform=='darwin':
+        python_version = sys.version[0:3]
+        optionargs += [ 'python'+python_version[0]+python_version[2] ]
+        # numpy_includedirs   = [ '/usr/network.ALTIX/python-2.4.1/include' ]
+        python_lib_root = '/sw/lib'
+        numpy_site_packages = '/sw/lib/python'+python_version+'/site-packages/numarray' 
+        numpy_includedirs   = [ '/sw/include/python'+python_version]
+    else:
+        if 'python23' in optionargs:
+            python_version = '2.3'
+        elif 'python24' in optionargs:
+            python_version = '2.4'
+        elif 'python25' in optionargs:
+            python_version = '2.5'
+        else:
+            python_version = pyver
+
+        python_lib_root = '/usr/lib'
+        numpy_site_packages = '-L/usr/lib/python'+python_version+'/site-packages/numarray'
+        python_includedirs   = [ '/usr/include/python'+python_version]
+
+        numpy_includedirs   = python_includedirs
+        
+    python_includedirs= numpy_includedirs
+
+    if python_version != pyver:
+        print '*** WARNING: python version mismatch:'
+        print '\tcompiling for python'+python_version+' using python'+pyver
+
+    if 'numpy' in optionargs:
+        try:
+            # Ensure Python and Numpy are correctly installed.
+            # First check for the correct Python version.
+            ok_version = False
+            getpyver = toolkit.command_output('python%s -V' % python_version)
+            if len(getpyver) == 1:
+                tokens = getpyver[0].split()
+                if len(tokens) == 2:
+                    foundver = tokens[1]
+                    tokens = foundver.split('.')
+                    if len(tokens) >= 2:
+                        foundver = '.'.join(tokens[0:2])
+                        if foundver == python_version:
+                            ok_version = True
+            if not ok_version:
+                print "Could not find correct Python version: " + \
+                        "'python%s -V' should return 'Python %s.X', but returned '%s'" % \
+                        (python_version, python_version, ''.join(getpyver).strip())
+                sys.exit(100)
+            
+            # Then verify Numpy works with this version.
+            numpy_numarray_include, numpy_core_include= \
+              os.popen('python' + python_version + ' ' 
+                       + os.path.join( plearndir,'scripts','get_numpy_includes.py'),
+                       'r').read().splitlines()
+            numpy_site_packages= numpy_numarray_include
+            numpy_includedirs= [numpy_site_packages+'/numpy', numpy_core_include] \
+                               + python_includedirs
+        except ValueError:
+            print 'Cannot find numpy include dirs for python'+python_version+'.',
+            print 'Make sure numpy is installed for this version of python'+\
+                  ' or compile using another version of python.'
+            sys.exit(100)
+
+    numpy_lib= ' -lnumarray '
+    if 'numpy' in optionargs:
+        numpy_lib= '/_capi.so -lutil '
+
+    if platform == 'darwin':
+        optionalLibrary( name = 'python',
+                     triggers = '[Pp]ython*',
+                     includedirs = numpy_includedirs,
+                     linkeroptions = ( '-L%s -lnumarray ' % numpy_site_packages + 
+                                       '-L%s/python%s/config -lpython%s ' % (python_lib_root, python_version, python_version) +
+                                       '' )
+                     )
+    elif platform == 'win32':
+        optionalLibrary( name = 'python',
+                     triggers = '[Pp]ython*',
+                     includedirs = numpy_includedirs,
+                     linkeroptions = ( '-L%s -lpython%s ' % \
+                             (python_lib_root,
+                              python_version.replace('.', ''))))
+    else:
+        optionalLibrary( name = 'python',
+                     triggers = '[Pp]ython*',
+                     includedirs = numpy_includedirs,
+                     linkeroptions = ( '%s%s ' % (numpy_site_packages, numpy_lib) + 
+                                       '-L%s/python%s/config -lpython%s ' % (python_lib_root, python_version, python_version) +
+                                       '-Xlinker -export-dynamic ' + 
+                                       '-Xlinker -rpath -Xlinker %s' % numpy_site_packages )
+                     )
+else:
+    python_version = '' # should not be used anyway
+
+
+# Operating system as defined by Torch when creating libraries.
+if platform=='win32': ## os.uname is not defined under Windows...
+    os.uname = lambda: ('Win32',)
+torch_os = os.uname()[0]
+
+# Base for the directory where we can find the Torch library.
+torch_libdir = join(libdir, 'torch/' + torch_os + '_')
+
+# Torch defines USE_DOUBLE when using real <=> double, and DEBUG in debug mode.
+# The directory in which the library is stored is 'torch_os'_<dbg/opt>_<float/double>
+torch_compiler_options = ''
+
+if 'opt' in optionargs:
+    # Optimized mode.
+    torch_libdir += 'opt_'
+else:
+    # Debug mode.
+    torch_libdir += 'dbg_'
+    torch_compiler_options += '-DDEBUG '
+
+if 'float' in optionargs:
+    # real <=> float
+    torch_libdir += 'float'
+else:
+    # real <=> double
+    torch_libdir += 'double'
+    torch_compiler_options += '-DUSE_DOUBLE '
+
+optionalLibrary( name = 'torch',
+                 triggers = 'torch/*',
+                 linkeroptions = '-L' + torch_libdir + ' -ltorch',
+                 compileroptions = torch_compiler_options
+                 )
+
+optionalLibrary( name='boost',
+                 triggers = 'boost*',
+                 linkeroptions = ''
+                 )
+
+optionalLibrary( name='boost_date_time',
+                 triggers = 'boost/date_time*',
+                 linkeroptions = '-lboost_date_time' )
+
+optionalLibrary( name='boost_filesystem',
+                 triggers = 'boost/filesystem*',
+                 linkeroptions = '-lboost_filesystem' )
+
+optionalLibrary( name = 'boost_python',
+                 triggers = 'boost/python.hpp',
+                 includedirs = '/usr/include/python%s' % python_version,
+                 linkeroptions = '-lboost_python'
+                 )
+
+optionalLibrary( name='boost_regex',
+                 triggers = 'boost/regex*',
+                 linkeroptions = '-lboost_regex' )
+
+optionalLibrary( name='boost_signals',
+                 triggers = 'boost/signals*',
+                 linkeroptions = '-lboost_signals' )
+
+
+optionalLibrary( name='boost_thread',
+                 triggers = 'boost/thread*',
+                 linkeroptions = '-lboost_thread -pthread', 
+                 compileroptions = '-pthread' )
+
+
+optionalLibrary( name = 'NSPR',
+                 triggers = 'nspr/*',
+                 includedirs = ['/usr/include/mozilla-seamonkey-1.0.9/'],
+                 linkeroptions = '-L/usr/lib/mozilla-seamonkey-1.0.9 -lnspr4')
+
+# What linker options to put always after those from the optional libraries
+linkeroptions_tail += ' -L' + libdir + ' -lm'
+
+
+#####  Compiler-Related Options  ############################################
+ #scPA  Added the option -fpermissive for compatibility with new compilers
+if target_platform=='linux-i386':
+    gcc_opt_options = '-mmmx -msse -mfpmath=sse -march=i686 -fpermissive'
+else:
+    gcc_opt_options = '-fpermissive'
+
+pedantic_mode = ' -pedantic '
+if platform=='darwin':
+    pedantic_mode = ' '
+    
+pymakeOption( name = 'g++',
+              description = 'compiling with g++, with no MPI support',
+              compiler = 'g++',
+              compileroptions = '-Wno-deprecated '+pedantic_mode+'-Wno-long-long -ftemplate-depth-100 ' \
+                      + gcc_opt_options,
+              cpp_definitions = ['USING_MPI=0'],
+              linker = 'g++' )
+
+pymakeOption( name = 'g++3',
+              description = 'compiling with g++3 (version 3.0), with no MPI support',
+              compiler = 'g++3',
+              compileroptions = '-Wno-deprecated '+pedantic_mode+'-ftemplate-depth-100',
+              cpp_definitions = ['USING_MPI=0'],
+              linker = 'g++3' )
+
+pymakeOption( name = 'g++no-cygwin',
+              description = 'compiling with g++, with no MPI support, ' \
+                          + 'without the need of the Cygwin DLL',
+              compiler = 'g++',
+              compileroptions = '-Wno-deprecated '+pedantic_mode \
+                              + '-Wno-long-long -ftemplate-depth-100 '\
+                              + '-mno-cygwin',
+              cpp_definitions = ['USING_MPI=0', '_MINGW_'],
+              linker = 'g++ -mno-cygwin' )
+
+pymakeOption( name = 'icc',   # For C++, it is actually icpc
+              description = '(DEPRECATED, use icc8 or icc9 instead) compiling with Intel Compiler (version 8.x), with no MPI support',
+              # Disable some warnings:
+              compiler = 'icpc -w1 -wd981 -wd383 -wd869 -wd444 -wd810 -wd1418 -wd654 -wd279',
+              cpp_definitions = ['USING_MPI=0'],
+              linker = 'icpc  '
+              )
+
+pymakeOption( name = 'icc8',   # For C++, it is actually icpc
+              description = 'compiling with Intel Compiler (version 8.x), with no MPI support',
+              # Disable some warnings:
+              compiler = 'icpc -w1 -wd981 -wd383 -wd869 -wd444 -wd810 -wd1418 -wd654 -wd279',
+              cpp_definitions = ['USING_MPI=0'],
+              compileroptions = '-DBUGGED_SERVER ',
+              linker = 'icpc  '
+              )
+
+icc9_exec = os.environ.get('ICC9DIR', '')
+if icc9_exec == '':
+    icc9_exec = 'icpc'
+else:
+    icc9_exec = os.path.join(icc9_exec, 'bin', 'icpc')
+
+pymakeOption( name = 'icc9',   # For C++, it is actually icpc
+              description = 'compiling with Intel Compiler (v ersion 9.x), with no MPI support',
+              # Disable some warnings:
+              # remark #1683: explicit conversion of a 64-bit integral type to a smaller
+              #               integral type (potential portability problem)
+              compiler = icc9_exec + ' -w1 -wd981 -wd383 -wd869 -wd444 -wd810 -wd1418 -wd654 -wd279 -wd1683',
+              cpp_definitions = ['USING_MPI=0'],
+              linker = icc9_exec + ' '
+              )
+
+pymakeOption( name = 'mpi',
+              description = 'compiling and linking with MPI support (and USING_MPI=1)',
+              compiler = 'mpiCC',
+              compileroptions = '-ftemplate-depth-100',
+              cpp_definitions = ['USING_MPI=1'],
+              linker = 'mpiCC' )
+
+pymakeOption( name = 'purify',
+              description = 'compiling and linking with purify g++',
+              compiler = 'purify -g++ g++',
+              compileroptions = '-ftemplate-depth-100',
+              cpp_definitions = ['USING_MPI=0'],
+              linker = 'purify -g++ g++' )
+
+pymakeOption( name = 'quantify',
+              description = 'compiling and linking with quantify g++',
+              compiler = 'quantify -g++ g++',
+              compileroptions = '-ftemplate-depth-100',
+              cpp_definitions = ['USING_MPI=0'],
+              linker = 'quantify -g++ g++' )
+
+pymakeOption( name = 'vc++',
+              description = 'compiling with Visual Studio (.Net 2003)',
+              compiler = 'vc++', # Dummy.
+              cpp_definitions = ['USING_MPI=0'],
+              linker = 'g++' )
+
+cpp_variables += ['USING_MPI']
+
+
+#####  Debugging/Optimization Options  ######################################
+
+pymakeOption( name = 'dbg',
+              description = 'debug mode',
+              compileroptions = '-Wall -g -O0',
+              cpp_definitions = ['BOUNDCHECK'] )
+
+pymakeOption( name = 'opt',
+              description = 'optimized for intel compiler',
+              compileroptions = '-Wall -O3',
+              cpp_definitions = ['NDEBUG'] )
+
+pymakeOption( name = 'pintel',
+              description = 'parallelized for intel compiler',
+              compileroptions = '-O3 -parallel',
+              cpp_definitions = ['NDEBUG'] )
+
+pymakeOption( name = 'safeopt',
+              description = 'safe optimized mode (includes bound checking)',
+              compileroptions = '-Wall -O3',
+              cpp_definitions = ['BOUNDCHECK'] )
+
+### Debug version of safeopt, to help detect compiler bugs in some circumstances
+pymakeOption( name='safeoptdbg',
+              description = 'safe optimized mode (includes bound checking), w/ debug info',
+              compileroptions = '-Wall -O3 -g',
+              cpp_definitions = ['BOUNDCHECK'] )
+
+pymakeOption( name = 'checkopt',
+              description = 'some variation on optimized mode',
+              compileroptions = '-Wall -O3 -funroll-loops' )
+
+### Same optimization options as -opt
+pymakeOption( name = 'gprof',
+              description = 'optimized mode with profiler support (-pg)',
+              compileroptions = '-Wall -O3 -pg',
+              cpp_definitions = ['NDEBUG'],
+              linkeroptions = '-pg' )
+
+pymakeOption( name = 'optdbggprof',
+              description = 'optimized mode with profiler support WITH DEBUGGING (-pg)',
+              compileroptions = '-Wall -O3 -g -pg',
+              cpp_definitions = ['NDEBUG'],
+              linkeroptions = '-pg' )
+
+pymakeOption( name = 'safegprof',
+              description = 'safe optimized mode with profiler support (-pg)',
+              compileroptions = '-Wall -O3 -pg',
+              cpp_definitions = ['BOUNDCHECK'],
+              linkeroptions = '-pg' )
+
+pymakeOption( name = 'genericvc++',
+              description = 'Generic compilation options for Visual C++: ' \
+                            'the debug/opt options are actually set directly '\
+                            'in the .vcproj project file',
+              compileroptions = '',
+              # The GCC library is currently needed to use the BLAS library
+              # compiled with GCC. A couple of things need to be investigated:
+              # - can we find a better Windows BLAS library?
+              # - does this bring copyright issues?
+              linkeroptions = '-lgcc')
+
+pymakeOption( name = 'pydbg',
+              description = 'debug mode for linking w/ debug python library',
+              compileroptions = '-Wall -g -O0',
+              cpp_definitions = ['BOUNDCHECK','Py_DEBUG'] )
+
+cpp_variables += ['BOUNDCHECK', 'NDEBUG', 'Py_DEBUG']
+
+
+#####  Floating-Point Number Representation  ################################
+
+pymakeOption( name = 'float',
+              description = 'float mode (real==float)',
+              cpp_definitions = ['USEFLOAT'] )
+
+pymakeOption( name = 'double',
+              description = 'double mode (real==double)',
+              cpp_definitions = ['USEDOUBLE'] )
+
+cpp_variables += ['USEFLOAT', 'USEDOUBLE']
+
+
+#####  Python version  ######################################################
+
+
+# pymakeOption( name = 'autopython',
+#               description = 'auto-detect python version',
+#               cpp_definitions = ['PL_PYTHON_VERSION='+str(int(float(pyver)*100))])
+
+pymakeOption( name = 'python23',
+              description = 'the installed version of python is 2.3.X',
+              cpp_definitions = ['PL_PYTHON_VERSION=230'])
+
+pymakeOption( name = 'python24',
+              description = 'the installed version of python is 2.4.X',
+              cpp_definitions = ['PL_PYTHON_VERSION=240'] )
+pymakeOption( name = 'python25',
+              description = 'the installed version of python is 2.5.X',
+              cpp_definitions = ['PL_PYTHON_VERSION=250'] )
+pymakeOption( name = 'nopython',
+              description = 'compile w/o python')
+
+cpp_variables += ['PL_PYTHON_VERSION']
+
+#####  Error Behavior  ######################################################
+
+# Not used any more, 'USE_EXCEPTIONS' is defined earlier in this file.
+# ###
+# # Declaration of error-handling options
+#                                    
+# pymakeOption( name = 'throwerrors',
+#               description = 'defines the USE_EXCEPTIONS flag so that PLERROR throws an exception (?)',
+#               cpp_definitions = ['USE_EXCEPTIONS'] )
+#
+# pymakeOption( name = 'exiterrors',
+#               description = 'PLERROR will not throw exceptions, but write the error message and exit' )
+
+
+#####  Mathematical Libraries  ##############################################
+
+lapack_linkeroptions = '-llapack'
+blas_linkeroptions   = '-lblas'
+
+# Jasmin : In OS X, there is a framework with blas and lapack
+if platform=='darwin':
+    blas_linkeroptions = '-framework vecLib'
+    lapack_linkeroptions = ''
+
+pymakeOption( name = 'noblas',
+              description = 'compilation without BLAS',
+              )
+
+pymakeOption( name = 'blas',
+              description = 'compilation with BLAS',
+              cpp_definitions = ['USE_BLAS_SPECIALISATIONS']
+              )
+
+cpp_variables += ['USE_BLAS_SPECIALISATIONS']
+
+pymakeLinkOption( name = 'defblas',
+              description = 'linking with default BLAS',
+              linkeroptions = lapack_linkeroptions + ' ' + blas_linkeroptions
+              )
+
+pymakeLinkOption( name = 'nolibblas',
+              description = 'linking without BLAS',
+              )
+if 'noblas' in optionargs and not 'nolibblas' in optionargs:
+    optionargs.append('nolibblas')
+
+pymakeLinkOption( name = 'pentiumblas',
+              description = 'linking BLAS for Intel Pentium processor',
+              linkeroptions = '-L' + libdir +'/intelmkl/lib/32 -lmkl -lvml -lpthread -lg2c' )
+
+pymakeLinkOption( name = 'p3blas',
+              description = 'linking BLAS for Intel Pentium 3 processor',
+              linkeroptions = '-L'+ libdir + '/intelmkl/lib/32 -lmkl_p3 -lmkl_vml_p3 -lpthread -lg2c' )
+
+pymakeLinkOption( name = 'athlonblas',
+              description = 'linking atlas BLAS for AMD Athlon processor',
+              linkeroptions = '-L' + libdir + '/atlas_athlon256 -lcblas -lf77blas -latlas -lg2c' )
+
+pymakeLinkOption( name = 'p4blas',
+              description = 'linking BLAS for Intel Pentium 4 processor',
+              linkeroptions = '-L' + libdir + '/intelmkl/lib/32 -lmkl_p4 -lmkl_vml_p4 -lpthread -lg2c' )
+
+pymakeLinkOption( name = 'mammouthblas',
+              description = 'linking BLAS for P4 Mammouth-Serie cluster',
+              linkeroptions = '-L/opt/mkl/lib/32 -lmkl_p4 -lmkl_vml_p4 -lpthread -lmkl_lapack' )
+
+pymakeLinkOption( name = 'veclib',
+              description = "Apple's vecLib library, a version of the BLAS library for the G4 and G5 under OS X",
+              linkeroptions = '-framework vecLib' )
+
+pymakeLinkOption( name = 'scs',
+              description = "BLAS and lapack intel super optimized library",
+              linkeroptions = '-lscs -lpthread' )
+
+pymakeLinkOption( name = 'goto',
+              description = 'linking using GOTO lib for BLAS',
+              linkeroptions = '-L' + libdir +'goto -llapack -lgoto -lgfortran'
+              )
+
+## We must link again the static version of lapack as the dynamic version is linked again the default version of blas
+## and we don't want to link again it. Also, we must remove fonction from lapack as some of them are also in GOTO
+pymakeLinkOption( name = 'lisa',
+              description = 'linking using recommended BLAS at LISA laboratory',
+              linkeroptions = '-L' + libdir +'goto -llapack -lgoto -lgfortran'
+              #lapack_for_goto.a is currently bugged
+              #linkeroptions = '-L' + libdir +'goto /u/lisa/local/'+target_platform+'/lib/lapack_for_goto.a  -lgoto -lpthread -lgfortran -lg2c'
+              )
+
+
+
+#####  Logging Behavior  ####################################################
+
+## NOTE: These options control the compile-time verbosity level associated
+## with PL_Logs.  See the file <plearn/io/pl_log.h> for details on logging.
+## By default, all logging messages are enabled in the compiled stream,
+## except "extremely-detailed" ones.
+
+pymakeOption( name            = 'logging=mand',
+              description     = 'Compile-time enable MANDATORY log messages',
+              cpp_definitions = ['PL_LOG_VERBOSITY=0'] )
+
+pymakeOption( name            = 'logging=imp',
+              description     = 'Compile-time enable IMPORTANT (or better) log messages',
+              cpp_definitions = ['PL_LOG_VERBOSITY=1'] )
+
+pymakeOption( name            = 'logging=normal',
+              description     = 'Compile-time enable NORMAL (or better) log messages',
+              cpp_definitions = ['PL_LOG_VERBOSITY=5'] )
+
+pymakeOption( name            = 'logging=dbg',
+              description     = 'Compile-time enable DEBUG (or better) log messages',
+              cpp_definitions = ['PL_LOG_VERBOSITY=10'] )
+
+pymakeOption( name            = 'logging=extreme',
+              description     = 'Compile-time enable EXTREME (or better) log messages',
+              cpp_definitions = ['PL_LOG_VERBOSITY=500'] )
+
+pymakeOption( name            = 'logging=dbg-profile',
+              description     = 'Compile-time enable DEBUG (or better) and profiling with PL_PROFILE log messages',
+              cpp_definitions = ['PL_LOG_VERBOSITY=10', 'PL_PROFILE']
+              )
+
+cpp_variables += ['PL_LOG_VERBOSITY', 'PL_PROFILE']
+
+
+#####  Python NUMARRAY vs NumPy  ########################################
+
+pymakeOption( name = 'numarray',
+              description = 'use numarray arrays',
+              cpp_definitions = ['PL_USE_NUMARRAY'] )
+pymakeOption( name = 'numpy',
+              description = 'use numpy arrays',
+              cpp_definitions = ['PL_USE_NUMPY'] )
+
+cpp_variables += ['PL_USE_NUMARRAY', 'PL_USE_NUMPY']
+
+#####  Network Setup  #######################################################
+
+# nprocesses_on_localhost = 1
+
+# ###
+# # Declaration of other options
+# pymakeOption( name = 'spc',
+#               description = 'Use of Smart Parallel Compilation')
