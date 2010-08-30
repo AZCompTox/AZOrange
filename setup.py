@@ -753,16 +753,17 @@ class installerClass:
 
         # Copy the test directory
         os.system("cp -r "+os.path.join(self.rootDir, "tests")+" "+self.orangeInstallDir)
-        #Expand profiling Data 
-        #Dir of dataSets used by profiling tools
-        dataDir = os.path.realpath(os.path.join(self.orangeInstallDir,'tests','profiling','dataSets'))
-        # Zipped file containing the full set of datasets for profiling
-        ZippedData=os.path.realpath(os.path.join(dataDir,'profilingDataSuite.tar.gz'))
-        #Dir where the original datasets are going to be unzipped
-        fullTrunkDir=os.path.join(dataDir,'fullTrunk')
-        os.system("rm -rf " + fullTrunkDir)
-        os.system("mkdir -p " + fullTrunkDir)
-        os.system("tar xfz " + ZippedData + " -C " + fullTrunkDir)
+        #Expand profiling Data
+        if not self.OpenInstallation: 
+            #Dir of dataSets used by profiling tools
+            dataDir = os.path.realpath(os.path.join(self.orangeInstallDir,'tests','profiling','dataSets'))
+            # Zipped file containing the full set of datasets for profiling
+            ZippedData=os.path.realpath(os.path.join(dataDir,'profilingDataSuite.tar.gz'))
+            #Dir where the original datasets are going to be unzipped
+            fullTrunkDir=os.path.join(dataDir,'fullTrunk')
+            os.system("rm -rf " + fullTrunkDir)
+            os.system("mkdir -p " + fullTrunkDir)
+            os.system("tar xfz " + ZippedData + " -C " + fullTrunkDir)
 
 
 
