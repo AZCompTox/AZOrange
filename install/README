@@ -1,0 +1,15 @@
+1) Run the install script:
+        
+      python install.py
+
+   The logs of the installation and testing will be placed where you defined in the setup.ini file.
+
+
+
+4) After successful installation, you can use the profileSample created inside this same install dir to run AZOrange by running the following commands:
+
+      source templateProfile 
+      azorange
+
+
+
