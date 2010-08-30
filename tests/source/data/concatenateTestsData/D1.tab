@@ -1,0 +1,18 @@
+Attr1	Attr2	Attr3	Attr6	Attr4	Activity
+c	c	d	c	c	d
+					class
+1	4	YES	5	1.1	NEG
+2	6	NO	4	2	NEG
+1	8	YES	3	4	NEG
+1	8	YES	3	4	NEG
+1	8	YES	3	4	NEG
+8	5	NO	2	5.5	NEG
+8	5	NO	2	5.5	NEG
+8	5	NO	2	5.5	NEG
+8	5	NO	2	5.5	NEG
+8	5	NO	2	5.5	NEG
+1	6	YES	5	1	NEG
+1	6	YES	5	1	NEG
+1	7	6	4	1	NEG
+1	7	6	4	1	NEG
+1	7	6	4	1	NEG

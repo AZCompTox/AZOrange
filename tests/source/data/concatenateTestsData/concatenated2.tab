@@ -1,0 +1,33 @@
+Attr3	Attr4	Activity
+NO 6 YES	continuous	NEG POS
+		class
+?	5.0	POS
+?	4.4	POS
+?	?	POS
+?	2.0	NEG
+?	5.0	POS
+?	4.0	POS
+YES	1.1	NEG
+NO	2.0	NEG
+YES	4.0	NEG
+YES	4.0	NEG
+YES	4.0	NEG
+NO	5.5	NEG
+NO	5.5	NEG
+NO	5.5	NEG
+NO	5.5	NEG
+NO	5.5	NEG
+YES	1.0	NEG
+YES	1.0	NEG
+6	1.0	NEG
+6	1.0	NEG
+6	1.0	NEG
+YES	1.1	?
+NO	2.0	?
+YES	4.0	?
+YES	4.0	?
+YES	4.0	?
+YES	1.0	?
+6	1.0	?
+6	1.0	?
+6	1.0	?

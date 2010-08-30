@@ -1,0 +1,33 @@
+Attr1	Attr2	Attr3	Attr6	Attr4	Activity
+continuous	continuous	NO 6 YES	continuous	continuous	NEG POS
+					class
+1	4	YES	5	1.1	NEG
+2	6	NO	4	2.0	NEG
+1	8	YES	3	4.0	NEG
+1	8	YES	3	4.0	NEG
+1	8	YES	3	4.0	NEG
+8	5	NO	2	5.5	NEG
+8	5	NO	2	5.5	NEG
+8	5	NO	2	5.5	NEG
+8	5	NO	2	5.5	NEG
+8	5	NO	2	5.5	NEG
+1	6	YES	5	1.0	NEG
+1	6	YES	5	1.0	NEG
+1	7	6	4	1.0	NEG
+1	7	6	4	1.0	NEG
+1	7	6	4	1.0	NEG
+1	?	?	?	5.0	POS
+2	?	?	?	4.4	POS
+?	?	?	?	?	POS
+?	?	?	?	2.0	NEG
+?	?	?	?	5.0	POS
+1	?	?	?	4.0	POS
+?	4	YES	5	1.1	?
+?	6	NO	4	2.0	?
+?	8	YES	3	4.0	?
+?	8	YES	3	4.0	?
+?	8	YES	3	4.0	?
+?	6	YES	5	1.0	?
+?	7	6	4	1.0	?
+?	7	6	4	1.0	?
+?	7	6	4	1.0	?
