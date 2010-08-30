@@ -1,0 +1,102 @@
+;Install configuration file for AZOrange
+
+[Repository]
+;method for repositories interaction: "yes" "no"
+repoInteraction = yes
+;repository is the URL for the root place where all source code is (the complete Path of the repo where setup.py is placed)
+repository = git@github.com:AZCompTox/AZOrange.git
+
+[Paths]
+;Always use full paths. 
+;OBS Never make trunk and build dir the same. Recompiling is done in buildDir which is kept with preCleanBuildDir = No
+BuildDir = /tmp/AZOBuildDir
+;For developer Install Type, you can leave installDir blank
+installDir = 
+
+
+[Installation]
+;Type of installation: "system" or "developer"
+;System: Checkout to trunk, Build, install.
+;developer: Checkout to trunk, build, install on same trunkDir (will not use installDir)
+InstallType = developer
+;When installing using only the open source repository, set next option to True
+OpenInstallation = True
+;Clean actions before starting installation procedure. "Yes" or "No"
+;The "NO" is mandatory, but the "Yes" still depends on other options. 
+preCleanBuildDir = yes
+preCleanInstallDir = no
+
+;Clean actions after installation. "Yes" or "No"
+;For system installation, removes trunk and build dir after installation
+;For developer installation, removes build dir after the installation
+CleanInstallCache = No
+;relative paths are related to the current install dir
+LogFile = ./install.log
+DetailsLogFile = ./details.log
+;The templateProfileFile will also be always placed in root of installDir in a
+; system installation or in the root of trunkDir in a developer installation as well as in the current dir
+TemplateProfileFile = ./templateProfile
+
+
+[Tests]
+;Run the tests in test suite after install: Yes or No
+RunTestsAfterInstall = No
+;Script inside the tests directory to run
+TestScript = runOpenTests.sh
+;relative paths are related to the current install dir
+LogFile = ./tests.log
+DetailsLogFile = ./testDetails.log
+
+
+[EnvVars]
+;The Env Vars can be added in this section as needed
+;These envVars will be added to the TemplateProfileFile
+CFLAGS = -fPIC
+
+;EnvVas required by some orangeDependencies Makefile
+;Python include Dir
+INCLUDE_DIR = /usr/include/python%PYTHON_VER%
+;Python lib full path (ex: .../libpython2.6.a)
+PYTHONLIB = /usr/lib/python%PYTHON_VER%/config/libpython%PYTHON_VER%.a
+;Python executable
+PYTHON = /usr/bin/python%PYTHON_VER%
+
+
+[LocalSetupVars]
+;the var names MUST be in CAPITALS!
+;Do not use localVars within this section
+PYTHON_VER = 2.6
+
+[Advanced]
+;Platform Type can be workstation or something else like for instance cluster if you want separate types of installations.
+PlatformType = workstation
+;include in the template profile the source of the files in the option "sources" (comma separated files) 
+; Use just if needed. For example, when we need to load modules it might be needed to use the following option
+;sources = /etc/profile.d/modules.csh
+
+;If the optimizer tests are failing, it might be necessary this option
+;gcc module to be used only when compiling appspack  
+GCCmoduleForAppspackMPI = None
+
+
+[Dependencies]
+;Syntax:  
+;   DependencyName = FileURL|SVNURL[,VersionNumber|RevNumber][,*]
+;
+;If RevNum, in SVN cases, is not provided, the SVN HEAD will be used
+;If dependency not specified or is empty, it will not use the dependency at all. 
+;    It must be somehow already installed or being loaded by modules
+;If the third argument * is present, the respective dependency will not be built and it will use a previous installed one.
+;    It must already have been installed in a previous azorange full installation (without *) 
+orange = http://www.ailab.si/svn/orange/trunk,8893
+appspack = http://software.sandia.gov/appspack/downloads/appspack-5.0.1.tar.gz,5.0.1
+boost = http://downloads.sourceforge.net/project/boost/boost/1.34.1/boost_1_34_1.tar.gz,1.34.1
+opencv = http://downloads.sourceforge.net/project/opencvlibrary/opencv-unix/2.0/OpenCV-2.0.0.tar.bz2,2.0.0
+plearn = svn://svn.berlios.de/plearn/trunk,8124
+
+
+[FeedBack]
+;For sending reports to multiple accounts, separate them by comma
+supportEmails = 
+
+
