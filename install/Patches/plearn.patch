@@ -1,0 +1,238 @@
+diff -crBN AZOTrunkDir/orangeDependencies/src/plearn-1.0/plearn/base/pl_hash_fun.h AZOrange/orangeDependencies/src/plearn/plearn/base/pl_hash_fun.h
+*** AZOTrunkDir/orangeDependencies/src/plearn-1.0/plearn/base/pl_hash_fun.h	2005-10-26 20:14:20.851185000 +0100
+--- AZOrange/orangeDependencies/src/plearn/plearn/base/pl_hash_fun.h	2010-06-15 10:55:03.027767714 +0100
+***************
+*** 37,42 ****
+--- 37,43 ----
+  
+  #include "ms_hash_wrapper.h"
+  #include <string>
++ #include <cstring>
+  
+  namespace PLearn {
+  
+diff -crBN AZOTrunkDir/orangeDependencies/src/plearn-1.0/plearn/io/MatIO.cc AZOrange/orangeDependencies/src/plearn/plearn/io/MatIO.cc
+*** AZOTrunkDir/orangeDependencies/src/plearn-1.0/plearn/io/MatIO.cc	2006-05-23 22:31:10.832832000 +0100
+--- AZOrange/orangeDependencies/src/plearn/plearn/io/MatIO.cc	2010-06-15 10:55:03.075736879 +0100
+***************
+*** 159,165 ****
+  void loadVec(const string& file_name, TVec<float>& vec)
+  {
+      const char* filename = file_name.c_str();
+!     char* suffix = strrchr(filename,'.');
+      if (!suffix || strcmp(suffix,".avec")==0)
+          loadAscii(file_name, vec);
+      else if (strcmp(suffix,".pvec")==0 || strcmp(suffix,".lpvec")==0 || strcmp(suffix,".bpvec")==0)
+--- 159,165 ----
+  void loadVec(const string& file_name, TVec<float>& vec)
+  {
+      const char* filename = file_name.c_str();
+!     const char* suffix = strrchr(filename,'.');
+      if (!suffix || strcmp(suffix,".avec")==0)
+          loadAscii(file_name, vec);
+      else if (strcmp(suffix,".pvec")==0 || strcmp(suffix,".lpvec")==0 || strcmp(suffix,".bpvec")==0)
+***************
+*** 171,177 ****
+  void loadVec(const string& file_name, TVec<double>& vec)
+  {
+      const char* filename = file_name.c_str();
+!     char* suffix = strrchr(filename,'.');
+      if (!suffix || strcmp(suffix,".avec")==0)
+          loadAscii(file_name, vec);
+      else if (strcmp(suffix,".pvec")==0 || strcmp(suffix,".lpvec")==0 || strcmp(suffix,".bpvec")==0)
+--- 171,177 ----
+  void loadVec(const string& file_name, TVec<double>& vec)
+  {
+      const char* filename = file_name.c_str();
+!     const char* suffix = strrchr(filename,'.');
+      if (!suffix || strcmp(suffix,".avec")==0)
+          loadAscii(file_name, vec);
+      else if (strcmp(suffix,".pvec")==0 || strcmp(suffix,".lpvec")==0 || strcmp(suffix,".bpvec")==0)
+diff -crBN AZOTrunkDir/orangeDependencies/src/plearn-1.0/plearn/io/pl_io.h AZOrange/orangeDependencies/src/plearn/plearn/io/pl_io.h
+*** AZOTrunkDir/orangeDependencies/src/plearn-1.0/plearn/io/pl_io.h	2006-10-25 20:05:45.959687000 +0100
+--- AZOrange/orangeDependencies/src/plearn/plearn/io/pl_io.h	2010-06-15 10:55:03.071736370 +0100
+***************
+*** 48,53 ****
+--- 48,55 ----
+  #ifndef pl_io_INC
+  #define pl_io_INC
+  
++ #include <cstring>
++ #include <cstdio>
+  #include <iostream>
+  #include <map>
+  #include <plearn/math/pl_math.h>        //!< For 'real'.
+diff -crBN AZOTrunkDir/orangeDependencies/src/plearn-1.0/plearn/io/pl_nullstreambuf.h AZOrange/orangeDependencies/src/plearn/plearn/io/pl_nullstreambuf.h
+*** AZOTrunkDir/orangeDependencies/src/plearn-1.0/plearn/io/pl_nullstreambuf.h	2005-08-25 14:35:03.325331000 +0100
+--- AZOrange/orangeDependencies/src/plearn/plearn/io/pl_nullstreambuf.h	2010-06-15 10:55:03.071736370 +0100
+***************
+*** 32,38 ****
+  // This file is part of the PLearn library. For more information on the PLearn
+  // library, go to the PLearn Web site at www.plearn.org
+  
+! 
+  #ifndef pl_nullstreambuf_INC
+  #define pl_nullstreambuf_INC
+  
+--- 32,38 ----
+  // This file is part of the PLearn library. For more information on the PLearn
+  // library, go to the PLearn Web site at www.plearn.org
+  
+! #include <cstdio>
+  #ifndef pl_nullstreambuf_INC
+  #define pl_nullstreambuf_INC
+  
+diff -crBN AZOTrunkDir/orangeDependencies/src/plearn-1.0/plearn/io/pl_streambuf.h AZOrange/orangeDependencies/src/plearn/plearn/io/pl_streambuf.h
+*** AZOTrunkDir/orangeDependencies/src/plearn-1.0/plearn/io/pl_streambuf.h	2005-08-25 14:35:03.325331000 +0100
+--- AZOrange/orangeDependencies/src/plearn/plearn/io/pl_streambuf.h	2010-06-15 10:55:03.075736879 +0100
+***************
+*** 45,50 ****
+--- 45,51 ----
+  
+  //#include <iosfwd>
+  #include <iostream>
++ #include <cstdio>
+  //#include "plerror.h"
+  #include <plearn/base/PP.h>
+  
+diff -crBN AZOTrunkDir/orangeDependencies/src/plearn-1.0/plearn/io/PStreamBuf.h AZOrange/orangeDependencies/src/plearn/plearn/io/PStreamBuf.h
+*** AZOTrunkDir/orangeDependencies/src/plearn-1.0/plearn/io/PStreamBuf.h	2007-02-22 21:05:50.063884000 +0000
+--- AZOrange/orangeDependencies/src/plearn/plearn/io/PStreamBuf.h	2010-06-15 10:55:03.071736370 +0100
+***************
+*** 40,45 ****
+--- 40,46 ----
+  #ifndef PStreamBuf_INC
+  #define PStreamBuf_INC
+  
++ #include <cstdio>
+  #include <plearn/base/PP.h>
+  
+  namespace PLearn {
+diff -crBN AZOTrunkDir/orangeDependencies/src/plearn-1.0/plearn/io/PStream.h AZOrange/orangeDependencies/src/plearn/plearn/io/PStream.h
+*** AZOTrunkDir/orangeDependencies/src/plearn-1.0/plearn/io/PStream.h	2007-08-09 21:54:37.002951000 +0100
+--- AZOrange/orangeDependencies/src/plearn/plearn/io/PStream.h	2010-06-15 10:55:03.071736370 +0100
+***************
+*** 38,43 ****
+--- 38,45 ----
+  #ifndef PStream_INC
+  #define PStream_INC
+  
++ #include <cstring>
++ #include <limits>
+  #include <map>
+  #include <set>
+  #include <sstream>
+diff -crBN AZOTrunkDir/orangeDependencies/src/plearn-1.0/pymake.config.model AZOrange/orangeDependencies/src/plearn/pymake.config.model
+*** AZOTrunkDir/orangeDependencies/src/plearn-1.0/pymake.config.model	2007-08-30 21:07:39.423700000 +0100
+--- AZOrange/orangeDependencies/src/plearn/pymake.config.model	2010-06-15 10:55:03.175736473 +0100
+***************
+*** 513,521 ****
+  #####  Compiler-Related Options  ############################################
+  
+  if target_platform=='linux-i386':
+!     gcc_opt_options = '-mmmx -msse -mfpmath=sse -march=i686'
+  else:
+!     gcc_opt_options = ''
+  
+  pedantic_mode = ' -pedantic '
+  if platform=='darwin':
+--- 513,522 ----
+  #####  Compiler-Related Options  ############################################
+  
+  if target_platform=='linux-i386':
+!     #scPA  Added the option -fpermissive for compatibility with new compilers
+!     gcc_opt_options = '-mmmx -msse -mfpmath=sse -march=i686 -fpermissive'
+  else:
+!     gcc_opt_options = '-fpermissive'
+  
+  pedantic_mode = ' -pedantic '
+  if platform=='darwin':
+*** AZOTrunkDir/orangeDependencies/src/plearn-1.0/plearn/vmat/ShiftAndRescaleVMatrix.h	2010-08-23 17:20:09.000000000 +0200
+--- AZOrange/orangeDependencies/src/plearn-1.0/plearn/vmat/ShiftAndRescaleVMatrix.h	2010-08-23 17:19:58.000000000 +0200
+***************
+*** 94,100 ****
+                             int the_n_inputs,
+                             int the_n_train,
+                             bool the_ignore_missing = false,
+!                            bool the_verbosity = 1,
+                             bool call_build_=true);
+  
+      PLEARN_DECLARE_OBJECT(ShiftAndRescaleVMatrix);
+--- 94,100 ----
+                             int the_n_inputs,
+                             int the_n_train,
+                             bool the_ignore_missing = false,
+!                            bool the_verbosity = 0,
+                             bool call_build_=true);
+  
+      PLEARN_DECLARE_OBJECT(ShiftAndRescaleVMatrix);
+*** AZOTrunkDir/orangeDependencies/src/plearn-1.0/plearn/vmat/ShiftAndRescaleVMatrix.cc	2010-08-23 17:21:46.000000000 +0200
+--- AZOrange/orangeDependencies/src/plearn-1.0/plearn/vmat/ShiftAndRescaleVMatrix.cc	2010-08-23 17:20:43.000000000 +0200
+***************
+*** 65,71 ****
+        n_inputs(-1),
+        negate_shift(false),
+        no_scale(false),
+!       verbosity(1)
+  {
+      if( call_build_ )
+          build_();
+--- 65,71 ----
+        n_inputs(-1),
+        negate_shift(false),
+        no_scale(false),
+!       verbosity(0)
+  {
+      if( call_build_ )
+          build_();
+***************
+*** 82,88 ****
+        n_inputs(-1),
+        negate_shift(false),
+        no_scale(false),
+!       verbosity(1)
+  {
+      if( call_build_ )
+          build_();
+--- 82,88 ----
+        n_inputs(-1),
+        negate_shift(false),
+        no_scale(false),
+!       verbosity(0)
+  {
+      if( call_build_ )
+          build_();
+***************
+*** 102,108 ****
+        n_inputs(-1),
+        negate_shift(false),
+        no_scale(false),
+!       verbosity(1)
+  {
+      if( call_build_ )
+          build_();
+--- 102,108 ----
+        n_inputs(-1),
+        negate_shift(false),
+        no_scale(false),
+!       verbosity(0)
+  {
+      if( call_build_ )
+          build_();
+***************
+*** 123,129 ****
+        n_inputs(the_n_inputs),
+        negate_shift(false),
+        no_scale(false),
+!       verbosity(1)
+  {
+      if( call_build_ )
+          build_();
+--- 123,129 ----
+        n_inputs(the_n_inputs),
+        negate_shift(false),
+        no_scale(false),
+!       verbosity(0)
+  {
+      if( call_build_ )
+          build_();

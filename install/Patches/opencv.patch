@@ -1,0 +1,458 @@
+diff -crBN AZOrange/orangeDependencies/src/opencv-2.0.0/include/opencv/ml.h AZOrangeExported/orangeDependencies/src/opencv-2.0.0/include/opencv/ml.h
+*** AZOrange/orangeDependencies/src/opencv-2.0.0/include/opencv/ml.h	2009-10-01 01:20:57.000000000 +0100
+--- AZOrangeExported/orangeDependencies/src/opencv-2.0.0/include/opencv/ml.h	2010-02-22 15:14:04.331775000 +0000
+***************
+*** 1035,1042 ****
+                          const CvMat* _responses, const CvMat* _var_idx=0,
+                          const CvMat* _sample_idx=0, const CvMat* _var_type=0,
+                          const CvMat* _missing_mask=0,
+!                         CvDTreeParams params=CvDTreeParams() );
+! 
+      virtual bool train( CvDTreeTrainData* _train_data, const CvMat* _subsample_idx );
+      virtual void read( CvFileStorage* fs, CvFileNode* node );
+      virtual void read( CvFileStorage* fs, CvFileNode* node,
+--- 1035,1041 ----
+                          const CvMat* _responses, const CvMat* _var_idx=0,
+                          const CvMat* _sample_idx=0, const CvMat* _var_type=0,
+                          const CvMat* _missing_mask=0,
+!                         CvDTreeParams params=CvDTreeParams());
+      virtual bool train( CvDTreeTrainData* _train_data, const CvMat* _subsample_idx );
+      virtual void read( CvFileStorage* fs, CvFileNode* node );
+      virtual void read( CvFileStorage* fs, CvFileNode* node,
+***************
+*** 1084,1105 ****
+  public:
+      CvRTrees();
+      virtual ~CvRTrees();
+      virtual bool train( const CvMat* _train_data, int _tflag,
+                          const CvMat* _responses, const CvMat* _var_idx=0,
+                          const CvMat* _sample_idx=0, const CvMat* _var_type=0,
+                          const CvMat* _missing_mask=0,
+!                         CvRTParams params=CvRTParams() );
+!     
+      virtual bool train( CvMLData* data, CvRTParams params=CvRTParams() );
+      virtual float predict( const CvMat* sample, const CvMat* missing = 0 ) const;
+      virtual float predict_prob( const CvMat* sample, const CvMat* missing = 0 ) const;
+  
+  #ifndef SWIG
+      virtual bool train( const cv::Mat& _train_data, int _tflag,
+                         const cv::Mat& _responses, const cv::Mat& _var_idx=cv::Mat(),
+                         const cv::Mat& _sample_idx=cv::Mat(), const cv::Mat& _var_type=cv::Mat(),
+                         const cv::Mat& _missing_mask=cv::Mat(),
+!                        CvRTParams params=CvRTParams() );
+      virtual float predict( const cv::Mat& sample, const cv::Mat& missing = cv::Mat() ) const;
+      virtual float predict_prob( const cv::Mat& sample, const cv::Mat& missing = cv::Mat() ) const;
+  #endif
+--- 1083,1107 ----
+  public:
+      CvRTrees();
+      virtual ~CvRTrees();
++     //scPA  Added the parameters cls_count and priorsStr
+      virtual bool train( const CvMat* _train_data, int _tflag,
+                          const CvMat* _responses, const CvMat* _var_idx=0,
+                          const CvMat* _sample_idx=0, const CvMat* _var_type=0,
+                          const CvMat* _missing_mask=0,
+!                         CvRTParams params=CvRTParams(),const int cls_count = 0, char* priorsStr = NULL);
+!     //ecPA
+      virtual bool train( CvMLData* data, CvRTParams params=CvRTParams() );
+      virtual float predict( const CvMat* sample, const CvMat* missing = 0 ) const;
+      virtual float predict_prob( const CvMat* sample, const CvMat* missing = 0 ) const;
+  
+  #ifndef SWIG
++     //scPA  Added the parameters cls_count and priorsStr
+      virtual bool train( const cv::Mat& _train_data, int _tflag,
+                         const cv::Mat& _responses, const cv::Mat& _var_idx=cv::Mat(),
+                         const cv::Mat& _sample_idx=cv::Mat(), const cv::Mat& _var_type=cv::Mat(),
+                         const cv::Mat& _missing_mask=cv::Mat(),
+!                        CvRTParams params=CvRTParams(), const int cls_count = 0, char*  priorsStr=NULL );
+!     //ecPA
+      virtual float predict( const cv::Mat& sample, const cv::Mat& missing = cv::Mat() ) const;
+      virtual float predict_prob( const cv::Mat& sample, const cv::Mat& missing = cv::Mat() ) const;
+  #endif
+diff -crBN AZOrange/orangeDependencies/src/opencv-2.0.0/interfaces/swig/python/_ml.cpp AZOrangeExported/orangeDependencies/src/opencv-2.0.0/interfaces/swig/python/_ml.cpp
+*** AZOrange/orangeDependencies/src/opencv-2.0.0/interfaces/swig/python/_ml.cpp	2009-10-01 01:20:56.000000000 +0100
+--- AZOrangeExported/orangeDependencies/src/opencv-2.0.0/interfaces/swig/python/_ml.cpp	2010-02-22 15:14:04.331775000 +0000
+***************
+*** 32824,32829 ****
+--- 32824,32833 ----
+    CvMat *arg7 = (CvMat *) 0 ;
+    CvMat *arg8 = (CvMat *) 0 ;
+    CvRTParams arg9 ;
++ //scPA
++   int arg10;
++   char *arg11 = (char *) 0 ;
++ //ecPA
+    void *argp1 = 0 ;
+    int res1 = 0 ;
+    bool freearg2 = false ;
+***************
+*** 32836,32841 ****
+--- 32840,32853 ----
+    bool freearg8 = false ;
+    void *argp9 ;
+    int res9 = 0 ;
++ //scPA
++   int val10;
++   int res10 = 0 ;
++   int val11;
++   int res11 = 0 ;
++   char *buf11 = 0 ;
++   int alloc11 = 0 ;
++ //ecPA
+    PyObject * obj0 = 0 ;
+    PyObject * obj1 = 0 ;
+    PyObject * obj2 = 0 ;
+***************
+*** 32845,32853 ****
+    PyObject * obj6 = 0 ;
+    PyObject * obj7 = 0 ;
+    PyObject * obj8 = 0 ;
+    bool result;
+!   
+!   if (!PyArg_ParseTuple(args,(char *)"OOOOOOOOO:CvRTrees_train",&obj0,&obj1,&obj2,&obj3,&obj4,&obj5,&obj6,&obj7,&obj8)) SWIG_fail;
+    res1 = SWIG_ConvertPtr(obj0, &argp1,SWIGTYPE_p_CvRTrees, 0 |  0 );
+    if (!SWIG_IsOK(res1)) {
+      SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "CvRTrees_train" "', argument " "1"" of type '" "CvRTrees *""'"); 
+--- 32857,32870 ----
+    PyObject * obj6 = 0 ;
+    PyObject * obj7 = 0 ;
+    PyObject * obj8 = 0 ;
++ //scPA
++   PyObject * obj9 = 0 ;
++   PyObject * obj10 = 0 ;
++ //ecPA
++ 
+    bool result;
+! //scPA Added 2 parameters OO....obj9,&obj10  
+!   if (!PyArg_ParseTuple(args,(char *)"OOOOOOOOOOO:CvRTrees_train",&obj0,&obj1,&obj2,&obj3,&obj4,&obj5,&obj6,&obj7,&obj8,&obj9,&obj10)) SWIG_fail;
+    res1 = SWIG_ConvertPtr(obj0, &argp1,SWIGTYPE_p_CvRTrees, 0 |  0 );
+    if (!SWIG_IsOK(res1)) {
+      SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "CvRTrees_train" "', argument " "1"" of type '" "CvRTrees *""'"); 
+***************
+*** 32889,32897 ****
+        if (SWIG_IsNewObj(res9)) delete temp;
+      }
+    }
+    {
+      try {
+!       result = (bool)(arg1)->train((CvMat const *)arg2,arg3,(CvMat const *)arg4,(CvMat const *)arg5,(CvMat const *)arg6,(CvMat const *)arg7,(CvMat const *)arg8,arg9); 
+      } 
+      catch (...) 
+      {
+--- 32906,32930 ----
+        if (SWIG_IsNewObj(res9)) delete temp;
+      }
+    }
++   //scPA
++   res10 = SWIG_AsVal_int(obj9, &val10);
++   if (!SWIG_IsOK(res10)) {
++     SWIG_exception_fail(SWIG_ArgError(res10), "in method '" "CvRTrees_train" "', argument " "10"" of type '" "int""'");
++   }
++   arg10 = static_cast< int >(val10);
++ 
++   res11 = SWIG_AsCharPtrAndSize(obj10, &buf11, NULL, &alloc11);
++   if (!SWIG_IsOK(res11)) {
++     SWIG_exception_fail(SWIG_ArgError(res11), "in method '" "CvRTrees_train" "', argument " "11"" of type '" "char const *""'");
++   }
++   arg11 = reinterpret_cast< char * >(buf11);
++   //ecPA
+    {
+      try {
+!       //scPA - Added 2 parameters
+!       result = (bool)(arg1)->train((CvMat const *)arg2,arg3,(CvMat const *)arg4,(CvMat const *)arg5,(CvMat const *)arg6,(CvMat const *)arg7,(CvMat const *)arg8,arg9,arg10,arg11);
+!       //ecPA
+!     //result = (bool)(arg1)->train((CvMat const *)arg2,arg3,(CvMat const *)arg4,(CvMat const *)arg5,(CvMat const *)arg6,(CvMat const *)arg7,(CvMat const *)arg8,arg9); 
+      } 
+      catch (...) 
+      {
+***************
+*** 33629,33640 ****
+  
+  SWIGINTERN PyObject *_wrap_CvRTrees_train(PyObject *self, PyObject *args) {
+    int argc;
+!   PyObject *argv[10];
+    int ii;
+    
+    if (!PyTuple_Check(args)) SWIG_fail;
+    argc = (int)PyObject_Length(args);
+!   for (ii = 0; (ii < argc) && (ii < 9); ii++) {
+      argv[ii] = PyTuple_GET_ITEM(args,ii);
+    }
+    if (argc == 2) {
+--- 33662,33677 ----
+  
+  SWIGINTERN PyObject *_wrap_CvRTrees_train(PyObject *self, PyObject *args) {
+    int argc;
+!   //scPA   Added 2 oarameters: 10 -> 12
+!   PyObject *argv[12];
+!   //ecPA
+! 
+    int ii;
+    
+    if (!PyTuple_Check(args)) SWIG_fail;
+    argc = (int)PyObject_Length(args);
+!   //scPA  Added 2 for the iii lomit   //ecPA
+!   for (ii = 0; (ii < argc) && (ii < 11); ii++) {
+      argv[ii] = PyTuple_GET_ITEM(args,ii);
+    }
+    if (argc == 2) {
+***************
+*** 33844,33850 ****
+        }
+      }
+    }
+!   if (argc == 9) {
+      int _v;
+      void *vptr = 0;
+      int res = SWIG_ConvertPtr(argv[0], &vptr, SWIGTYPE_p_CvRTrees, 0);
+--- 33881,33888 ----
+        }
+      }
+    }
+!   //scPA argc == 9 -> added 2 parameters
+!   if (argc == 11) {
+      int _v;
+      void *vptr = 0;
+      int res = SWIG_ConvertPtr(argv[0], &vptr, SWIGTYPE_p_CvRTrees, 0);
+***************
+*** 33882,33888 ****
+                      int res = SWIG_ConvertPtr(argv[8], 0, SWIGTYPE_p_CvRTParams, 0);
+                      _v = SWIG_CheckState(res);
+                      if (_v) {
+!                       return _wrap_CvRTrees_train__SWIG_0(self, args);
+                      }
+                    }
+                  }
+--- 33920,33935 ----
+                      int res = SWIG_ConvertPtr(argv[8], 0, SWIGTYPE_p_CvRTParams, 0);
+                      _v = SWIG_CheckState(res);
+                      if (_v) {
+!                       int res = SWIG_AsVal_int(argv[9], NULL);
+!                       _v = SWIG_CheckState(res);
+!                       if (_v) {                        char *cptr = 0;
+!                         int alloc = 0;
+!                         int res = SWIG_AsCharPtrAndSize(argv[10], &cptr, NULL, &alloc);
+!                         _v = SWIG_CheckState(res);
+!                         if (_v) {
+!                           return _wrap_CvRTrees_train__SWIG_0(self, args);
+!                         }
+!                       }
+                      }
+                    }
+                  }
+***************
+*** 33893,33913 ****
+        }
+      }
+    }
+!   
+  fail:
+    SWIG_SetErrorMsg(PyExc_NotImplementedError,"Wrong number of arguments for overloaded function 'CvRTrees_train'.\n"
+      "  Possible C/C++ prototypes are:\n"
+!     "    train(CvRTrees *,CvMat const *,int,CvMat const *,CvMat const *,CvMat const *,CvMat const *,CvMat const *,CvRTParams)\n"
+      "    train(CvRTrees *,CvMat const *,int,CvMat const *,CvMat const *,CvMat const *,CvMat const *,CvMat const *)\n"
+      "    train(CvRTrees *,CvMat const *,int,CvMat const *,CvMat const *,CvMat const *,CvMat const *)\n"
+      "    train(CvRTrees *,CvMat const *,int,CvMat const *,CvMat const *,CvMat const *)\n"
+      "    train(CvRTrees *,CvMat const *,int,CvMat const *,CvMat const *)\n"
+!     "    train(CvRTrees *,CvMat const *,int,CvMat const *)\n"
+!     "    train(CvRTrees *,CvMLData *,CvRTParams)\n"
+!     "    train(CvRTrees *,CvMLData *)\n");
+    return NULL;
+  }
+  
+  
+  SWIGINTERN PyObject *_wrap_CvRTrees_predict__SWIG_0(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
+    PyObject *resultobj = 0;
+--- 33940,33960 ----
+        }
+      }
+    }
+! 
+  fail:
+    SWIG_SetErrorMsg(PyExc_NotImplementedError,"Wrong number of arguments for overloaded function 'CvRTrees_train'.\n"
+      "  Possible C/C++ prototypes are:\n"
+!     "    train(CvRTrees *,CvMat const *,int,CvMat const *,CvMat const *,CvMat const *,CvMat const *,CvMat const *,CvRTParams, const int cls_count, char * priorsStr)\n"
+      "    train(CvRTrees *,CvMat const *,int,CvMat const *,CvMat const *,CvMat const *,CvMat const *,CvMat const *)\n"
+      "    train(CvRTrees *,CvMat const *,int,CvMat const *,CvMat const *,CvMat const *,CvMat const *)\n"
+      "    train(CvRTrees *,CvMat const *,int,CvMat const *,CvMat const *,CvMat const *)\n"
+      "    train(CvRTrees *,CvMat const *,int,CvMat const *,CvMat const *)\n"
+!     "    train(CvRTrees *,CvMat const *,int,CvMat const *)\n");
+    return NULL;
+  }
+  
++ //ecPA
++ 
+  
+  SWIGINTERN PyObject *_wrap_CvRTrees_predict__SWIG_0(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
+    PyObject *resultobj = 0;
+diff -crBN AZOrange/orangeDependencies/src/opencv-2.0.0/src/highgui/cvcap_ffmpeg.cpp.rej AZOrangeExported/orangeDependencies/src/opencv-2.0.0/src/highgui/cvcap_ffmpeg.cpp.rej
+*** AZOrange/orangeDependencies/src/opencv-2.0.0/src/highgui/cvcap_ffmpeg.cpp.rej	2009-10-01 01:20:58.000000000 +0100
+--- AZOrangeExported/orangeDependencies/src/opencv-2.0.0/src/highgui/cvcap_ffmpeg.cpp.rej	1970-01-01 01:00:00.000000000 +0100
+***************
+*** 1,21 ****
+- ***************
+- *** 602,608 ****
+-       return &frame;
+-   }
+-   
+-   #define AV_NOPTS_VALUE_ ((int64_t)AV_NOPTS_VALUE)
+-   
+-   double CvCapture_FFMPEG::getProperty( int property_id )
+-   {
+- --- 602,612 ----
+-       return &frame;
+-   }
+-   
+- + #if defined(__APPLE__)
+- + #define AV_NOPTS_VALUE_ ((int64_t)0x8000000000000000LL)
+- + #else
+-   #define AV_NOPTS_VALUE_ ((int64_t)AV_NOPTS_VALUE)
+- + #endif
+-   
+-   double CvCapture_FFMPEG::getProperty( int property_id )
+-   {
+--- 0 ----
+diff -crBN AZOrange/orangeDependencies/src/opencv-2.0.0/src/ml/ml_inner_functions.cpp AZOrangeExported/orangeDependencies/src/opencv-2.0.0/src/ml/ml_inner_functions.cpp
+*** AZOrange/orangeDependencies/src/opencv-2.0.0/src/ml/ml_inner_functions.cpp	2009-10-01 01:20:59.000000000 +0100
+--- AZOrangeExported/orangeDependencies/src/opencv-2.0.0/src/ml/ml_inner_functions.cpp	2010-02-22 15:14:04.331775000 +0000
+***************
+*** 588,598 ****
+  
+      r_step = responses->step ? responses->step / CV_ELEM_SIZE(responses->type) : 1;
+  
+      if( r_type == CV_32FC1 && CV_IS_MAT_CONT(responses->type) && !sample_idx )
+      {
+!         out_responses = (CvMat*)responses;
+          EXIT;
+      }
+  
+      if( sample_idx )
+      {
+--- 588,602 ----
+  
+      r_step = responses->step ? responses->step / CV_ELEM_SIZE(responses->type) : 1;
+  
++     //scPA   we cannot return the same pointer, we need to create a new object since the train function  how called
++     //       will delete the returned out_responses when train is done.
+      if( r_type == CV_32FC1 && CV_IS_MAT_CONT(responses->type) && !sample_idx )
+      {
+!         //out_responses = (CvMat*)responses;
+!         out_responses = cvCloneMat((CvMat*)responses);
+          EXIT;
+      }
++     //ecPA
+  
+      if( sample_idx )
+      {
+diff -crBN AZOrange/orangeDependencies/src/opencv-2.0.0/src/ml/mlrtrees.cpp AZOrangeExported/orangeDependencies/src/opencv-2.0.0/src/ml/mlrtrees.cpp
+*** AZOrange/orangeDependencies/src/opencv-2.0.0/src/ml/mlrtrees.cpp	2009-10-01 01:20:59.000000000 +0100
+--- AZOrangeExported/orangeDependencies/src/opencv-2.0.0/src/ml/mlrtrees.cpp	2010-02-22 15:14:04.331775000 +0000
+***************
+*** 39,44 ****
+--- 39,49 ----
+  //M*/
+  
+  #include "_ml.h"
++ #include <string>
++ #include <stdio.h>
++ #include <vector>
++ #include <sstream>
++ using namespace std;
+  
+  CvForestTree::CvForestTree()
+  {
+***************
+*** 255,263 ****
+  bool CvRTrees::train( const CvMat* _train_data, int _tflag,
+                          const CvMat* _responses, const CvMat* _var_idx,
+                          const CvMat* _sample_idx, const CvMat* _var_type,
+!                         const CvMat* _missing_mask, CvRTParams params )
+  {
+      clear();
+  
+      CvDTreeParams tree_params( params.max_depth, params.min_sample_count,
+          params.regression_accuracy, params.use_surrogates, params.max_categories,
+--- 260,305 ----
+  bool CvRTrees::train( const CvMat* _train_data, int _tflag,
+                          const CvMat* _responses, const CvMat* _var_idx,
+                          const CvMat* _sample_idx, const CvMat* _var_type,
+!                         const CvMat* _missing_mask, CvRTParams params, const int cls_count, char * priorsStr)
+  {
+      clear();
++     //scPA  Set the priors to priorsStr or by default to [1,1, ...]. They will be later scaled. 
++     float *pseudoPriors = new float[cls_count];
++     for (int i=0; i<cls_count; i++)
++          pseudoPriors[i] = 1.0;
++     if (priorsStr != NULL)
++     {
++         string str(priorsStr);
++         if (str.length() >= 5) // minimum would be something like: [1 1] since we will have to be at least 2 values for the class
++         {
++             if (str[0]=='[' and str[str.length()-1] == ']')
++             {
++                 str = str.substr(1,str.length()-2);
++                 string buf; // Have a buffer string
++                 stringstream ss(str); // Insert the string into a stream
++ 
++                 vector<string> tokens; // Create vector to hold our words
++ 
++                 while (ss >> buf)
++                      tokens.push_back(buf);
++                 if (tokens.size() == cls_count)
++                     for (int i = 0;i<tokens.size();i++)
++                         pseudoPriors[i] = atof(tokens[i].c_str());
++                 else
++                     printf("The number of priors specified are different from the cls_count. Default priors will be used.\n");
++ 
++             }
++             else
++                 printf("The priors passed are not in a list form. Default priors will be used.\n");
++         }
++         else
++             printf("The priors passed are not in the correct format. Default priors will be used.\n");
++     }
++     //Assign the priors to the params
++     if (cls_count > 0)
++          params.priors = pseudoPriors;
++ 
++     //ecPA
+  
+      CvDTreeParams tree_params( params.max_depth, params.min_sample_count,
+          params.regression_accuracy, params.use_surrogates, params.max_categories,
+***************
+*** 821,837 ****
+  }
+  
+  using namespace cv;
+! 
+  bool CvRTrees::train( const Mat& _train_data, int _tflag,
+                       const Mat& _responses, const Mat& _var_idx,
+                       const Mat& _sample_idx, const Mat& _var_type,
+!                      const Mat& _missing_mask, CvRTParams _params )
+  {
+      CvMat tdata = _train_data, responses = _responses, vidx = _var_idx,
+      sidx = _sample_idx, vtype = _var_type, mmask = _missing_mask;
+      return train(&tdata, _tflag, &responses, vidx.data.ptr ? &vidx : 0,
+                   sidx.data.ptr ? &sidx : 0, vtype.data.ptr ? &vtype : 0,
+!                  mmask.data.ptr ? &mmask : 0, _params);
+  }
+  
+  
+--- 863,879 ----
+  }
+  
+  using namespace cv;
+! //scPA     Added 2 parameters //ecPA
+  bool CvRTrees::train( const Mat& _train_data, int _tflag,
+                       const Mat& _responses, const Mat& _var_idx,
+                       const Mat& _sample_idx, const Mat& _var_type,
+!                      const Mat& _missing_mask, CvRTParams _params, const int cls_count, char* priorsStr)
+  {
+      CvMat tdata = _train_data, responses = _responses, vidx = _var_idx,
+      sidx = _sample_idx, vtype = _var_type, mmask = _missing_mask;
+      return train(&tdata, _tflag, &responses, vidx.data.ptr ? &vidx : 0,
+                   sidx.data.ptr ? &sidx : 0, vtype.data.ptr ? &vtype : 0,
+!                  mmask.data.ptr ? &mmask : 0, _params, cls_count, priorsStr);
+  }
+  
+  

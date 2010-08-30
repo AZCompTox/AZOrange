@@ -1,0 +1,500 @@
+diff -crBN orange2.0/source/orange/lib_kernel.cpp orange2.0_PatchedOK/source/orange/lib_kernel.cpp
+*** orange2.0/source/orange/lib_kernel.cpp	2010-02-24 21:25:35.896436000 +0000
+--- orange2.0_PatchedOK/source/orange/lib_kernel.cpp	2010-05-27 11:28:46.142481142 +0100
+***************
+*** 3339,3345 ****
+          bool err = false;
+          
+          if (mask) {
+!           args = Py_BuildValue("OOiOO", X, Py_None, 1, Py_None, mask);
+            maskedX = PyObject_CallObject(*maskedArray, args);
+            Py_DECREF(args);
+            if (!maskedX) {
+--- 3339,3345 ----
+          bool err = false;
+          
+          if (mask) {
+!           args = Py_BuildValue("OOOi", X, mask, Py_None, 1);
+            maskedX = PyObject_CallObject(*maskedArray, args);
+            Py_DECREF(args);
+            if (!maskedX) {
+***************
+*** 3352,3358 ****
+          }
+  
+          if (!err && masky) {
+!           args = Py_BuildValue("OOiOO", y, Py_None, 1, Py_None, masky);
+            maskedy = PyObject_CallObject(*maskedArray, args);
+            Py_DECREF(args);
+            if (!maskedy) {
+--- 3352,3358 ----
+          }
+  
+          if (!err && masky) {
+!           args = Py_BuildValue("OOOi", y, masky, Py_None, 1);
+            maskedy = PyObject_CallObject(*maskedArray, args);
+            Py_DECREF(args);
+            if (!maskedy) {
+diff -crBN orange2.0/source/orange/tabdelim.cpp orange2.0_PatchedOK/source/orange/tabdelim.cpp
+*** orange2.0/source/orange/tabdelim.cpp	2010-02-24 21:25:35.896436000 +0000
+--- orange2.0_PatchedOK/source/orange/tabdelim.cpp	2010-05-27 11:28:46.154481341 +0100
+***************
+*** 82,87 ****
+--- 84,104 ----
+    startDataLine = fei.line;
+  }
+  
++ //scPA
++ /** Converts the string to UPPER CASE.
++ *
++ *@param inString The string to be converted to upper case
++ *
++ *@return a new string equal to the inString but in upper case
++ */
++ 
++ string TTabDelimExampleGenerator::strToUpper(string inString)
++ {
++   std::transform(inString.begin(), inString.end(), inString.begin(), (int(*)(int))std::toupper);
++         return  inString;
++ }
++ //ecPA
++ 
+  
+  TTabDelimExampleGenerator::~TTabDelimExampleGenerator()
+  {
+***************
+*** 126,135 ****
+        string valstr;
+  
+        // Check for don't care
+        valstr = *ai;
+!       if (!valstr.length() || (valstr == "NA") || (valstr == ".") || (DC && (valstr == DC)))
+          valstr = "?";
+!       else if ((valstr == "*") || (DK && (valstr == DK)))
+          valstr = "~";
+  
+        try {
+--- 143,153 ----
+        string valstr;
+  
+        // Check for don't care
++       //scPA    added MIS_VAL, nan, n/a  and ERROR       //ecPA
+        valstr = *ai;
+!       if (!valstr.length() || (strToUpper(valstr) == "NA") || (strToUpper(valstr) == "N/A") || (strToUpper(valstr) == "NAN") || (strToUpper(valstr) == "ERROR") || (valstr == ".") || (DC && (valstr == DC)))
+          valstr = "?";
+!       else if ((valstr == "*") || (strToUpper(valstr) == "MIS_VAL") || (DK && (valstr == DK)))
+          valstr = "~";
+  
+        try {
+***************
+*** 298,304 ****
+    // non-NULL when this cannot be tab file (reason given as result)
+    // NULL if this seems a valid tab file
+    char *isNotTab = mayBeTabFile(stem);
+! 
+    TDomainDepot::TAttributeDescriptions descriptions;
+    
+    if (autoDetect) {
+--- 316,322 ----
+    // non-NULL when this cannot be tab file (reason given as result)
+    // NULL if this seems a valid tab file
+    char *isNotTab = mayBeTabFile(stem);
+!   int verbose = 0;
+    TDomainDepot::TAttributeDescriptions descriptions;
+    
+    if (autoDetect) {
+***************
+*** 308,314 ****
+    }
+    else {
+      if (isNotTab)
+!       raiseWarning("'%s' is being loaded as .tab, but looks more like .txt file\n(%s)", stem.c_str(), isNotTab);
+      readTabHeader(stem, descriptions);
+    }
+  
+--- 326,338 ----
+    }
+    else {
+      if (isNotTab)
+!       if (string(isNotTab).find("defined as having only one value",0) != -1)
+!       {
+!           if (verbose > 0)
+!               raiseWarning("(%s)", isNotTab);
+!       }
+!       else
+!           raiseWarning("'%s' is being loaded as .tab, but looks more like .txt file\n(%s)", stem.c_str(), isNotTab);
+      readTabHeader(stem, descriptions);
+    }
+  
+***************
+*** 342,350 ****
+            break;
+
+          default:
+!           raiseWarning("cannot determine type for attribute '%s'; the attribute will be ignored", adi->name.c_str());
+!           *ati = 0;
+!           continue;
+          }
+      }
+
+--- 364,375 ----
+            break;
+
+          default:
+!           raiseWarning("cannot determine type for attribute '%s'", adi->name.c_str());
+!           //scPA use the attribute even if it has all values unknown
+!           adi->varType = TValue::INTVAR;
+!           //*ati = 0;
+!           //continue;
+!           //ecPA
+          }
+      }
+
+***************
+*** 407,413 ****
+      const char *ceni = vli->first.c_str();
+      if (   !*ceni
+          || !ceni[1] && ((*ceni=='?') || (*ceni=='.') || (*ceni=='~') || (*ceni=='*'))
+!         || !strcmp(ceni, "NA") || (DC && !strcmp(ceni, DC)) || (DK && !strcmp(ceni, DK)))
+        continue;
+      
+      if (status == 3)
+--- 433,439 ----
+      const char *ceni = vli->first.c_str();
+      if (   !*ceni
+          || !ceni[1] && ((*ceni=='?') || (*ceni=='.') || (*ceni=='~') || (*ceni=='*'))
+!         || (strToUpper(vli->first) == "NA") || (strToUpper(vli->first) == "N/A") || (strToUpper(vli->first) == "ERROR") || (strToUpper(vli->first) == "MIS_VAL") || (strToUpper(vli->first) == "NAN") || (DC && (vli->first == DC)) || (DK && (vli->first == DK))) //scPA  added the symbols "error", "MIS_VAL" and "NAN"     //ecPA
+        continue;
+      
+      if (status == 3)
+***************
+*** 506,512 ****
+        const char *ceni = ai->c_str();
+        if (   !*ceni
+            || !ceni[1] && ((*ceni=='?') || (*ceni=='.') || (*ceni=='~') || (*ceni=='*'))
+!           || (*ai == "NA") || (DC && (*ai == DC)) || (DK && (*ai == DK)))
+           continue;
+  
+        map<string, int>::iterator vf = di->values.lower_bound(*ai);
+--- 532,538 ----
+        const char *ceni = ai->c_str();
+        if (   !*ceni
+            || !ceni[1] && ((*ceni=='?') || (*ceni=='.') || (*ceni=='~') || (*ceni=='*'))
+!           || (strToUpper(*ai) == "NA") || (strToUpper(*ai) == "N/A") || (strToUpper(*ai) == "ERROR") || (strToUpper(*ai) == "MIS_VAL") || (strToUpper(*ai) == "NAN") || (DC && (*ai == DC)) || (DK && (*ai == DK)))  //scPA  added the symbols "error", "MIS_VAL" and "NAN"     //ecPA
+           continue;
+  
+        map<string, int>::iterator vf = di->values.lower_bound(*ai);
+***************
+*** 849,855 ****
+        raiseErrorWho("write", "string '%s' cannot be written to a file since it contains invalid characters", c);
+    return c;
+  }
+! 
+  void tabDelim_writeExamples(FILE *file, PExampleGenerator rg, char delim, const char *DK, const char *DC)
+  { 
+    const TDomain domain = rg->domain.getReference();
+--- 875,881 ----
+        raiseErrorWho("write", "string '%s' cannot be written to a file since it contains invalid characters", c);
+    return c;
+  }
+! //scPA    fixed the Format String Bugs //ecPA
+  void tabDelim_writeExamples(FILE *file, PExampleGenerator rg, char delim, const char *DK, const char *DC)
+  { 
+    const TDomain domain = rg->domain.getReference();
+***************
+*** 864,875 ****
+      for(; vi!=ve; vi++, ri++) {
+        PUTDELIM;
+        if (DK && ((*ri).valueType == valueDK))
+!         fprintf(file, DK);
+        else if (DC && ((*ri).valueType == valueDC))
+!         fprintf(file, DC);
+        else {
+          (*vi)->val2filestr(*ri, st, *ex);
+!         fprintf(file, checkCtrl(st.c_str()));
+        }
+      }
+  
+--- 890,901 ----
+      for(; vi!=ve; vi++, ri++) {
+        PUTDELIM;
+        if (DK && ((*ri).valueType == valueDK))
+!         fprintf(file, "%s", DK);
+        else if (DC && ((*ri).valueType == valueDC))
+!         fprintf(file, "%s", DC);
+        else {
+          (*vi)->val2filestr(*ri, st, *ex);
+!         fprintf(file, "%s", checkCtrl(st.c_str()));
+        }
+      }
+  
+***************
+*** 879,887 ****
+        if (!(*mi).optional) {
+          PUTDELIM;
+          if (DK && ((*ri).valueType == valueDK))
+!           fprintf(file, DK);
+          else if (DC && ((*ri).valueType == valueDC))
+!           fprintf(file, DC);
+          else {
+            (*mi).variable->val2filestr((*ex)[(*mi).id], st, *ex);
+            fprintf(file, "%s", checkCtrl(st.c_str()));
+--- 905,913 ----
+        if (!(*mi).optional) {
+          PUTDELIM;
+          if (DK && ((*ri).valueType == valueDK))
+!           fprintf(file, "%s", DK);
+          else if (DC && ((*ri).valueType == valueDC))
+!           fprintf(file, "%s", DC);
+          else {
+            (*mi).variable->val2filestr((*ex)[(*mi).id], st, *ex);
+            fprintf(file, "%s", checkCtrl(st.c_str()));
+***************
+*** 904,910 ****
+                fprintf(file, " ");
+  
+              if (mval.floatV == 1.0)
+!               fprintf(file, checkCtrl(var.name.c_str()));
+              else {
+                var.val2filestr(mval, st, *ex);
+                fprintf(file, "%s=%s", checkCtrl(var.name.c_str()), checkCtrl(st.c_str()));
+--- 930,936 ----
+                fprintf(file, " ");
+  
+              if (mval.floatV == 1.0)
+!               fprintf(file, "%s", checkCtrl(var.name.c_str()));
+              else {
+                var.val2filestr(mval, st, *ex);
+                fprintf(file, "%s=%s", checkCtrl(var.name.c_str()), checkCtrl(st.c_str()));
+***************
+*** 939,945 ****
+        fprintf(file, "d");
+      else {
+        enumv->val2str(val, sval); 
+!       fprintf(file, checkCtrl(escSpaces(sval).c_str()));
+        while(enumv->nextValue(val)) {
+          enumv->val2str(val, sval);
+          fprintf(file, " %s", checkCtrl(escSpaces(sval).c_str()));
+--- 965,971 ----
+        fprintf(file, "d");
+      else {
+        enumv->val2str(val, sval); 
+!       fprintf(file, "%s", escSpaces(sval).c_str());
+        while(enumv->nextValue(val)) {
+          enumv->val2str(val, sval);
+          fprintf(file, " %s", checkCtrl(escSpaces(sval).c_str()));
+diff -crBN orange2.0/source/orange/tabdelim.hpp orange2.0_PatchedOK/source/orange/tabdelim.hpp
+*** orange2.0/source/orange/tabdelim.hpp	2010-02-24 21:25:35.896436000 +0000
+--- orange2.0_PatchedOK/source/orange/tabdelim.hpp	2010-05-27 11:28:46.162511132 +0100
+***************
+*** 89,94 ****
+--- 89,104 ----
+                              const int createNewOn, vector<int> &status, vector<pair<int, int> > &metaStatus,
+                              const char *aDK = NULL, const char *aDC = NULL, bool noCodedDiscrete = false, bool noClass = false);
+    ~TTabDelimExampleGenerator();
++   //scPA
++   /** Convert a string to upper case.
++   *
++   *@param inString The string to be converted to upper case
++   *
++   *@return a new string equal to the inString but in upper case
++   */
++   string strToUpper(string inString);
++   //ecPA
++ 
+  
+    virtual bool readExample (TFileExampleIteratorData &, TExample &);
+  
+diff -crBN orange2.0/install-scripts/linux/setup.py orange2.0_PatchedOK/install-scripts/linux/setup.py
+*** orange2.0/install-scripts/linux/setup.py    2007-02-20 20:20:17.000000000 +0000
+--- orange2.0_PatchedOK/install-scripts/linux/setup.py  2010-05-27 14:59:32.673526075 +0100
+***************
+*** 5,11 ****
+  # all kind of checks
+  
+  # Change this to something else than ADDVERSION
+! OrangeVer="ADDVERSION"
+  
+  # got* is used to gather information of the system and print it out at the end
+  gotPython = '';
+--- 5,11 ----
+  # all kind of checks
+  
+  # Change this to something else than ADDVERSION
+! OrangeVer="AZOrange"
+  
+  # got* is used to gather information of the system and print it out at the end
+  gotPython = '';
+***************
+*** 87,95 ****
+  
+  # catching version of GCC
+  try:
+!     (stdout_err, stdin) = popen2.popen4("gcc --version");
+!     tmp = stdout_err.readlines()[0]
+!     gotGcc = tmp.split()[2]
+  except:
+      print "Can not determine GCC version!"
+      gotGcc = "n/a"
+--- 87,95 ----
+  
+  # catching version of GCC
+  try:
+!     (status,out) = commands.getstatusoutput("gcc -dumpversion");
+!     gotGcc = out.split("\n")[0].split()[0]
+!     print "Found GCC ", gotGcc
+  except:
+      print "Can not determine GCC version!"
+      gotGcc = "n/a"
+***************
+*** 245,251 ****
+          install_data.finalize_options(self)
+          if self.install_dir != os.path.join(self.root, sys.prefix):
+              OrangeInstallDir = os.path.join(self.install_dir, "orange")
+!             OrangeInstallDoc = os.path.join(self.install_dir, "doc", "orange")
+  #            OrangeInstallLib = os.path.join(self.install_dir, "lib")
+              self.data_files = [(OrangeInstallDir, OrangeLibs),
+                                 (os.path.join(OrangeInstallDir,
+--- 245,251 ----
+          install_data.finalize_options(self)
+          if self.install_dir != os.path.join(self.root, sys.prefix):
+              OrangeInstallDir = os.path.join(self.install_dir, "orange")
+!             OrangeInstallDoc = os.path.join(self.install_dir, "orange", "doc")  ##scPA  Changed Place of Orange Doc Files ##ecPA
+  #            OrangeInstallLib = os.path.join(self.install_dir, "lib")
+              self.data_files = [(OrangeInstallDir, OrangeLibs),
+                                 (os.path.join(OrangeInstallDir,
+***************
+*** 267,272 ****
+--- 267,285 ----
+                  self.data_files += [(os.path.join(OrangeInstallDoc,
+                                               root.split('doc/')[-1]), OrangeDocs)]
+  
++             for root, dirs, files in os.walk(os.path.join("OrangeWidgets")):
++                 NewOWIcons = glob(os.path.join("", "")) # Create a Widgets icons list
++                 if 'CVS' in dirs:
++                     dirs.remove('CVS')  # don't visit CVS directories
++                 for name in files:
++                     if "/icons" in root:
++                         NewOWIcons += glob(os.path.join(root,name))
++                 if NewOWIcons:
++                     self.data_files += [(os.path.join(OrangeInstallDir, root),
++                                              NewOWIcons)]
++ 
++ 
++ 
+              self.data_files += [(OrangeInstallDoc,['setup.py'])]
+              
+      def run(self):
+***************
+*** 384,391 ****
+  
+          if self.orangepath != None:
+              # we save orangepath for uninstallation to the file user_install
+!             fo = file(os.path.join(self.orangepath, "doc",
+!                                   "orange", "user_install"), "w+")
+              fo.write(self.orangepath)
+              fo.close()
+              OrangeInstallDir = os.path.join(self.orangepath, "orange")
+--- 397,405 ----
+  
+          if self.orangepath != None:
+              # we save orangepath for uninstallation to the file user_install
+!             fo = file(os.path.join(self.orangepath,
+!                                   "user_install"), "w+")
+!              
+              fo.write(self.orangepath)
+              fo.close()
+              OrangeInstallDir = os.path.join(self.orangepath, "orange")
+***************
+*** 447,459 ****
+  OrangeWidgetIcons = glob(os.path.join("OrangeWidgets", "icons", "*.png"))
+  OrangeCanvasIcons = glob(os.path.join("OrangeCanvas",  "icons", "*.png"))
+  OrangeCanvasPyw   = glob(os.path.join("OrangeCanvas", "orngCanvas.pyw"));
+  
+  data_files = [(OrangeInstallDir, OrangeLibs),
+                (os.path.join(OrangeInstallDir, "OrangeWidgets", "icons"),
+                 OrangeWidgetIcons),
+                (os.path.join(OrangeInstallDir, "OrangeCanvas", "icons"),
+                 OrangeCanvasIcons),
+! 	      (os.path.join(OrangeInstallDir, "OrangeCanvas"), OrangeCanvasPyw)]
+  
+  # Adding each doc/* directory by itself
+  for root, dirs, files in os.walk(os.path.join("doc")):
+--- 461,488 ----
+  OrangeWidgetIcons = glob(os.path.join("OrangeWidgets", "icons", "*.png"))
+  OrangeCanvasIcons = glob(os.path.join("OrangeCanvas",  "icons", "*.png"))
+  OrangeCanvasPyw   = glob(os.path.join("OrangeCanvas", "orngCanvas.pyw"));
++ OrangeCanvasPyw  += glob(os.path.join("OrangeCanvas", "WidgetTabs.txt"))
+  
+  data_files = [(OrangeInstallDir, OrangeLibs),
+                (os.path.join(OrangeInstallDir, "OrangeWidgets", "icons"),
+                 OrangeWidgetIcons),
+                (os.path.join(OrangeInstallDir, "OrangeCanvas", "icons"),
+                 OrangeCanvasIcons),
+! 	      (os.path.join(OrangeInstallDir, "OrangeCanvas"),
+!                OrangeCanvasPyw)]
+! 
+! 
+! # Adding each OrangeWidgets directory by itself
+! for root, dirs, files in os.walk(os.path.join("OrangeWidgets")):
+!     NewOWIcons = glob(os.path.join("", "")) # Create a Widgets icons list
+!     if 'CVS' in dirs:
+!         dirs.remove('CVS')  # don't visit CVS directories
+!     for name in files:
+!         if "/icons" in root:
+!             NewOWIcons += glob(os.path.join(root,name))
+!     if NewOWIcons:
+!         data_files += [(os.path.join(OrangeInstallDir, root),
+!                                  NewOWIcons)]
+  
+  # Adding each doc/* directory by itself
+  for root, dirs, files in os.walk(os.path.join("doc")):
+*** orange2.0/orngAddOns.py	2010-08-26 14:18:32.000000000 +0200
+--- orange2.0_PatchedOK/orngAddOns.py	2010-08-26 14:19:38.000000000 +0200
+***************
+*** 805,811 ****
+              try:
+                  addOn = OrangeAddOnInstalled(addOnDir)
+              except Exception, e:
+!                 print "Add-on in directory '%s' has no valid descriptor (addon.xml): %s" % (addOnDir, e)
+                  continue
+              if addOn.id in installedAddOns:
+                  print "Add-on in directory '%s' has the same ID as the addon in '%s'!" % (addOnDir, installedAddOns[addOn.id].directory)
+--- 805,811 ----
+              try:
+                  addOn = OrangeAddOnInstalled(addOnDir)
+              except Exception, e:
+! #                print "Add-on in directory '%s' has no valid descriptor (addon.xml): %s" % (addOnDir, e)
+                  continue
+              if addOn.id in installedAddOns:
+                  print "Add-on in directory '%s' has the same ID as the addon in '%s'!" % (addOnDir, installedAddOns[addOn.id].directory)
+***************
+*** 832,838 ****
+          except Exception, e:
+              print "Unable to load repository list! Error: %s" % e
+      try:
+!         updateDefaultRepositories()
+      except Exception, e:
+          print "Unable to refresh default repositories: %s" % (e)
+      for r in availableRepositories:
+--- 832,839 ----
+          except Exception, e:
+              print "Unable to load repository list! Error: %s" % e
+      try:
+! #        updateDefaultRepositories()
+!          pass
+      except Exception, e:
+          print "Unable to refresh default repositories: %s" % (e)
+      for r in availableRepositories:
+***************
+*** 1043,1046 ****
+  
+  addAddOnDirectoriesToPath()
+  
+! loadRepositories()
+\ No newline at end of file
+--- 1044,1047 ----
+  
+  addAddOnDirectoriesToPath()
+  
+! loadRepositories()
