@@ -1,0 +1,40 @@
+AZOrange is a customization for the open source software Orange. 
+
+Installation (Using Ubuntu Lucid 10.04):
+===============================================================================
+1) Install all available system updates
+2) Install git: 
+       sudo apt-get install -y git-core gitosis
+3) Get the source code to the <installDir> (<installDir> cannot exist. If <installDir> is not specified, then a folder AZOrange will be created):
+       git clone git@github.com:larscarlsson/AZOrange.git [<installDir>]
+4) Prepare the system with 3rd party dependencies (inside the <installDir>/AZOrange/install dir):
+        ./prepareUbuntu4AZO.sh
+5) Create/configure a setup.ini file from a template (inside the <installDir>/AZOrange/install dir):
+       cp setup.ini.ubuntu setup.ini
+            (edit the setup.ini to configure accordingly to your system)
+6) Start the installation scripts (inside the <installDir>/AZOrange/install dir):
+       python install.py
+
+7) After successful installation, there will be 3 ways of starting AZOrange:
+    a) Click in the orange Icon installed in the Desktop (available if the installer found a way of creating it)
+    b) In a terminal window, at the installDir, run the AZOrange start script:
+        ./startAZOrange
+    c) Manually change shell, load the correct environment and start the application:
+        tcsh
+        source <installDir>/templateProfile
+        azorange
+
+
+
+Testing AZOrange installation
+===============================================================================
+1) Start a tcsh shell:
+        tcsh
+2) Load the AZOrange environment:
+        source <installDir>/templateProfile
+3) Change to the tests directory:
+        cd <installDir>/tests/source
+4) Start the tests:
+        ./runOpenTests.bash
+
+
