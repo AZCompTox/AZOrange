@@ -65,6 +65,7 @@ PYTHON = /usr/bin/python%PYTHON_VER%
 [LocalSetupVars]
 ;the var names MUST be in CAPITALS!
 ;Do not use localVars within this section
+;To use them in this setup file, place them between %% Ex: PYTHON = /usr/bin/python%PYTHON_VER% 
 PYTHON_VER = 2.6
 
 [Advanced]
