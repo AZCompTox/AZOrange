@@ -69,15 +69,11 @@ class installerClass:
         self.orngBoostDir = os.path.join(rootDir,"orangeDependencies/src/boost")
         self.APPSPackDir = os.path.join(rootDir,"orangeDependencies/src/appspack")
         self.azFannDir = os.path.join(rootDir,"orangeDependencies/src/azFann-2.0.0")
-        self.exampleScriptsDir = os.path.join(rootDir,"exampleScripts")
         self.opencvDir = os.path.join(rootDir,"orangeDependencies/src/opencv")
         self.oasaDir = os.path.join(rootDir,"orangeDependencies/src/oasa")
         self.plearnDir = os.path.join(rootDir,"orangeDependencies/src/plearn")
         self.R8Dir = os.path.join(rootDir,"orangeDependencies/src/R8/Src")
         self.trainingDir = os.path.join(rootDir,"azorange/trainingMethods")
-        self.trainingBinDir = os.path.join(rootDir,"azorange/trainingMethods/bin")
-        self.scratchDir = os.path.join(rootDir,"tests/scratchDir")
-        self.sourceDir = os.path.join(rootDir,"orange/source")
         self.rootDir = rootDir
         # dir to install all other orange dependencies packages as opencv, fann, PLearn, etc...
         self.orangeDependenciesDir = os.path.join(installDir,"orangeDependencies")
@@ -197,10 +193,12 @@ class installerClass:
             sumStatus += os.system("cp -f ../azorange/*.py %s/azorange/." % self.orangeInstallDir)
 
             if not self.OpenInstallation:
+                # The azorange/bin may be needed for the appspackMPI for the open installation
+                sumStatus += os.system("cp -Rf ../doc %s/." % self.orangeInstallDir)
                 sumStatus += os.system("cp -Rf ../azorange/bin %s/azorange/." % self.orangeInstallDir)
                 sumStatus += os.system("cp -Rf ../azorange/documentation %s/azorange/." % self.orangeInstallDir)
                 sumStatus += os.system("cp -f ../azorange/*.txt %s/azorange/." % self.orangeInstallDir)
-            #sumStatus += os.system("cp -Rf  ../exampleScripts %s/." % self.orangeInstallDir)
+                sumStatus += os.system("cp -Rf  ../exampleScripts %s/." % self.orangeInstallDir)
 	    #  Added the azorange to pythonpath in order to maintain the use of modules
             #  inside it accessible by the same way
             if "PYTHONPATH" in os.environ:
