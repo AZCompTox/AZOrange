@@ -14,18 +14,18 @@ class dataUtilitiesTest(unittest.TestCase):
 
     def setUp(self):
         """Sets up the test """
-        unusedValuesDataPath = os.path.join(AZOC.AZORANGEHOME,"tests/source/data/TrainDataWithUnusedValue.tab")
+        unusedValuesDataPath = os.path.join(AZOC.AZORANGEHOME,"tests/source/data/BinClass_No_metas_UnusedValues_Train.tab")
         multiClassDataPath = os.path.join(AZOC.AZORANGEHOME,"tests/source/data/iris.tab")
         missValsDataPath = os.path.join(AZOC.AZORANGEHOME,"tests/source/data/testMissVals.tab")
-        testDataPath = os.path.join(AZOC.AZORANGEHOME,"tests/source/data/dummyTest.tab")
-        badVarTypePath = os.path.join(AZOC.AZORANGEHOME,"tests/source/data/dummyBadVarType.tab")#The var is discrete but should be continuous
-        badVarNamePath = os.path.join(AZOC.AZORANGEHOME,"tests/source/data/dummyBadVarName.tab")
-        badVarOrderPath = os.path.join(AZOC.AZORANGEHOME,"tests/source/data/dummyBadVarOrder.tab")
-        self.badVarOrderValuesPath = os.path.join(AZOC.AZORANGEHOME,"tests/source/data/dummyBadVarOrderValues.tab")
-        badVarCountPath = os.path.join(AZOC.AZORANGEHOME,"tests/source/data/dummyBadVarCount.tab")
-        wMetaPath = os.path.join(AZOC.AZORANGEHOME,"tests/source/data/dummywMeta.tab")
-        badVarType2Path = os.path.join(AZOC.AZORANGEHOME,"tests/source/data/dummyBadVarType2.tab")#there are 2 vars discrete  but should be continuous
-        badVarTypeSOMEPath = os.path.join(AZOC.AZORANGEHOME,"tests/source/data/dummyBadVarTypeSOME.tab")#there are 2 vars discrete  but should be continuous and the order is not correct
+        testDataPath = os.path.join(AZOC.AZORANGEHOME,"tests/source/data/BinClass_No_metas_SmallTest.tab")
+        badVarTypePath = os.path.join(AZOC.AZORANGEHOME,"tests/source/data/BinClass_BadVarType.tab")#The var is discrete but should be continuous
+        badVarNamePath = os.path.join(AZOC.AZORANGEHOME,"tests/source/data/BinClass_BadVarName.tab")
+        badVarOrderPath = os.path.join(AZOC.AZORANGEHOME,"tests/source/data/BinClass_BadVarOrder.tab")
+        self.badVarOrderValuesPath = os.path.join(AZOC.AZORANGEHOME,"tests/source/data/BinClass_BadVarOrderValues.tab")
+        badVarCountPath = os.path.join(AZOC.AZORANGEHOME,"tests/source/data/BinClass_BadVarCount.tab")
+        wMetaPath = os.path.join(AZOC.AZORANGEHOME,"tests/source/data/BinClass_W_metas_SmallTest.tab")
+        badVarType2Path = os.path.join(AZOC.AZORANGEHOME,"tests/source/data/BinClass_BadVarType2.tab")#there are 2 vars discrete  but should be continuous
+        badVarTypeSOMEPath = os.path.join(AZOC.AZORANGEHOME,"tests/source/data/BinClass_BadVarTypeSOME.tab")#there are 2 vars discrete  but should be continuous and the order is not correct
 
         # Read in the data
         self.unusedValuesData = dataUtilities.DataTable(unusedValuesDataPath,createNewOn=orange.Variable.MakeStatus.OK)
@@ -56,12 +56,12 @@ class dataUtilitiesTest(unittest.TestCase):
         self.assertEqual(newData.domain.classVar.name,"NewClassName")
 
         #Change the class name to an existing name in attributes
-        newData = dataUtilities.changeClassName(self.testData,"POSCHARGED")
-        self.assertEqual(newData.domain.classVar.name,"POSCHARGED_1")
+        newData = dataUtilities.changeClassName(self.testData,"Level")
+        self.assertEqual(newData.domain.classVar.name,"Level_1")
 
         # the class name will not be tested for name duplication
-        newData = dataUtilities.changeClassName(newData,"POSCHARGED")
-        self.assertEqual(newData.domain.classVar.name,"POSCHARGED_1")
+        newData = dataUtilities.changeClassName(newData,"Level")
+        self.assertEqual(newData.domain.classVar.name,"Level_1")
         newData = dataUtilities.changeClassName(self.testData,"Activity")
         self.assertEqual(newData.domain.classVar.name,"Activity")
 
@@ -81,19 +81,19 @@ class dataUtilitiesTest(unittest.TestCase):
         # on Data self.unusedValuesData the attrs RING_HERG and Activity have unused Values!
         learner = AZorngPLS.PLSLearner()
 
-        valuesSelma = str(self.unusedValuesData.domain["RING_HERG"].values)
+        valuesSel = str(self.unusedValuesData.domain["Attr3"].values)
         valuesActivity = str(self.unusedValuesData.domain["Activity"].values)
         
         #Check that there are in fact unused values: "OTHER" and <7, 8>
         self.assert_(valuesActivity == "<POS, NEG, OTHER>")
-        self.assert_(valuesSelma == "<2, 0, 1, 3, 4, 5, 6, 7, 8>")
+        self.assert_(valuesSel == "<1, 2, 3, 4, 5, 6, 7, 8, 9>")
         newData = dataUtilities.getDataWithoutUnusedValues(self.unusedValuesData,True)
         #Check on new dataset that the unused values were removed from the domain
-        self.assert_(str(newData.domain["RING_HERG"].values) == "<2, 0, 1, 3, 4, 5, 6>")
+        self.assert_(str(newData.domain["Attr3"].values) == "<1, 2, 3, 4, 5>")
         self.assert_(str(newData.domain["Activity"].values) == "<POS, NEG>")
 
         #Check that the original domain still exists and has not been modified
-        self.assert_(str(self.unusedValuesData.domain["RING_HERG"].values) == "<2, 0, 1, 3, 4, 5, 6, 7, 8>")
+        self.assert_(str(self.unusedValuesData.domain["Attr3"].values) == "<1, 2, 3, 4, 5, 6, 7, 8, 9>")
         self.assert_(str(self.unusedValuesData.domain["Activity"].values) == "<POS, NEG, OTHER>")
  
 
@@ -220,23 +220,25 @@ class dataUtilitiesTest(unittest.TestCase):
 
     def test_merge_With_Metas(self):
         """Test the merge with data having meta Attributes"""        
-        data1 = dataUtilities.DataTable(os.path.join(AZOC.AZORANGEHOME,"tests/source/data/dummywMeta.tab"))
-        data2 = dataUtilities.DataTable(os.path.join(AZOC.AZORANGEHOME,"tests/source/data/dummyTest.tab"))
+        data1 = dataUtilities.DataTable(os.path.join(AZOC.AZORANGEHOME,"tests/source/data/BinClass_W_metas_SmallTest.tab"))
+        data2 = dataUtilities.DataTable(os.path.join(AZOC.AZORANGEHOME,"tests/source/data/BinClass_No_metas_SmallTest.tab"))
         
-        mergeAttrName1 = "SELMA_Min_dist_AA"
-        mergeAttrName2 = "SELMA_Min_dist_AA"
+        mergeAttrName1 = "Attr3"
+        mergeAttrName2 = "Attr3"
         res = dataUtilities.horizontalMerge(data1, data2, mergeAttrName1, mergeAttrName2)
         self.assertEqual(res[0]["Comments"],"ok","Got: "+str(res[0]["Comments"]))
+        res.save("AB.tab")
         res = dataUtilities.horizontalMerge(data2, data1, mergeAttrName2, mergeAttrName1)
-        self.assertEqual(res[2]["Comments"],"notok","Got: "+str(res[2]["Comments"]))
+        res.save("BA.tab")
+        self.assertEqual(res[5]["Comments"],"notok","Got: "+str(res[5]["Comments"]))
 
         #Teste merge based on Meta Attrs
-        data2 = dataUtilities.DataTable(os.path.join(AZOC.AZORANGEHOME,"tests/source/data/dummywMeta.tab"))        
+        data2 = dataUtilities.DataTable(os.path.join(AZOC.AZORANGEHOME,"tests/source/data/BinClass_W_metas_SmallTest.tab"))        
         mergeAttrName1 = "Comments"
         mergeAttrName2 = "Comments"
         res = dataUtilities.horizontalMerge(data2, data1, mergeAttrName2, mergeAttrName1)
         self.assertEqual(res[0]["Comments"],"ok","Got: "+str(res[0]["Comments"]))
-        self.assertEqual(res[2]["Comments"],"notok","Got: "+str(res[2]["Comments"]))
+        self.assertEqual(res[5]["Comments"],"notok","Got: "+str(res[5]["Comments"]))
 
 
 
@@ -344,19 +346,19 @@ class dataUtilitiesTest(unittest.TestCase):
         scalerX = dataUtilities.scalizerX(data=self.testData)   # derived from scalizer which mimics the old scalizer version for old models
         scaledData = scaler.scaleAndContinuizeData(self.testData)
         scaledDataX = scalerX.scaleAndContinuizeData(self.testData)
-        self.assertEqual("[0.4361905, -0.7468199, 0.5577492, -1.0000000, -0.1056130, -1.0000000, 0.3333333, -0.4285714, -0.2000000, -1.0000000, 0.0000000]",str(scaledData[0]))
-        self.assertEqual("[0.44, -0.746820, 0.557749, -1.000000, -0.105613, -1.0000000, 0.3333333, -0.4285714, -0.2000000, -1.0000000, '0']",str(scaledDataX[0]))
-        self.assertEqual("[-0.1961905, 0.7176214, 0.6707188, -0.2257865, 0.4987172, 1.0000000, -0.6666667, -0.4285714, -0.6000000, 1.0000000, 1.0000000]",str(scaledData[6]))
-        self.assertEqual("[-0.20, 0.717621, 0.670719, -0.225786, 0.498717, 1.0000000, -0.6666667, -0.4285714, -0.6000000, 1.0000000, '1']",str(scaledDataX[6]))
+        self.assertEqual("[-0.2727273, 0.0000000, 0.0000000, -0.2000000, -1.0000000, -0.3183614, -1.0000000, 1.0000000, -1.0000000, -0.3333333, 1.0000000]",str(scaledData[0]))
+        self.assertEqual("[-0.272727, 0.000000, 0.000000, -0.200000, -1.000000, -0.318361, -1.0000000, 1.0000000, -1.0000000, -0.3333333, '1']",str(scaledDataX[0]))
+        self.assertEqual("[-1.0000000, 0.0000000, 0.0000000, -0.2000000, -1.0000000, 1.0000000, -1.0000000, 1.0000000, -0.5000000, 0.3333333, 1.0000000]",str(scaledData[6]))
+        self.assertEqual("[-1.000000, 0.000000, 0.000000, -0.200000, -1.000000, 1.000000, -1.0000000, 1.0000000, -0.5000000, 0.3333333, '1']",str(scaledDataX[6]))
 
         self.assertEqual(scalerX.convertClass(self.testData.domain.classVar,scaledData[0].getclass()),self.testData[0].getclass())
         self.assertEqual(scalerX.convertClass(self.testData.domain.classVar,scaledData[5].getclass()),self.testData[5].getclass())
         XscaledEx = scalerX.scaleEx(self.testData[0]) 
-        self.assertEqual(str(XscaledEx),"[0.44, -0.746820, 0.557749, -1.000000, -0.105613, -1.0000000, 0.3333333, -0.4285714, -0.2000000, -1.0000000, '0']")
+        self.assertEqual(str(XscaledEx),"[-0.272727, 0.000000, 0.000000, -0.200000, -1.000000, -0.318361, -1.0000000, 1.0000000, -1.0000000, -0.3333333, '1']")
         self.assertEqual(scalerX.convertClass(self.testData.domain[self.testData.domain.classVar],XscaledEx[XscaledEx.domain.classVar]).value,self.testData[0][self.testData.domain.classVar])
 
         XscaledEx = scalerX.scaleEx(self.testData[1])
-        self.assertEqual(str(XscaledEx),"[-0.23, 0.405083, 0.455161, -0.125445, 1.000000, 1.0000000, -0.6666667, 1.0000000, -0.6000000, -1.0000000, '1']")
+        self.assertEqual(str(XscaledEx),"[-1.000000, 0.000000, 0.000000, 0.200000, -1.000000, -0.676275, 1.0000000, -1.0000000, -0.5000000, -1.0000000, '1']")
         #self.assertEqual(scalerX.convertClass(self.testData.domain[self.testData.domain.classVar],XscaledEx[XscaledEx.domain.classVar]).value,self.testData[1][self.testData.domain.classVar])
 
         scaler2=dataUtilities.scalizer()
@@ -365,25 +367,25 @@ class dataUtilitiesTest(unittest.TestCase):
 
         scaler2.scaleClass=True
         new2=scaler2.scaleAndContinuizeData(self.testData)
-        self.assertEqual("[0.4361905, -0.7468199, 0.5577492, -1.0000000, -0.1056130, -1.0000000, 0.3333333, -0.4285714, -0.2000000, -1.0000000, -1.0000000]",str(new2[0]))
-        self.assertEqual("[-0.2380952, 0.4050834, 0.4551608, -0.1254447, 0.9928769, 1.0000000, -0.6666667, 1.0000000, -0.6000000, -1.0000000, 1.0000000]",str(new[5]))
+        self.assertEqual("[-0.2727273, 0.0000000, 0.0000000, -0.2000000, -1.0000000, -0.3183614, -1.0000000, 1.0000000, -1.0000000, -0.3333333, 1.0000000]",str(new2[0]))
+        self.assertEqual("[-1.0000000, 0.0000000, 0.0000000, -0.6000000, -1.0000000, -0.0414842, 1.0000000, -1.0000000, -1.0000000, -1.0000000, 0.0000000]",str(new[5]))
 
         scaler2.nMax=23
         scaler2.nMin=-3
         scaler2.nClassMax=2
         scaler2.nClassMin=-5
         new3=scaler2.scaleAndContinuizeData(self.testData)
-        self.assertEqual("[15.6704760, 0.2913412, 17.2507381, -3.0000000, 8.6270313, -3.0000000, 14.3333330, 4.4285712, 7.4000001, -3.0000000, -5.0000000]",str(new3[0]))
-        self.assertEqual("[6.9047618, 15.2660837, 15.9170895, 8.3692188, 22.9074001, 23.0000000, 1.3333334, 23.0000000, 2.2000000, -3.0000000, 2.0000000]",str(new3[5]))
+        self.assertEqual("[6.4545455, 10.0000000, 10.0000000, 7.4000001, -3.0000000, 5.8613019, -3.0000000, 23.0000000, -3.0000000, 5.6666665, 2.0000000]",str(new3[0]))
+        self.assertEqual("[-3.0000000, 10.0000000, 10.0000000, 2.2000000, -3.0000000, 9.4607048, 23.0000000, -3.0000000, -3.0000000, -3.0000000, -5.0000000]",str(new3[5]))
 
         self.assertEqual(scaler2.convertClass(new3[0].getclass()),int(self.testData[0].getclass()))     
         self.assertEqual(scaler2.convertClass(new3[5].getclass()),int(self.testData[5].getclass()))   
 
         
-        self.assertEqual("['ACDPKA_BASE1_v70', 'SELMA_Max_pos_chrg_GH', 'SELMA_Charge_range_G_H', 'SELMA_Max_neg_chrg_GH', 'SELMA_Aver_pos_charge_G_H', 'POSCHARGED', 'RING_HERG', 'SELMA_Min_dist_AA', 'BASIC_HERG', 'NEGCHARGED', 'Activity']",str(scaler2.varNames))
-        self.assertEqual("[[], [], [], [], [], ['1', '0'], ['2', '0', '1', '3', '4', '5', '6'], ['4', '5', '2', '3', '6', '0', '7', '1'], ['4', '0', '1', '2', '3', '6'], ['0', '1'], ['POS', 'NEG']]",str(scaler2.values))
-        self.assertEqual("[10.5, 0.71869498491287231, 1.6735919713973999, -0.56360697746276855, 0.23658299446105957, 1.0, 6.0, 7.0, 5.0, 1.0, 1.0]",str(scaler2.maximums))
-        self.assertEqual("[0.0, 0.38772100210189819, 0.95134598016738892, -1.0842670202255249, 0.072890996932983398, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]",str(scaler2.minimums))
+        self.assertEqual("['Measure', '[Br]([C])', '[N]([N])', '[O]([C])', '[C]([C][F])', 'Level', 'DiscAttr1', 'DiscAttr2', 'Attr3', 'YetOther', 'Activity']",str(scaler2.varNames))
+        self.assertEqual("[[], [], [], [], [], [], ['Red', 'Green', 'Blue'], ['YES', 'NO'], ['1', '2', '3', '4', '5'], ['B', 'A', 'C', '1'], ['POS', 'NEG']]",str(scaler2.values))
+        self.assertEqual("[11.0, 0.0, 0.0, 5.0, 1.0, 5.6697301864624023, 2.0, 1.0, 4.0, 3.0, 1.0]",str(scaler2.maximums))
+        self.assertEqual("[0.0, 0.0, 0.0, 0.0, 0.0, 0.035923998802900314, 0.0, 0.0, 0.0, 0.0, 0.0]",str(scaler2.minimums))
 
         ex = scaler2.scaleEx(self.testData[3])
         self.assertEqual(str(new3[3]),str(ex))
@@ -408,12 +410,12 @@ class dataUtilitiesTest(unittest.TestCase):
         self.assertEqual(str(scaledData2[2]),str(scaler4.scaleEx(self.testData[2])))
 
         #Test with continuous class
-        data = dataUtilities.DataTable(os.path.join(AZOC.AZORANGEHOME,"tests/source/data/dummy.tab"))
+        data = dataUtilities.DataTable(os.path.join(AZOC.AZORANGEHOME,"tests/source/data/Reg_No_metas_FullNumeric_Train.tab"))
         scaler4 = dataUtilities.scalizer(data=data)
         scalerX = dataUtilities.scalizer(data=data, scaleClass = True)
         scaledDataX = scalerX.scaleAndContinuizeData(data)
         scaledData4 = scaler4.scaleAndContinuizeData(data)
-        self.assertEqual(str(scaledDataX[0]),"[]")
+        self.assertEqual(str(scaledDataX[0]),"[-1.0000000, -1.0000000, -1.0000000, -1.0000000, -1.0000000, -1.0000000, -1.0000000, -1.0000000, -1.0000000, -1.0000000, -1.0000000, -1.0000000, -1.0000000, -1.0000000, -1.0000000, -1.0000000, -1.0000000, -1.0000000, -1.0000000, -1.0000000, -1.0000000, -1.0000000, -1.0000000, -1.0000000, -1.0000000, -1.0000000, -1.0000000, -1.0000000, -1.0000000, -0.7500000, -1.0000000, -1.0000000, -1.0000000, -1.0000000, -1.0000000, -1.0000000, -1.0000000, -1.0000000, -1.0000000, -1.0000000, -1.0000000, -1.0000000, -1.0000000, 1.0000000, -1.0000000, -1.0000000, -1.0000000, -1.0000000, -1.0000000, -0.5000000, -1.0000000, -0.7500000, -1.0000000, -1.0000000, -1.0000000, -1.0000000, -1.0000000, -1.0000000, 0.0000000, -0.7500000, -1.0000000, -1.0000000, -1.0000000, -1.0000000, -1.0000000, -1.0000000, -1.0000000, -1.0000000, -1.0000000, -1.0000000, -1.0000000, -1.0000000, 1.0000000, -1.0000000, -1.0000000, -1.0000000, -1.0000000, -1.0000000, -1.0000000, -1.0000000, -1.0000000, -1.0000000, -1.0000000, -1.0000000, -1.0000000, 1.0000000, -1.0000000, -0.7647059, -1.0000000, -1.0000000, -1.0000000, -1.0000000, -1.0000000, -1.0000000, -1.0000000, -1.0000000, -0.3333333, -1.0000000, -1.0000000, -1.0000000, -1.0000000, -1.0000000, -1.0000000, -1.0000000, -1.0000000, -1.0000000, -1.0000000, -1.0000000, -1.0000000, -1.0000000, 0.0000000, -1.0000000, -1.0000000, -0.6000000, 0.0000000, -1.0000000, -1.0000000, -0.3333333, -1.0000000, -1.0000000, -1.0000000, -0.3333333, -1.0000000, -1.0000000, -1.0000000, -1.0000000, -1.0000000, -1.0000000, -1.0000000, -1.0000000, -1.0000000, -1.0000000, -0.4086332]")
         self.assertEqual(round(scalerX.convertClass(scaledDataX[0].getclass().value),5),round(data[0].getclass().value,5))
         self.assertEqual(scaler4.convertClass(scaledData4[0].getclass().value),data[0].getclass())
         self.assertEqual(scaler4.convertClass(scaledData4[6].getclass().value),data[6].getclass())
@@ -421,14 +423,14 @@ class dataUtilitiesTest(unittest.TestCase):
         scaler4.scaleClass = True
         newData = scaler4.scaleAndContinuizeData(data)
         self.assertEqual(scaler4.convertClass(newData[0].getclass()),data[0].getclass())
-        self.assertEqual(scaler4.convertClass(newData[6].getclass()),data[6].getclass())
+        self.assertEqual(round(scaler4.convertClass(newData[6].getclass()),6),round(data[6].getclass(),6))  #0.470254
        
         multiclassScaler = dataUtilities.scalizer(data=self.multiClassData)
         scaledData = multiclassScaler.scaleAndContinuizeData(self.multiClassData)
-        self.assert_(str(scaledData[0]) == str(multiclassScaler.scaleEx(self.multiClassData[0])) == "[]")
-        self.assert_(str(scaledData[50]) == str(multiclassScaler.scaleEx(self.multiClassData[50])
-) == "[0.4999999, 0.0000000, 0.2542372, 0.0833333, 1.0000000]")
-        self.assert_(str(scaledData[-1]) == str(multiclassScaler.scaleEx(self.multiClassData[-1])) == "[]")
+
+        self.assert_(str(scaledData[0]) == str(multiclassScaler.scaleEx(self.multiClassData[0])) == "[-0.5555557, 0.2500000, -0.8644068, -0.9166667, 0.0000000]")
+        self.assert_(str(scaledData[50]) == str(multiclassScaler.scaleEx(self.multiClassData[50])) == "[0.4999999, 0.0000000, 0.2542372, 0.0833333, 1.0000000]")
+        self.assert_(str(scaledData[-1]) == str(multiclassScaler.scaleEx(self.multiClassData[-1])) == "[-0.1111111, -0.1666667, 0.3898304, 0.4166666, 2.0000000]")
         #"Classes os scaledData converted back to original"
         self.assertEqual(multiclassScaler.convertClass(scaledData[0].getclass().value),0.0)
         self.assertEqual(multiclassScaler.convertClass(scaledData[50].getclass().value),1.0)
@@ -494,7 +496,9 @@ class dataUtilitiesTest(unittest.TestCase):
 
         exFixed2 = ExampleFix.fixExample(self.badVarOrderData[0])
         self.assert_(exFixed2.domain==self.testData.domain,"Fixed Domain 2 does not mathch to the requested domain")
-        self.assert_(str(exFixed2)=="[7.54, 0.429619, 1.513885, -1.084267, 0.146093, '1', '4', '2', '1', '0', 'POS']",
+        self.assert_(str(self.badVarOrderData[0])=="[4.000000, 0.000000, 0.000000, 2.000000, 0.000000, 1.956034, 'Red', 'NO', 'A', '1', 'NEG']",
+                        "Original Example is not as expectedl!")
+        self.assert_(str(exFixed2)=="[4.000000, 0.000000, 0.000000, 2.000000, 0.000000, 1.956034, 'Red', 'NO', '1', 'A', 'NEG']",
                         "Example fixed is not as expectedl!")
 
         fixLog.clear()
@@ -504,28 +508,26 @@ class dataUtilitiesTest(unittest.TestCase):
         fixLog.clear()
         for ex in self.badVarTypeData[3:]:
                 self.assert_(ExampleFix.fixExample(ex)!=None)
-        self.assertEqual(fixLog,{'Fixed Types of variables': 24, 'Vars needing type fix': {'SELMA_Max_pos_chrg_GH': 'EnumVariable to FloatVariable'}})
-
+        self.assertEqual(fixLog,{'Fixed Types of variables': 27, 'Vars needing type fix': {'[Br]([C])': 'EnumVariable to FloatVariable'}})
 
         fixLog.clear()
         for ex in self.badVarType2Data:
                 self.assert_(ExampleFix.fixExample(ex)!=None)
-        self.assertEqual(fixLog,{'Fixed Types of variables': 24, 'Vars needing type fix': {'SELMA_Max_pos_chrg_GH': 'EnumVariable to FloatVariable', 'SELMA_Charge_range_G_H': 'EnumVariable to FloatVariable', 'SELMA_Aver_pos_charge_G_H': 'EnumVariable to FloatVariable'}})
+        self.assertEqual(fixLog,{'Fixed Types of variables': 30, 'Vars needing type fix': {'[O]([C])': 'EnumVariable to FloatVariable', '[Br]([C])': 'EnumVariable to FloatVariable', 'Level': 'EnumVariable to FloatVariable'}})
 
         fixLog.clear()
         ExampleFix = dataUtilities.ExFix(self.testData.domain,fixLog)
         for ex in self.badVarTypeSOMEData:
                 self.assert_(ExampleFix.fixExample(ex)!=None)
-        self.assertEqual(fixLog,{'Fixed Types of variables': 27, 'Vars needing type fix': {'SELMA_Charge_range_G_H': 'EnumVariable to FloatVariable', 'ACDPKA_BASE1_v70': 'EnumVariable to FloatVariable'}})
+        self.assertEqual(fixLog,{'Fixed Types of variables': 30, 'Vars needing type fix': {'[N]([N])': 'EnumVariable to FloatVariable', 'Measure': 'EnumVariable to FloatVariable'}})
 
-        #test fix of example with missong value
+        #test fix of example with missing value
 
-        # Attr2 = SELMA_Charge_range_G_H - Continuous attribute
-        #[7.16, '0.628856', 1.482406, -0.853549, 0.074776, '1', '4', '3', '1', '0', 'POS']
+        # Measure - Continuous attribute
         ex3=self.badVarTypeData[10]
-        ex3["SELMA_Charge_range_G_H"]="?"
+        ex3["Measure"]="?"
         ex3Str=str(ex3)
-        self.assertEqual(ex3Str[19],"?")
+        self.assertEqual(ex3Str[1],"?")
         ExampleFix = dataUtilities.ExFix(self.testData.domain,None,True)
         exFixed3 = ExampleFix.fixExample(ex3)
         self.assert_(ex3Str.replace("'","")==str(exFixed3).replace("'",""),
@@ -533,24 +535,22 @@ class dataUtilitiesTest(unittest.TestCase):
         self.assert_(exFixed3.domain==self.testData.domain,"Fixed Domain 3 does not mathch to the requested domain")
 
 
-        # Attr8 = BASIC_HERG - Discrete attribute
-        #[7.16, '0.628856', 1.482406, -0.853549, 0.074776, '1', '4', '3', '1', '0', 'POS']
+        #DiscAttr1 -  Discrete attribute
         ex4=self.badVarTypeData[10]
-        ex4["BASIC_HERG"]="?"
+        ex4["DiscAttr1"]="?"
         ex4Str=str(ex4)
-        self.assertEqual(ex4Str[59],"?")
+        self.assertEqual(ex4Str[57],"?")
         exFixed4 = ExampleFix.fixExample(ex4)
         self.assert_(ex4Str.replace("'","")==str(exFixed4).replace("'",""),
                         "Example fixed changed relative to the original!\n"+ex4Str+"\n"+str(exFixed4)+"\n")
         self.assert_(exFixed4.domain==self.testData.domain,"Fixed Domain 4 does not mathch to the requested domain")
 
         
-        # Attr1 = SELMA_Max_pos_chrg_GH - the attribute being changed type
-        #[7.16, '0.628856', 1.482406, -0.853549, 0.074776, '1', '4', '3', '1', '0', 'POS']
+        #  [Br]([C]) - the attribute being changed type
         ex5=self.badVarTypeData[10]
-        ex5["SELMA_Max_pos_chrg_GH"]="?"
+        ex5["[Br]([C])"]="?"
         ex5Str=str(ex5)
-        self.assertEqual(ex5Str[8],"?")
+        self.assertEqual(ex5Str[5],"?")
         exFixed5 = ExampleFix.fixExample(ex5)
         self.assert_(ex5Str.replace("'","")==str(exFixed5).replace("'",""),
                         "Example fixed changed relative to the original!\n"+ex5Str+"\n"+str(exFixed5)+"\n")
@@ -563,14 +563,14 @@ class dataUtilitiesTest(unittest.TestCase):
         ExampleFix = dataUtilities.ExFix(self.testData.domain,fixLog,True)
         self.assert_(ExampleFix.fixExample(self.badVarNameData[0])==None,
                         "VarName: This example is not compatible, It should't be able to convert it!")
-        self.assertEqual(fixLog,{'Missing Attributes': {'SELMA_Charge_range_G_H': 1}})
+        self.assertEqual(fixLog,{'Missing Attributes': {'[O]([C])': 1}})
         ExampleFix.set_examplesFixedLog(None)
         self.assert_(ExampleFix.fixExample(self.badVarTypeData[0])[1]=='?',
                         "VarType: This example is not compatible, It should't be able to convert it!")
         ExampleFix.set_examplesFixedLog(fixLog)
         self.assert_(ExampleFix.fixExample(self.badVarCountData[0])==None,
                         "VarCount: This example is not compatible, It should't be able to convert it!")
-        self.assertEqual(fixLog,{'Missing Attributes': {'SELMA_Charge_range_G_H': 1, 'NEGCHARGED': 1}})
+        self.assertEqual(fixLog,{'Missing Attributes': {'YetOther': 1, '[O]([C])': 1}})
 
         #### Teting now real case where fixing example is needed
         from trainingMethods import AZorngPLS
@@ -579,33 +579,33 @@ class dataUtilitiesTest(unittest.TestCase):
         # Test different but compatible vartypes
         self.assert_(classifier(self.badVarTypeData[12])=="NEG","VarType: Prediction was not done correcly")
         #test fixed  Different data order  
-        self.assert_(classifier(self.badVarOrderData[0])=="POS","VarOrder(0): Prediction was not done correcly")
+        self.assert_(classifier(self.badVarOrderData[0])=="NEG","VarOrder(0): Prediction was not done correcly")
         self.assert_(classifier(self.badVarOrderData[12])=="NEG","VarOrder(12): Prediction was not done correcly")
         # Test the same badVarOrderDataSet but also with different order of values in 2 discrete attributes: 
-        #    Activity[POS NEG] -> [NEG POS] and SELMA_Min_dist_AA [4 5 2 3 6 0 7 1] -> [3 2 6 0 5 7 1 4]
+        #    Activity[POS NEG] -> [NEG POS] and Attr3 [2 1 3 5 4] -> [1 2 3 4 5]
         #Predictions must be the same as before since just the order of values are chamged
         badVarOrderValuesData = dataUtilities.DataTable(self.badVarOrderValuesPath,createNewOn=orange.Variable.MakeStatus.OK)
         self.assert_(str(self.badVarOrderData.domain["Activity"].values)=="<POS, NEG>")
         self.assert_(str(badVarOrderValuesData.domain["Activity"].values)=="<NEG, POS>")
-        self.assert_(str(self.badVarOrderData.domain["SELMA_Min_dist_AA"].values)=="<4, 5, 2, 3, 6, 0, 7, 1>")
-        self.assert_(str(badVarOrderValuesData.domain["SELMA_Min_dist_AA"].values)=="<3, 2, 6, 0, 5, 7, 1, 4>")
+        self.assert_(str(self.badVarOrderData.domain["Attr3"].values)=="<1, 2, 3, 4, 5>")
+        self.assert_(str(badVarOrderValuesData.domain["Attr3"].values)=="<2, 1, 3, 5, 4>")
         self.assert_(classifier(badVarOrderValuesData[12]).value=="NEG","VarOrderValues (12): Prediction was not done correcly")
-        self.assert_(classifier(badVarOrderValuesData[0]).value=="POS","VarOrderValues (0): Prediction was not done correcly")
-        example = badVarOrderValuesData[0]
-        self.assert_(example["Activity"].value == self.badVarOrderData[0]["Activity"].value)
-        self.assert_(int(example["Activity"]) != int(self.badVarOrderData[0]["Activity"]))
-        self.assert_(example["SELMA_Min_dist_AA"].value ==  self.badVarOrderData[0]["SELMA_Min_dist_AA"].value)
-        self.assert_(int(example["SELMA_Min_dist_AA"]) !=  int(self.badVarOrderData[0]["SELMA_Min_dist_AA"]))
+        self.assert_(classifier(badVarOrderValuesData[1]).value=="POS","VarOrderValues (0): Prediction was not done correcly")
+        example = badVarOrderValuesData[1]
+        self.assert_(example["Activity"].value == self.badVarOrderData[1]["Activity"].value)
+        self.assert_(int(example["Activity"]) != int(self.badVarOrderData[1]["Activity"]))
+        self.assert_(example["Attr3"].value ==  self.badVarOrderData[1]["Attr3"].value)
+        self.assert_(int(example["Attr3"]) !=  int(self.badVarOrderData[1]["Attr3"]))
 
         #print "\nTesting incompatible datasets: Although they have miss values '?' they should be predicted!"
         # Test incompatible different varNames
         self.assert_(classifier(self.badVarNameData[0])==None,"VarName: This prediction should NOT be possible")
-        self.assertEqual(classifier.examplesFixedLog,{'Missing Attributes': {'SELMA_Charge_range_G_H': 1}, 'Fixed Types of variables': 1, 'Vars needing type fix': {'SELMA_Max_pos_chrg_GH': 'EnumVariable to FloatVariable'}})
+        self.assertEqual(classifier.examplesFixedLog,{'Missing Attributes': {'[O]([C])': 1}, 'Fixed Types of variables': 1, 'Vars needing type fix': {'[Br]([C])': 'EnumVariable to FloatVariable'}})
         # Test different and incompatible vartypes
         self.assert_(classifier(self.badVarTypeData[0])=='NEG',"VarType: This prediction should be possible")
         # Test incompatible different varCount
         self.assert_(classifier(self.badVarCountData[0])==None,"VarCount: This prediction should NOT be possible")
-        self.assertEqual(classifier.examplesFixedLog,{'Missing Attributes': {'NEGCHARGED': 1, 'SELMA_Charge_range_G_H': 1}, 'Fixed Types of variables': 2, 'Vars needing type fix': {'SELMA_Max_pos_chrg_GH': "EnumVariable to FloatVariable (some impossible conversions. It was set to '?' for some examples.)"}})
+        self.assertEqual(classifier.examplesFixedLog,{'Missing Attributes': {'YetOther': 1, '[O]([C])': 1}, 'Fixed Types of variables': 2, 'Vars needing type fix': {'[Br]([C])': "EnumVariable to FloatVariable (some impossible conversions. It was set to '?' for some examples.)"}})
 
         # Test different but compatible var number
         classifier=AZorngPLS.PLSLearner(self.badVarCountData)

@@ -1,1 +1,4 @@
-All data files used by the azorange tests are contained in this directory. 
+All data files used by the source azorange tests are contained in this directory. 
+
+The script createTestDataSets.py was used to create some of the datasets based on data in baseData.txt
+

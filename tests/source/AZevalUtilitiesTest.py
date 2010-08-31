@@ -16,10 +16,10 @@ class evalUtilitiesTest(unittest.TestCase):
 
     def setUp(self):
 
-        trainDataPath = os.path.join(AZOC.AZORANGEHOME,"tests/source/data/BinClass_No_metas_Train.tab")
+        trainDataPath = os.path.join(AZOC.AZORANGEHOME,"tests/source/data/BinClass_No_metas_FullNumeric_Train.tab")
         self.trainData = dataUtilities.DataTable(trainDataPath,createNewOn=orange.Variable.MakeStatus.OK)
 
-        testDataPath = os.path.join(AZOC.AZORANGEHOME,"tests/source/data/BinClass_No_metas_Test.tab")
+        testDataPath = os.path.join(AZOC.AZORANGEHOME,"tests/source/data/BinClass_No_metas_FullNumeric_Test.tab")
         self.testData = dataUtilities.DataTable(testDataPath,createNewOn=orange.Variable.MakeStatus.OK)
 
         self.regDataPath = os.path.join(AZOC.AZORANGEHOME,"tests/source/data/Reg_No_metas_Train.tab")
@@ -28,10 +28,9 @@ class evalUtilitiesTest(unittest.TestCase):
 
         MD = similarityMetrics.calcMahalanobis(self.trainData, self.testData)
         quantiles = similarityMetrics.calcMahalanobisDistanceQuantiles(MD)
-
-        self.assertEqual(round(quantiles[0],3), round(1.216,3))
-        self.assertEqual(round(quantiles[1],3), round(1.717,3))
-        self.assertEqual(round(quantiles[2],3), round(2.359,3))
+        self.assertEqual(round(quantiles[0],3), round(1.1802994935528328,3))
+        self.assertEqual(round(quantiles[1],3), round(1.6345715553057074,3))
+        self.assertEqual(round(quantiles[2],3), round(2.316536184143136,3))
 
     def testRMSEstdCalc(self):
 
@@ -41,7 +40,7 @@ class evalUtilitiesTest(unittest.TestCase):
         nFolds = 5
         res = orngTest.crossValidation(learners, data, strat=orange.MakeRandomIndices.StratifiedIfPossible, folds = nFolds) 
         RMSEstd = evalUtilities.getRMSEstd(res, nFolds)[0]
-        self.assertEqual(round(RMSEstd,3), round(0.101, 3))
+        self.assertEqual(round(RMSEstd,3), round(0.141, 3))
 
 
 

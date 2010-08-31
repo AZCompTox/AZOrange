@@ -15,11 +15,11 @@ class RFClassifierTest(AZorngTestUtil.AZorngTestUtil):
 
     def setUp(self):
         """Creates the training and testing data set attributes. """
-        trainDataPhosPath = os.path.join(AZOC.AZORANGEHOME,"tests/source/data/dummyTrain.tab")
-        testDataPhosPath = os.path.join(AZOC.AZORANGEHOME,"tests/source/data/dummyTest.tab")
-        trainDataSolPath = os.path.join(AZOC.AZORANGEHOME,"tests/source/data/dummy.tab")
-        testDataSolPath = os.path.join(AZOC.AZORANGEHOME,"tests/source/data/dummy.tab")
-        missingTestDataPath = os.path.join(AZOC.AZORANGEHOME,"tests/source/data/dummy_missing.tab")
+        trainDataPhosPath = os.path.join(AZOC.AZORANGEHOME,"tests/source/data/BinClass_No_metas_Train.tab")
+        testDataPhosPath = os.path.join(AZOC.AZORANGEHOME,"tests/source/data/BinClass_No_metas_Test.tab")
+        trainDataSolPath = os.path.join(AZOC.AZORANGEHOME,"tests/source/data/Reg_No_metas_Train.tab")
+        testDataSolPath = os.path.join(AZOC.AZORANGEHOME,"tests/source/data/Reg_No_metas_Test.tab")
+        missingTestDataPath = os.path.join(AZOC.AZORANGEHOME,"tests/source/data/BinClass_No_metas_Train_missing.tab")
         irisPath = os.path.join(AZOC.AZORANGEHOME,"tests/source/data/iris.tab")
         # Read in the data
         missingInData = dataUtilities.DataTable(missingTestDataPath)
