@@ -554,7 +554,7 @@ class optimizerTest(AZorngTestUtil.AZorngTestUtil):
         """
         # Classification accuracy:
         ExpectedCA = [0.852, 0.865]
-        ExpectedCAwithTest = [0.837142857143, 0.865238095238, 0.85619047619] #New at orange2.0 
+        ExpectedCAwithTest = [0.837142857143, 0.865238095238, 0.85619047619, 0.875] #New at orange2.0 
 
         #Create  the appspack instance
         opt=paramOptUtilities.Appspack()
@@ -632,7 +632,7 @@ class optimizerTest(AZorngTestUtil.AZorngTestUtil):
         ###################################################################i
         # Classification accuracy:
         ExpectedCA = [0.851851851852, 0.865]
-        ExpectedCAwithTest = [0.865238095238, 0.884285714286, 0.85619047619] #New at orange2.0
+        ExpectedCAwithTest = [0.865238095238, 0.884285714286, 0.85619047619, 0.837] #New at orange2.0
 
         #Create  the appspack instance
         opt=paramOptUtilities.Appspack()

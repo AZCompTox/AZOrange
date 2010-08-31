@@ -17,7 +17,7 @@ class SVMClassifierTest(AZorngTestUtil.AZorngTestUtil):
     def setUp(self):
         """Creates the training and testing data set attributes. """
         self.dataPathD = os.path.join(AZOC.AZORANGEHOME,"tests/source/data/iris.tab")
-        self.dataPathC = os.path.join(AZOC.AZORANGEHOME,"tests/source/data/dummy.tab")
+        self.dataPathC = os.path.join(AZOC.AZORANGEHOME,"tests/source/data/Reg_No_metas_Test.tab")
 
 
         # Read in the data
@@ -33,15 +33,15 @@ class SVMClassifierTest(AZorngTestUtil.AZorngTestUtil):
 
         """Other datasets..."""
         testDataPath = os.path.join(AZOC.AZORANGEHOME,"tests/source/data/iris.tab")
-        contDataPath = os.path.join(AZOC.AZORANGEHOME,"tests/source/data/dummy.tab")
-        SVMregDataPath = os.path.join(AZOC.AZORANGEHOME,"tests/source/data/SVMregData.tab")
-        contTrainDataPath = os.path.join(AZOC.AZORANGEHOME,"tests/source/data/dummy.tab")
-        dataNoMetaTrainPath = os.path.join(AZOC.AZORANGEHOME,"tests/source/data/dummyTrain.tab")
-        missingTestDataPath = os.path.join(AZOC.AZORANGEHOME,"tests/source/data/dummy_missing.tab")
+        contDataPath = os.path.join(AZOC.AZORANGEHOME,"tests/source/data/Reg_No_metas_Test.tab")
+        SVMregDataPath = os.path.join(AZOC.AZORANGEHOME,"tests/source/data/Reg_No_metas_Train.tab")
+        contTrainDataPath = os.path.join(AZOC.AZORANGEHOME,"tests/source/data/Reg_No_metas_Train.tab")
+        dataNoMetaTrainPath = os.path.join(AZOC.AZORANGEHOME,"tests/source/data/BinClass_No_metas_Train.tab")
+        missingTestDataPath = os.path.join(AZOC.AZORANGEHOME,"tests/source/data/BinClass_No_metas_Train_missing.tab")
 
         #These 2 datasets are equal apart from the meta atribute
-        dataNoMetaTestPath = os.path.join(AZOC.AZORANGEHOME,"tests/source/data/dummyTest.tab")
-        dataWMetaTestPath = os.path.join(AZOC.AZORANGEHOME,"tests/source/data/dummywMeta.tab")
+        dataNoMetaTestPath = os.path.join(AZOC.AZORANGEHOME,"tests/source/data/BinClass_No_metas_Train.tab")
+        dataWMetaTestPath = os.path.join(AZOC.AZORANGEHOME,"tests/source/data/BinClass_W_metas_Train.tab")
 
         # Read in the data
         missingInData = dataUtilities.DataTable(missingTestDataPath)
@@ -62,10 +62,10 @@ class SVMClassifierTest(AZorngTestUtil.AZorngTestUtil):
         
         #Data for domain fix handling
         
-        badVarTypePath = os.path.join(AZOC.AZORANGEHOME,"tests/source/data/dummyBadVarType.tab")
-        badVarNamePath = os.path.join(AZOC.AZORANGEHOME,"tests/source/data/dummyBadVarName.tab")
-        badVarOrderPath = os.path.join(AZOC.AZORANGEHOME,"tests/source/data/dummyBadVarOrder.tab")
-        badVarCountPath = os.path.join(AZOC.AZORANGEHOME,"tests/source/data/dummyBadVarCount.tab")
+        badVarTypePath = os.path.join(AZOC.AZORANGEHOME,"tests/source/data/BinClass_BadVarType.tab")
+        badVarNamePath = os.path.join(AZOC.AZORANGEHOME,"tests/source/data/BinClass_BadVarName.tab")
+        badVarOrderPath = os.path.join(AZOC.AZORANGEHOME,"tests/source/data/BinClass_BadVarOrder.tab")
+        badVarCountPath = os.path.join(AZOC.AZORANGEHOME,"tests/source/data/BinClass_BadVarCount.tab")
         # Read in the data
         self.noBadDataTrain = self.NoMetaTrain
         self.noBadDataTest = self.NoMetaTest
