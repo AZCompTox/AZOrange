@@ -20,8 +20,7 @@ def getTrainingSet(data):
 
     # Write the data to disk to be able to create the TrainingSet object
     fileName = os.path.join(AZOC.SCRATCHDIR, "tmpTextFile"+str(time.time())+".txt")
-    print "fileName"
-    print fileName
+    #print "FileName: ",fileName
     fid = open(fileName, "w")
  
     # Create SMILES and ID with artificial values.
