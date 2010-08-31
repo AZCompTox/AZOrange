@@ -227,9 +227,7 @@ class dataUtilitiesTest(unittest.TestCase):
         mergeAttrName2 = "Attr3"
         res = dataUtilities.horizontalMerge(data1, data2, mergeAttrName1, mergeAttrName2)
         self.assertEqual(res[0]["Comments"],"ok","Got: "+str(res[0]["Comments"]))
-        res.save("AB.tab")
         res = dataUtilities.horizontalMerge(data2, data1, mergeAttrName2, mergeAttrName1)
-        res.save("BA.tab")
         self.assertEqual(res[5]["Comments"],"notok","Got: "+str(res[5]["Comments"]))
 
         #Teste merge based on Meta Attrs
