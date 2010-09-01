@@ -16,14 +16,14 @@ class PLSClassifierTest(AZorngTestUtil.AZorngTestUtil):
     def setUp(self):
         """Creates the training and testing data set attributes. """
         testDataPath = os.path.join(AZOC.AZORANGEHOME,"tests/source/data/iris.tab")
-        contDataPath = os.path.join(AZOC.AZORANGEHOME,"tests/source/data/dummy.tab")
-        contTrainDataPath = os.path.join(AZOC.AZORANGEHOME,"tests/source/data/dummy.tab")
-        dataNoMetaTrainPath = os.path.join(AZOC.AZORANGEHOME,"tests/source/data/dummyTrain.tab")
-        missingTestDataPath = os.path.join(AZOC.AZORANGEHOME,"tests/source/data/dummy_missing.tab")
+        contDataPath = os.path.join(AZOC.AZORANGEHOME,"tests/source/data/Reg_No_metas_Imp_Test.tab")
+        contTrainDataPath = os.path.join(AZOC.AZORANGEHOME,"tests/source/data/Reg_No_metas_Imp_Train.tab")
+        dataNoMetaTrainPath = os.path.join(AZOC.AZORANGEHOME,"tests/source/data/BinClass_No_metas_Train.tab")
+        missingTestDataPath = os.path.join(AZOC.AZORANGEHOME,"tests/source/data/BinClass_No_metas_Train_missing.tab")
 
         #These 2 datasets are equal apart from the meta atribute
-        dataNoMetaTestPath = os.path.join(AZOC.AZORANGEHOME,"tests/source/data/dummyTest.tab")
-        dataWMetaTestPath = os.path.join(AZOC.AZORANGEHOME,"tests/source/data/dummywMeta.tab")
+        dataNoMetaTestPath = os.path.join(AZOC.AZORANGEHOME,"tests/source/data/BinClass_No_metas_SmallTest.tab")
+        dataWMetaTestPath = os.path.join(AZOC.AZORANGEHOME,"tests/source/data/BinClass_W_metas_SmallTest.tab")
 
         # Read in the data
         missingInData = dataUtilities.DataTable(missingTestDataPath)
@@ -43,10 +43,10 @@ class PLSClassifierTest(AZorngTestUtil.AZorngTestUtil):
         
         #Data for domain fix handling
         
-        badVarTypePath = os.path.join(AZOC.AZORANGEHOME,"tests/source/data/dummyBadVarType.tab")
-        badVarNamePath = os.path.join(AZOC.AZORANGEHOME,"tests/source/data/dummyBadVarName.tab")
-        badVarOrderPath = os.path.join(AZOC.AZORANGEHOME,"tests/source/data/dummyBadVarOrder.tab")
-        badVarCountPath = os.path.join(AZOC.AZORANGEHOME,"tests/source/data/dummyBadVarCount.tab")
+        badVarTypePath = os.path.join(AZOC.AZORANGEHOME,"tests/source/data/BinClass_BadVarType.tab")
+        badVarNamePath = os.path.join(AZOC.AZORANGEHOME,"tests/source/data/BinClass_BadVarName.tab")
+        badVarOrderPath = os.path.join(AZOC.AZORANGEHOME,"tests/source/data/BinClass_BadVarOrder.tab")
+        badVarCountPath = os.path.join(AZOC.AZORANGEHOME,"tests/source/data/BinClass_BadVarCount.tab")
         # Read in the data
         self.noBadDataTrain = self.NoMetaTrain
         self.noBadDataTest = self.NoMetaTest
@@ -54,6 +54,11 @@ class PLSClassifierTest(AZorngTestUtil.AZorngTestUtil):
         self.badVarNameData = dataUtilities.DataTable(badVarNamePath)
         self.badVarOrderData = dataUtilities.DataTable(badVarOrderPath)
         self.badVarCountData = dataUtilities.DataTable(badVarCountPath)   #One less example 
+
+        trainImpDataPath = os.path.join(AZOC.AZORANGEHOME,"tests/source/data/Reg_No_metas_Imp_Train.tab")
+        testImpDataPath = os.path.join(AZOC.AZORANGEHOME,"tests/source/data/Reg_No_metas_Imp_Test.tab")
+        self.trainImpData = dataUtilities.DataTable(trainImpDataPath)
+        self.testImpData = dataUtilities.DataTable(testImpDataPath)
 
 
     def testTwoWays(self):
@@ -89,7 +94,7 @@ class PLSClassifierTest(AZorngTestUtil.AZorngTestUtil):
         ClassifierAcc = evalUtilities.getClassificationAccuracy(self.NoMetaTest, PLSClassifier)
 
         # Check that the accuracy is what it used to be
-        self.assertEqual(round(0.851851851852,9),round(ClassifierAcc,9))
+        self.assertEqual(round(0.66666666699999999,9),round(ClassifierAcc,9))
 
     def testPersistentRegAcc(self):
         """Test the persistence of the learner as Regressor
@@ -102,7 +107,7 @@ class PLSClassifierTest(AZorngTestUtil.AZorngTestUtil):
         RegressorRMSE = evalUtilities.getRMSE(self.contTest, PLSRegressor)
 
         # Check that RMSE is what it used to be
-        self.assertEqual(round(0.67276457999999995,8),round(RegressorRMSE,8))
+        self.assertEqual(round(4.39715452,8),round(RegressorRMSE,8))
 
 
     def testSavedModel(self):
@@ -146,29 +151,29 @@ class PLSClassifierTest(AZorngTestUtil.AZorngTestUtil):
         """Test prediction with diff. VarType
         Test the prediction of examples with different varType
         """
-        expectedAcc = 0.875
+        expectedAcc =0.62962962963 # ver 0.3 
         # Create a pls model
         pls = AZorngPLS.PLSLearner(self.noBadDataTrain)
         #using from index 3 o the end of data, because we know that from 0 to 2 the examples are not compatible
         Acc2 = evalUtilities.getClassificationAccuracy(self.noBadDataTest[3:],pls)
         Acc1 = evalUtilities.getClassificationAccuracy(self.badVarTypeData[3:],pls)
-        self.assertEqual(Acc1,expectedAcc,"The Accuracy is not the expected")
-        self.assertEqual(Acc2,expectedAcc,"The Accuracy is not the expected")    
-        self.assert_(('Fixed Types of variables' in pls.examplesFixedLog) and (pls.examplesFixedLog['Fixed Types of variables']==24), "No report of fixing in classifier class")
-        self.assert_(('Vars needing type fix' in pls.examplesFixedLog) and (pls.examplesFixedLog['Vars needing type fix']['SELMA_Max_pos_chrg_GH']=="EnumVariable to FloatVariable"), "No report of fixing in classifier class")
+        self.assertEqual(round(Acc1,4),round(expectedAcc,4),"The Accuracy is not the expected. Got: "+ str(Acc1))
+        self.assertEqual(round(Acc2,4),round(expectedAcc,4),"The Accuracy is not the expected")    
+        self.assert_(('Fixed Types of variables' in pls.examplesFixedLog) and (pls.examplesFixedLog['Fixed Types of variables']==27), "No report of fixing in classifier class")
+        self.assert_(('Vars needing type fix' in pls.examplesFixedLog) and (pls.examplesFixedLog['Vars needing type fix']['[Br]([C])']=="EnumVariable to FloatVariable"), "No report of fixing in classifier class")
 
 
     def testPredictionWithDiffVarOrder(self):
         """Test Prediction with diff. VarOrder
         Test the prediction  examples with different varOrder
         """
-        expectedAcc = 0.851851851852
+        expectedAcc = 0.666666666667 # ver 0.3
         # Create a pls model
         pls = AZorngPLS.PLSLearner(self.noBadDataTrain)
         #using from index 3 o the end of data, because we know that from 0 to 2 the examples are not compatible
         Acc1 = evalUtilities.getClassificationAccuracy(self.noBadDataTest,pls)
         Acc2 = evalUtilities.getClassificationAccuracy(self.badVarOrderData,pls)
-        self.assertEqual(round(Acc1,9),round(expectedAcc,9),"The Accuracy is not the expected")
+        self.assertEqual(round(Acc1,9),round(expectedAcc,9),"The Accuracy is not the expected. Got: "+str(Acc2))
         self.assertEqual(round(Acc2,9),round(expectedAcc,9),"The Accuracy is not the expected")
         #we do not report order fix anymore!         
         #self.assertEqual(str(pls.examplesFixedLog),"{'Fixed Order of variables': 27}", "No report of fixing in classifier class")
@@ -177,14 +182,13 @@ class PLSClassifierTest(AZorngTestUtil.AZorngTestUtil):
         """Test prediction with uncompatible domain
         Test the non-prediction of examples with an incompatible domain  
         """
-        expectedAcc1 = 0.851851851852
-        expectedAcc2 = 0.875
+        expectedAcc1 = 0.666666666667 # Ver 0.3
         # Create a pls model
         pls = AZorngPLS.PLSLearner(self.noBadDataTrain)
         #using from index 3 o the end of data, because we know that from 0 to 2 the examples are not compatible
         Acc1 = evalUtilities.getClassificationAccuracy(self.noBadDataTest,pls)
-        self.assertEqual(round(Acc1,9),round(expectedAcc1,9),"The Accuracy is not the expected")
-        self.assertEqual(pls(self.badVarTypeData[0]),"POS","This example could still be predicted")
+        self.assertEqual(round(Acc1,9),round(expectedAcc1,9),"The Accuracy is not the expected. Got: "+ str(Acc1))
+        self.assertEqual(pls(self.badVarTypeData[0]),"NEG","This example could still be predicted")
         self.assertEqual(pls(self.badVarTypeData[1]),"NEG","This example could still be predicted")
         print pls(self.badVarNameData[0])
         self.assertEqual(pls(self.badVarNameData[0]),None,"This example should NOT  be predicted")
@@ -200,44 +204,44 @@ class PLSClassifierTest(AZorngTestUtil.AZorngTestUtil):
 
         Acc = evalUtilities.getClassificationAccuracy(self.missingTest, pls)
 
-        self.assertEqual(round(0.84614999999999996,3),round(Acc,3))
+        self.assertEqual(round(0.61799999999999999,3),round(Acc,3))
 
 
     def testImpute(self):
         """Test missing values imputation
         Assure that imputation works for the pls models. Test on data with missing values
         """
-        ex1=self.contTest[0]
-        ex2=self.contTest[3]
-        self.assert_(ex1["ClogP"]!="?","The var ClogP shouldn't be missing!")
-        self.assert_(ex2["Lipinski"]!="?","The var Lipinski shouldn't be missing!")
+        ex1=self.trainImpData[0]
+        ex2=self.trainImpData[3]
+        self.assert_(ex1["DiscAttr2"]!="?","The var DiscAttr2 shouldn't be missing!")
+        self.assert_(ex2["Level"]!="?","The var Level shouldn't be missing!")
 
-        imputer = orange.ImputerConstructor_average(self.contTrain)
+        imputer = orange.ImputerConstructor_average(self.trainImpData)
 
-        pls = AZorngPLS.PLSLearner(self.contTrain)
+        pls = AZorngPLS.PLSLearner(self.trainImpData)
 
         # Prediction for data as it is
         P1=pls(ex1)
         P2=pls(ex2)
        
         # Predictions changing one continuous and one discrete variable to 0
-        ex1["ClogP"]=0
-        ex2["Lipinski"]=0
+        ex1["DiscAttr2"]=0
+        ex2["Level"]=0
         P1_0=pls(ex1)
         P2_0=pls(ex2)
 
         # Predictions changing the same continuous and discrete variable to it's correspondent imputation value
-        ex1["ClogP"]=imputer.defaults["ClogP"]
-        ex2["Lipinski"]=imputer.defaults["Lipinski"]
+        ex1["DiscAttr2"]=imputer.defaults["DiscAttr2"]
+        ex2["Level"]=imputer.defaults["Level"]
         P1_imp=pls(ex1)
         P2_imp=pls(ex2)
  
         # Predictions changing the same continuous and discrete variable to '?' wich means that the same imputation
         # as in the last case will have to be made inside the classifier. So, the predicted value must be the same
-        ex1["ClogP"]="?"
-        ex2["Lipinski"]="?"
-        self.assert_(ex1["ClogP"]=="?","The var ClogP should be missing now!")
-        self.assert_(ex2["Lipinski"]=="?","The var Lipinski should be missing now!")
+        ex1["DiscAttr2"]="?"
+        ex2["Level"]="?"
+        self.assert_(ex1["DiscAttr2"]=="?","The var DiscAttr2 should be missing now!")
+        self.assert_(ex2["Level"]=="?","The var Level should be missing now!")
     
         P1Miss=pls(ex1)
         P2Miss=pls(ex2)
@@ -267,8 +271,8 @@ class PLSClassifierTest(AZorngTestUtil.AZorngTestUtil):
         # Read in the model
         plsM = AZorngPLS.PLSread(modelPath)
         # Predict the ex1 and ex2 which are still the examples with missing values '?'
-        self.assert_( ex1["ClogP"]=="?","Value of Var ClogP should be missing!")
-        self.assert_( ex2["Lipinski"]=="?","Value of Var Lipinski should be missing!")
+        self.assert_( ex1["DiscAttr2"]=="?","Value of Var DiscAttr2 should be missing!")
+        self.assert_( ex2["Level"]=="?","Value of Var Level should be missing!")
         self.assert_(plsM(ex1)==P1Miss,"Imputation on loaded model is not correct")
         self.assert_(plsM(ex2)==P2Miss,"Imputation on loaded model is not correct")
         # Remove the scratch directory
@@ -287,7 +291,7 @@ class PLSClassifierTest(AZorngTestUtil.AZorngTestUtil):
         AccWMeta = evalUtilities.getClassificationAccuracy(self.WMetaTest, pls)
 
         self.assertEqual(AccNoMeta,AccWMeta,"Predictions with and without meta data were different!")
-        self.assertEqual(round(AccNoMeta,9), round(0.851851851852,9),"Accuracy was not the expected value!")
+        self.assertEqual(round(AccNoMeta,9), round(0.666666666667,9),"Accuracy was not the expected value! Got: "+str(AccNoMeta))
         
 
     def testMetaDataHandleForSavingModel(self):
@@ -318,8 +322,8 @@ class PLSClassifierTest(AZorngTestUtil.AZorngTestUtil):
         # Test that the accuracy of the model before and after saved
         self.assertEqual(AccNoMetaBefore, AccNoMetaAfter,"NoMeta: Predictions after loading saved model were different")
         self.assertEqual(AccWMetaBefore, AccWMetaAfter, "WMeta: Predictions after loading saved model were different")
-        self.assertEqual(round(AccWMetaAfter,9), round(0.888888888889,9),"Accuracy was not the expected value!")
-        self.assertEqual(round(AccNoMetaAfter,9), round(0.605769230769,9),"Accuracy was not the expected value!")
+        self.assertEqual(round(AccWMetaAfter,9), round(0.433333333333,9),"Accuracy was not the expected value! Got: "+str(AccWMetaAfter)+" - "+str(AccNoMetaAfter))
+        self.assertEqual(round(AccNoMetaAfter,9), round(0.545454545455,9),"Accuracy was not the expected value!")
  
         # Remove the scratch directory
         os.system("/bin/rm -rf "+scratchdir)
