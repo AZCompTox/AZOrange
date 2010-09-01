@@ -33,15 +33,15 @@ class SVMClassifierTest(AZorngTestUtil.AZorngTestUtil):
 
         """Other datasets..."""
         testDataPath = os.path.join(AZOC.AZORANGEHOME,"tests/source/data/iris.tab")
-        contDataPath = os.path.join(AZOC.AZORANGEHOME,"tests/source/data/Reg_No_metas_Test.tab")
+        contDataPath = os.path.join(AZOC.AZORANGEHOME,"tests/source/data/Reg_No_metas_Imp_Test.tab")
         SVMregDataPath = os.path.join(AZOC.AZORANGEHOME,"tests/source/data/Reg_No_metas_Train.tab")
-        contTrainDataPath = os.path.join(AZOC.AZORANGEHOME,"tests/source/data/Reg_No_metas_Train.tab")
+        contTrainDataPath = os.path.join(AZOC.AZORANGEHOME,"tests/source/data/Reg_No_metas_Imp_Train.tab")
         dataNoMetaTrainPath = os.path.join(AZOC.AZORANGEHOME,"tests/source/data/BinClass_No_metas_Train.tab")
         missingTestDataPath = os.path.join(AZOC.AZORANGEHOME,"tests/source/data/BinClass_No_metas_Train_missing.tab")
 
         #These 2 datasets are equal apart from the meta atribute
-        dataNoMetaTestPath = os.path.join(AZOC.AZORANGEHOME,"tests/source/data/BinClass_No_metas_Train.tab")
-        dataWMetaTestPath = os.path.join(AZOC.AZORANGEHOME,"tests/source/data/BinClass_W_metas_Train.tab")
+        dataNoMetaTestPath = os.path.join(AZOC.AZORANGEHOME,"tests/source/data/BinClass_No_metas_SmallTest.tab")
+        dataWMetaTestPath = os.path.join(AZOC.AZORANGEHOME,"tests/source/data/BinClass_W_metas_SmallTest.tab")
 
         # Read in the data
         missingInData = dataUtilities.DataTable(missingTestDataPath)
@@ -146,7 +146,7 @@ class SVMClassifierTest(AZorngTestUtil.AZorngTestUtil):
             self.assert_(type(c[0][1])==orange.DiscDistribution)
             # Although, SVM does always return fake probabilities
             self.assertEqual(CvSVM.isRealProb(),False)
-        expectedExtremes = {'max': 1.0551586151123047, 'min': -1.7003124952316284}
+        expectedExtremes = {'max': 1.0, 'min': -1.11053}
         self.assertEqual([round(x,5) for x in CvSVM.getDFVExtremes().values()],[round(x,5) for x in expectedExtremes.values()])
         self.assertEqual(CvSVM.nPredictions,4*len(self.NoMetaTest))
 
@@ -177,7 +177,7 @@ class SVMClassifierTest(AZorngTestUtil.AZorngTestUtil):
 
     def test_SVMreg(self):
         CvSVMmodel = AZorngCvSVM.CvSVMLearner(self.regTrainData)
-        predList = [0.805604, -1.384937, 1.854144, 0.908498, 0.487075, -0.674945, -0.100301, 0.351144, 1.503897, 0.213900]
+        predList = [5.482803, 4.889269,5.188474,5.528782,6.224637,4.679743,2.062022,7.878900,5.603292,5.905775,] # Ver. 0.3 
         for idx, ex in enumerate(self.regTrainData[0:10]):
             self.assertEqual(round(CvSVMmodel(ex),4), round(predList[idx], 4))
 
@@ -334,7 +334,7 @@ class SVMClassifierTest(AZorngTestUtil.AZorngTestUtil):
         svm = svmL(self.inDataC)
         trainedAcc = evalUtilities.getRMSE(self.inDataC, svm)
 
-        self.assertEqual(round(trainedAcc,7),round(0.76055240000000002,7))#0.285884607156,7))
+        self.assertEqual(round(trainedAcc,7),round(2.8525863999999999,7))# ver 0.3
         
         # Save model 
         rc = svm.write(self.modelPath)
@@ -363,7 +363,7 @@ class SVMClassifierTest(AZorngTestUtil.AZorngTestUtil):
 
         Res = orngTest.crossValidation([svmLearner], self.inDataC, folds=5, strat=orange.MakeRandomIndices.StratifiedIfPossible)
         RMSE = evalUtilities.RMSE(Res)[0]
-        self.assertEqual(round(RMSE,2),round(1.03,2))
+        self.assertEqual(round(RMSE,2),round(2.96,2)) #Ver 0.3
 
 
         newSVM = svmLearner(self.inDataC)
@@ -375,7 +375,7 @@ class SVMClassifierTest(AZorngTestUtil.AZorngTestUtil):
         loadedsvm = AZorngCvSVM.CvSVMread(self.modelPath)
         loadedAcc = evalUtilities.getRMSE(self.inDataC, loadedsvm)
         # Assure equal accuracy
-        self.assertEqual(round(trainedAcc,4), round(0.7471546,4))#0.073620599999999994,7))
+        self.assertEqual(round(trainedAcc,4), round(2.8289,4)) #Ver 0.3
         self.assertEqual(round(trainedAcc,4), round(loadedAcc,4))
 
 
@@ -406,31 +406,31 @@ class SVMClassifierTest(AZorngTestUtil.AZorngTestUtil):
         """Test prediction with diff. VarType
         Test the prediction of examples with different varType
         """
-        expectedAcc = 0.875  #without scale: 0.833333333333
+        expectedAcc = 0.666666666667 
         # Create a svm model
         svm = AZorngCvSVM.CvSVMLearner(self.noBadDataTrain)
         #using from index 3 o the end of data, because we know that from 0 to 2 the examples are not compatible
         Acc2 = evalUtilities.getClassificationAccuracy(self.noBadDataTest[3:],svm)
         Acc1 = evalUtilities.getClassificationAccuracy(self.badVarTypeData[3:],svm)
-        self.assertEqual(round(Acc1,7),round(expectedAcc,7),"The Accuracy is not the expected")
-        self.assertEqual(round(Acc2,7),round(expectedAcc,7),"The Accuracy is not the expected")    
-        self.assert_(('Fixed Types of variables' in svm.examplesFixedLog) and (svm.examplesFixedLog['Fixed Types of variables']==24), "No report of fixing in classifier class")
-        self.assert_(('Vars needing type fix' in svm.examplesFixedLog) and (svm.examplesFixedLog['Vars needing type fix']['SELMA_Max_pos_chrg_GH']=="EnumVariable to FloatVariable"), "No report of fixing in classifier class")
+        self.assertEqual(round(Acc1,7),round(expectedAcc,7),"The Accuracy is not the expected. Got: "+str(Acc1))
+        self.assertEqual(round(Acc2,7),round(expectedAcc,7),"The Accuracy is not the expected. Got: "+str(Acc2))    
+        self.assert_(('Fixed Types of variables' in svm.examplesFixedLog) and (svm.examplesFixedLog['Fixed Types of variables']==27), "No report of fixing in classifier class")
+        self.assert_(('Vars needing type fix' in svm.examplesFixedLog) and (svm.examplesFixedLog['Vars needing type fix']['[Br]([C])']=="EnumVariable to FloatVariable"), "No report of fixing in classifier class")
 
 
     def test_PredictionWithDiffVarOrder(self):
         """Test Prediction with diff. VarOrder
         Test the prediction  examples with different varOrder
         """
-        expectedAcc = 0.851851851852 #without scale: 0.814814814815
+        expectedAcc = 0.7 # 0.59999999999999998 #0.7 # Ver 0.3
         # Create a svm model
         svm = AZorngCvSVM.CvSVMLearner(self.noBadDataTrain)
         #using from index 3 o the end of data, because we know that from 0 to 2 the examples are not compatible
         Acc1 = evalUtilities.getClassificationAccuracy(self.noBadDataTest,svm)
         Acc2 = evalUtilities.getClassificationAccuracy(self.badVarOrderData,svm)
 
-        self.assertEqual(round(Acc1,9),round(expectedAcc,9),"The Accuracy is not the expected")
-        self.assertEqual(round(Acc2,9),round(expectedAcc,9),"The Accuracy is not the expected")
+        self.assertEqual(round(Acc1,9),round(expectedAcc,9),"The Accuracy is not the expected. Got: "+str(Acc1)) #Ver 0.3
+        self.assertEqual(round(Acc2,9),round(expectedAcc,9),"The Accuracy is not the expected. Got: "+str(Acc2))
         #we do not report order fix anymore! 
         #self.assertEqual(str(svm.examplesFixedLog),"{'Fixed Order of variables': 27}", "No report of fixing in classifier class")
 
@@ -438,17 +438,17 @@ class SVMClassifierTest(AZorngTestUtil.AZorngTestUtil):
         """Test prediction with uncompatible domain
         Test the non-prediction of examples with an incompatible domain  
         """
-        expectedAcc1 = 0.851851851852 #without scale: 0.814814814815
+        expectedAcc1 = 0.7   #Ver 0.3
         # Create a svm model
         svm = AZorngCvSVM.CvSVMLearner(self.noBadDataTrain)
         #using from index 3 o the end of data, because we know that from 0 to 2 the examples are not compatible
         Acc1 = evalUtilities.getClassificationAccuracy(self.noBadDataTest,svm)
 
-        self.assertEqual(round(Acc1,9),round(expectedAcc1,9),"The Accuracy is not the expected")
-        self.assertEqual(svm(self.badVarTypeData[0]),'POS',"This example could still be predicted")
-        self.assertEqual(svm(self.badVarTypeData[1]),'NEG',"This example could still be predicted")
-        self.assertEqual(svm(self.badVarNameData[0]),None,"This example should NOT be predicted")
-        self.assertEqual(svm(self.badVarCountData[0]),None,"This example should NOT be predicted")
+        self.assertEqual(round(Acc1,9),round(expectedAcc1,9),"The Accuracy is not the expected. Got: "+str(Acc1))
+        self.assertEqual(svm(self.badVarTypeData[0]),'NEG',"This example could still be predicted. Got: "+str(svm(self.badVarTypeData[0]))) #Ver 0.3
+        self.assertEqual(svm(self.badVarTypeData[1]),'NEG',"This example could still be predicted. Got: "+str(svm(self.badVarTypeData[1])))
+        self.assertEqual(svm(self.badVarNameData[0]),None,"This example should NOT be predicted. Got: "+str(svm(self.badVarNameData[0])))
+        self.assertEqual(svm(self.badVarCountData[0]),None,"This example should NOT be predicted. Got: "+str(svm(self.badVarCountData[0])))
 
     def test_ImputeTrain(self):
         """
@@ -459,17 +459,17 @@ class SVMClassifierTest(AZorngTestUtil.AZorngTestUtil):
         svm = AZorngCvSVM.CvSVMLearner(self.missingTrain)
 
         Acc = evalUtilities.getClassificationAccuracy(self.missingTest, svm)
-        self.assertEqual(round(0.846149999999,5),round(Acc,5))# Without scale: 0.894230769231
+        self.assertEqual(round(0.59999999999999998,5),round(Acc,5))# Ver 0.3
 
 
     def test_Impute(self):
         """Test missing values imputation
         Assure that imputation works for the svm models. Test on data with missing values
         """
-        ex1=self.contTest[0]
-        ex2=self.contTest[3]
-        self.assert_(ex1["ClogP"]!="?","The var ClogP shouldn't be missing!")
-        self.assert_(ex2["Lipinski"]!="?","The var Lipinski shouldn't be missing!")
+        ex1=self.contTest[1]
+        ex2=self.contTest[6]
+        self.assert_(ex1["DiscAttr2"]!="?","The var DiscAttr2 shouldn't be missing!")
+        self.assert_(ex2["Level"]!="?","The var Level shouldn't be missing!")
 
         imputer = orange.ImputerConstructor_average(self.contTrain)
         svmL = AZorngCvSVM.CvSVMLearner(p=0.2)  #Here if p=2 and scaleClass is False, is ok, but with p=2 and also scale calss, the model will have no support vectors. So, with p=0.2 and also scale class, it goes right.
@@ -481,40 +481,39 @@ class SVMClassifierTest(AZorngTestUtil.AZorngTestUtil):
         P2=svm(ex2)
        
         # Predictions changing one continuous and one discrete variable to 0
-        ex1["ClogP"]=0
-        ex2["Lipinski"]=0
+        ex1["DiscAttr2"]=0
+        ex2["Level"]=0
         P1_0=svm(ex1)
         P2_0=svm(ex2)
 
         # Predictions changing the same continuous and discrete variable to it's correspondent imputation value
-        ex1["ClogP"]=imputer.defaults["ClogP"]
-        ex2["Lipinski"]=imputer.defaults["Lipinski"]
+        ex1["DiscAttr2"]=imputer.defaults["DiscAttr2"]
+        ex2["Level"]=imputer.defaults["Level"]
         P1_imp=svm(ex1)
         P2_imp=svm(ex2)
  
         # Predictions changing the same continuous and discrete variable to '?' wich means that the same imputation
         # as in the last case will have to be made inside the classifier. So, the predicted value must be the same
-        ex1["ClogP"]="?"
-        ex2["Lipinski"]="?"
-        self.assert_(ex1["ClogP"]=="?","The var ClogP should be missing now!")
-        self.assert_(ex2["Lipinski"]=="?","The var Lipinski should be missing now!")
+        ex1["DiscAttr2"]="?"
+        ex2["Level"]="?"
+        self.assert_(ex1["DiscAttr2"]=="?","The var DiscAttr2 should be missing now!")
+        self.assert_(ex2["Level"]=="?","The var Level should be missing now!")
     
         P1Miss=svm(ex1)
         P2Miss=svm(ex2)
 
-
         # Test if the prediction made for the example with mising value is the same as the one 
         # for the example which missing values were substituted using the same method as the classifier does.
-        self.assert_(P1_imp==P1Miss,"Imputation was not made correctly inside the classifier")
-        self.assert_(P2_imp==P2Miss,"Imputation was not made correctly inside the classifier")
+        self.assert_(round(P1_imp,4)==round(P1Miss,4),"Imputation was not made correctly inside the classifier")
+        self.assert_(round(P2_imp,4)==round(P2Miss,4),"Imputation was not made correctly inside the classifier")
 
         # Assure that if other substitutions on those variables were made, the predicted value would be different, 
         # and so, this is a valid method for testing the imputation
-        self.assert_(P1.value!=P2.value)      # Just to assure that we are not comaring equal examples
-        self.assert_(P1.value!=P1_imp.value)
-        self.assert_(P1_0.value!=P1_imp.value)
-        self.assert_(P2.value!=P2_imp.value)
-        self.assert_(P2_0.value!=P2_imp.value)
+        self.assert_(round(P1.value,4)!=round(P2.value,4))      # Just to assure that we are not comaring equal examples
+        self.assert_(round(P1.value,4)!=round(P1_imp.value,4))
+        self.assert_(round(P1_0.value,4)!=round(P1_imp.value,4))
+        self.assert_(round(P2.value,4)!=round(P2_imp.value,4))
+        self.assert_(round(P2_0.value,4)!=round(P2_imp.value,4))
 
 
         #Test the imputer for saved models
@@ -527,8 +526,8 @@ class SVMClassifierTest(AZorngTestUtil.AZorngTestUtil):
         # Read in the model
         svmM = AZorngCvSVM.CvSVMread(modelPath)
         # Predict the ex1 and ex2 which are still the examples with missing values '?'
-        self.assert_( ex1["ClogP"]=="?","Value of Var ClogP should be missing!")
-        self.assert_( ex2["Lipinski"]=="?","Value of Var Lipinski should be missing!")
+        self.assert_( ex1["DiscAttr2"]=="?","Value of Var DiscAttr2 should be missing!")
+        self.assert_( ex2["Level"]=="?","Value of Var Level should be missing!")
         self.assert_(round(svmM(ex1),4)==round(P1Miss,4),"Imputation on loaded model is not correct")
         self.assert_(round(svmM(ex2),4)==round(P2Miss,4),"Imputation on loaded model is not correct")
         # Remove the scratch directory
@@ -547,7 +546,7 @@ class SVMClassifierTest(AZorngTestUtil.AZorngTestUtil):
         AccWMeta = evalUtilities.getClassificationAccuracy(self.WMetaTest, svm)
 
         self.assertEqual(AccNoMeta,AccWMeta,"Predictions with and without meta data were different!")
-        self.assertEqual(round(AccNoMeta,9), round(0.851851851852,9),"Accuracy was not the expected value!")#Without scale: 0.814814814815
+        self.assertEqual(round(AccNoMeta,9), round(0.7,9),"Accuracy was not the expected value! Got: ") #Ver 0.3
         
 
     def test_MetaDataHandleForSavingModel(self):
@@ -559,7 +558,6 @@ class SVMClassifierTest(AZorngTestUtil.AZorngTestUtil):
         svmM = AZorngCvSVM.CvSVMLearner(self.WMetaTest)
         AccNoMetaBefore = evalUtilities.getClassificationAccuracy(self.NoMetaTrain,svmM) 
         AccWMetaBefore = evalUtilities.getClassificationAccuracy(self.WMetaTest,svmM)
-
 
         # Save the model 
         scratchdir = os.path.join(AZOC.SCRATCHDIR, "scratchdirSVMtest"+str(time.time()))
@@ -578,8 +576,8 @@ class SVMClassifierTest(AZorngTestUtil.AZorngTestUtil):
         # Test that the accuracy of the model before and after saved
         self.assertEqual(AccNoMetaBefore, AccNoMetaAfter,"NoMeta: Predictions after loading saved model were different")
         self.assertEqual(AccWMetaBefore, AccWMetaAfter, "WMeta: Predictions after loading saved model were different")
-        self.assertEqual(round(AccWMetaAfter,9), round(0.851851851852,9),"Accuracy was not the expected value!")
-        self.assertEqual(round(AccNoMetaAfter,9), round(0.855769230769,9),"Accuracy was not the expected value!")
+        self.assertEqual(round(AccWMetaAfter,9), round(0.7,9),"Accuracy was not the expected value!")
+        self.assertEqual(round(AccNoMetaAfter,9), round(0.6,9),"Accuracy was not the expected value!")
  
         # Remove the scratch directory
         os.system("/bin/rm -rf "+scratchdir)
