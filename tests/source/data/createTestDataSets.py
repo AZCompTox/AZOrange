@@ -268,9 +268,18 @@ for idx,line in enumerate(linesBVO):
     fileH.write(line)
 fileH.close()
 
-
-
-
+#===================== Reg Data for testing Imputation  =================
+data = dataUtilities.DataTable("Reg_No_metas_Train.tab")
+data.domain["DiscAttr2"].values = ["NO","YES"]
+for ex in data:
+    if ex["Level"].value > 2:
+        ex["DiscAttr2"] = "YES" 
+    else:
+        ex["DiscAttr2"] = "NO"
+train = orange.ExampleTable(data[0:int(len(data)/5)])
+test = orange.ExampleTable(data[int(len(data)/5)+1:])
+train.save("Reg_No_metas_Imp_Train.tab")
+test.save("Reg_No_metas_Imp_Test.tab")
 
 os.system("rm baseDataTmp.txt")
 os.system("rm baseData.tab")
