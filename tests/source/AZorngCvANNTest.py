@@ -17,27 +17,24 @@ class CvANNClassifierTest(AZorngTestUtil.AZorngTestUtil):
     def setUp(self):
         """Creates the training and testing data set attributes. """
         testDataPath = os.path.join(AZOC.AZORANGEHOME,"tests/source/data/iris.tab")
-        geneToxTestDataPath = os.path.join(AZOC.AZORANGEHOME,"tests/source/data/dummy.tab")
-        missingTestDataPath = os.path.join(AZOC.AZORANGEHOME,"tests/source/data/dummy_missing.tab")
+        missingTestDataPath = os.path.join(AZOC.AZORANGEHOME,"tests/source/data/BinClass_No_metas_Train_missing.tab")
         
         # Read in the data
         inData = self.irisData = dataUtilities.DataTable(testDataPath)
-        geneToxInData = dataUtilities.DataTable(geneToxTestDataPath)
         missingInData = dataUtilities.DataTable(missingTestDataPath)
 
         # Random sampling
         self.train_data, self.test_data = self.randSamp(inData, 0.7)
         self.missingTrain = missingInData
         self.missingTest = missingInData
-        self.geneToxTrain, self.geneToxTest = self.randSamp(geneToxInData, 0.7)
 
         ##scPA
         
-        dataNoMetaTrainPath = os.path.join(AZOC.AZORANGEHOME,"tests/source/data/dummyTrain.tab")
+        dataNoMetaTrainPath = os.path.join(AZOC.AZORANGEHOME,"tests/source/data/BinClass_No_metas_Train.tab")
 
         #These 2 datasets are equal apart from the meta atribute
-        dataNoMetaTestPath = os.path.join(AZOC.AZORANGEHOME,"tests/source/data/dummyTest.tab")
-        dataWMetaTestPath = os.path.join(AZOC.AZORANGEHOME,"tests/source/data/dummywMeta.tab")
+        dataNoMetaTestPath = os.path.join(AZOC.AZORANGEHOME,"tests/source/data/BinClass_No_metas_SmallTest.tab")
+        dataWMetaTestPath = os.path.join(AZOC.AZORANGEHOME,"tests/source/data/BinClass_W_metas_SmallTest.tab")
         #contTestDataPath = os.path.join(AZOC.AZORANGEHOME,"tests/source/data/linearTest.tab")
         #contTrainDataPath = os.path.join(AZOC.AZORANGEHOME,"tests/source/data/linearTrain.tab")
         # Read in the data
@@ -48,10 +45,10 @@ class CvANNClassifierTest(AZorngTestUtil.AZorngTestUtil):
         self.WMetaTest = dataUtilities.DataTable(dataWMetaTestPath)
 
         #Data for domain fix handling        
-        badVarTypePath = os.path.join(AZOC.AZORANGEHOME,"tests/source/data/dummyBadVarType.tab")
-        badVarNamePath = os.path.join(AZOC.AZORANGEHOME,"tests/source/data/dummyBadVarName.tab")
-        badVarOrderPath = os.path.join(AZOC.AZORANGEHOME,"tests/source/data/dummyBadVarOrder.tab")
-        badVarCountPath = os.path.join(AZOC.AZORANGEHOME,"tests/source/data/dummyBadVarCount.tab")
+        badVarTypePath = os.path.join(AZOC.AZORANGEHOME,"tests/source/data/BinClass_BadVarType.tab")
+        badVarNamePath = os.path.join(AZOC.AZORANGEHOME,"tests/source/data/BinClass_BadVarName.tab")
+        badVarOrderPath = os.path.join(AZOC.AZORANGEHOME,"tests/source/data/BinClass_BadVarOrder.tab")
+        badVarCountPath = os.path.join(AZOC.AZORANGEHOME,"tests/source/data/BinClass_BadVarCount.tab")
         # Read in the data
         self.noBadDataTrain = self.NoMetaTrain
         self.noBadDataTest = self.NoMetaTest
@@ -59,9 +56,14 @@ class CvANNClassifierTest(AZorngTestUtil.AZorngTestUtil):
         self.badVarNameData = dataUtilities.DataTable(badVarNamePath)
         self.badVarOrderData = dataUtilities.DataTable(badVarOrderPath)
         self.badVarCountData = dataUtilities.DataTable(badVarCountPath)   #One less example 
-        # Random sampling
-        #self.contTrain = contTrainData
-        #self.contTest = contData
+        
+        # Beter data for ANN
+        LdataTrainPath = os.path.join(AZOC.AZORANGEHOME,"tests/source/data/BinClass_No_metas_FullNumeric_Train.tab") 
+        LdataTestPath = os.path.join(AZOC.AZORANGEHOME,"tests/source/data/BinClass_No_metas_FullNumeric_Test.tab") 
+        
+        self.LdataTrain = dataUtilities.DataTable(LdataTrainPath)
+        self.LdataTest = dataUtilities.DataTable(LdataTestPath)
+
         ##ecPA
 
     def test_Priors(self):
@@ -134,10 +136,10 @@ class CvANNClassifierTest(AZorngTestUtil.AZorngTestUtil):
 
     def test_DFV(self):
         """ Test the Decision Function Value Return"""
-        CvANN = AZorngCvANN.CvANNLearner(self.NoMetaTrain)
+        CvANN = AZorngCvANN.CvANNLearner(self.LdataTrain)
         #Testsing with return of DFV
         RDFV = True
-        for ex in self.NoMetaTest:
+        for ex in self.LdataTest:
             predictedClass = CvANN(ex)
             a = CvANN(ex,returnDFV = RDFV)
             b = CvANN(ex,resultType = orange.GetProbabilities,returnDFV = RDFV)
@@ -169,11 +171,11 @@ class CvANNClassifierTest(AZorngTestUtil.AZorngTestUtil):
             self.assertEqual(CvANN.isRealProb(),True)
         expectedExtremes = {'max': 0.5, 'min':-0.5 }
         self.assertEqual([round(x,5) for x in CvANN.getDFVExtremes().values()],[round(x,5) for x in expectedExtremes.values()])
-        self.assertEqual(CvANN.nPredictions,4*len(self.NoMetaTest))
+        self.assertEqual(CvANN.nPredictions,4*len(self.LdataTest))
 
         #Testsing without return of DFV
         RDFV = False
-        for ex in self.NoMetaTest:
+        for ex in self.LdataTest:
             a = CvANN(ex,returnDFV = RDFV)
             b = CvANN(ex,resultType = orange.GetProbabilities,returnDFV = RDFV)
             c = CvANN(ex,resultType = orange.GetBoth,returnDFV = RDFV)
@@ -191,14 +193,14 @@ class CvANNClassifierTest(AZorngTestUtil.AZorngTestUtil):
             self.assertEqual(CvANN.isRealProb(),True)
 
         self.assertEqual([round(x,5) for x in CvANN.getDFVExtremes().values()],[round(x,5) for x in expectedExtremes.values()])
-        self.assertEqual(CvANN.nPredictions,(3+4)*len(self.NoMetaTest))
+        self.assertEqual(CvANN.nPredictions,(3+4)*len(self.LdataTest))
 
     def test_Probabilities(self):
         """Test if the returned probabilities are not fake"""
 
-        CvANN = AZorngCvANN.CvANNLearner(self.NoMetaTrain, nTrees = 200, nActVars = 155, maxDepth = 100)
+        CvANN = AZorngCvANN.CvANNLearner(self.LdataTrain, nTrees = 200, nActVars = 155, maxDepth = 100)
         res = []
-        for idx,ex in enumerate(self.NoMetaTest):
+        for idx,ex in enumerate(self.LdataTest):
             res.append(CvANN(ex,resultType = orange.GetProbabilities))
             #print res[-1]
             self.assert_(res[-1][0]>=0 and res[-1][0]<=1,"Example "+str(idx)+" have impossible probability:"+str(res[-1])) 
@@ -209,7 +211,7 @@ class CvANNClassifierTest(AZorngTestUtil.AZorngTestUtil):
             self.assertEqual(round(sum(res[-1]),5),1,"Probabilities of Example "+str(idx)+" did not sum 1:"+str(res[-1]))
         sum0 = sum([x[0] for x in res])
         sum1 = sum([x[1] for x in res])
-        self.assertEqual(len(self.NoMetaTest),round(sum0+sum1,5))
+        self.assertEqual(len(self.LdataTest),round(sum0+sum1,5))
         self.assert_(sum0-int(sum0) > 0)
         self.assert_(sum1-int(sum1) > 0)
 
@@ -276,14 +278,14 @@ class CvANNClassifierTest(AZorngTestUtil.AZorngTestUtil):
     
         Acc = evalUtilities.getClassificationAccuracy(self.missingTest, ann)
 
-        self.assertEqual(round(0.97114999999999996,5),round(Acc,5)) #opencv1.1: 0.95191999999999999
+        self.assertEqual(round(0.75758000000000003,5),round(Acc,5)) #opencv1.1: 0.95191999999999999
 
 
     def test_PredictionWithDiffVarType(self):
         """Test prediction with diff. VarType
         Test the prediction of examples with different varType
         """
-        expectedAcc = 0.875 #opencv1.1: 0.79166700000000001 
+        expectedAcc = 0.66666700000000001 # Ver 0.3 
         # Create a ann model
         CvANNlearner = AZorngCvANN.CvANNLearner(randomWeights = False, nHidden = [3], nEpochs = 100)
         ann = CvANNlearner(self.noBadDataTrain)
@@ -291,16 +293,16 @@ class CvANNClassifierTest(AZorngTestUtil.AZorngTestUtil):
         Acc2 = evalUtilities.getClassificationAccuracy(self.noBadDataTest[3:],ann)
         Acc1 = evalUtilities.getClassificationAccuracy(self.badVarTypeData[3:],ann)
         self.assertEqual(round(Acc1,6),round(expectedAcc,6))
-        self.assertEqual(round(Acc2,6),round(expectedAcc,6))    
-        self.assert_(('Fixed Types of variables' in ann.examplesFixedLog) and (ann.examplesFixedLog['Fixed Types of variables']==24), "No report of fixing in classifier class")
-        self.assert_(('Vars needing type fix' in ann.examplesFixedLog) and (ann.examplesFixedLog['Vars needing type fix']['SELMA_Max_pos_chrg_GH']=="EnumVariable to FloatVariable", "No report of fixing in classifier class"))
+        self.assertEqual(round(Acc2,6),round(expectedAcc,6))  
+        self.assert_(('Fixed Types of variables' in ann.examplesFixedLog) and (ann.examplesFixedLog['Fixed Types of variables']==27), "No report of fixing in classifier class")
+        self.assert_(('Vars needing type fix' in ann.examplesFixedLog) and (ann.examplesFixedLog['Vars needing type fix']['[Br]([C])']=="EnumVariable to FloatVariable", "No report of fixing in classifier class"))
 
 
     def test_PredictionWithDiffVarOrder(self):
         """Test Prediction with diff. VarOrder
         Test the prediction  examples with different varOrder
         """
-        expectedAcc = 0.85185185200000002 #opencv1.1: 0.74074074099999998
+        expectedAcc = 0.69999999999999996 # Ver 0.3
         # Create a ann model
         CvANNlearner = AZorngCvANN.CvANNLearner(randomWeights = False, nHidden = [3], nEpochs = 100)
         ann = CvANNlearner(self.noBadDataTrain)
@@ -318,7 +320,7 @@ class CvANNClassifierTest(AZorngTestUtil.AZorngTestUtil):
         """Test prediction with uncompatible domain
         Test the non-prediction of examples with an incompatible domain  
         """
-        expectedAcc1 = 0.85185185200000002 #opencv1.1: 0.74074074099999998 
+        expectedAcc1 =  0.69999999999999996 # Ver 0.3 
         # Create a ann model
         CvANNlearner = AZorngCvANN.CvANNLearner(randomWeights = False, nHidden = [3], nEpochs = 100)
         ann = CvANNlearner(self.noBadDataTrain)
@@ -411,7 +413,7 @@ class CvANNClassifierTest(AZorngTestUtil.AZorngTestUtil):
     def test_MetaDataHandle(self):
         """Test the handling of Data with Meta Atributes
         """
-        expectedAcc =0.85185185200000002  #opencv1.1:0.74074074099999998
+        expectedAcc = 0.69999999999999996 # Ver 0.3
         # Create an ann model
         CvANNlearner = AZorngCvANN.CvANNLearner(randomWeights = False, nHidden = [3], nEpochs = 100)
         ann = CvANNlearner(self.NoMetaTrain)
@@ -425,8 +427,8 @@ class CvANNClassifierTest(AZorngTestUtil.AZorngTestUtil):
     def test_MetaDataHandleForSavingModel(self):
         """Test the handling of SaveModel for Data with Meta Atributes
         """
-        expectedAccWMeta = 1.0 #without scale: 0.888888888889 
-        expectedAccNoMeta = 0.74038461499999997 #opencv1.1: 0.65384615400000001
+        expectedAccWMeta = 1.0 # Ver 0.3 
+        expectedAccNoMeta = 0.63333333300000005 # Ver 0.3
         #Test the save of a model created from a train data with meta attributes
         self.assert_(len(self.WMetaTest.domain.getmetas())>=1,"The dataset WMetaTest should have Meta Attributes")
         CvANNlearner = AZorngCvANN.CvANNLearner(randomWeights = False, nHidden = [3], nEpochs = 100)
@@ -465,8 +467,8 @@ class CvANNClassifierTest(AZorngTestUtil.AZorngTestUtil):
         Assure that scaling works. Also assures that the scale did not have the same resuts as in the test above (without scaling)
         """
        
-        expectedAccWMeta = 1.0
-        expectedAccNoMeta = 0.74038461499999997 #opencv1.1: 0.65384615400000001
+        expectedAccWMeta = 1.0 # Ver 0.3
+        expectedAccNoMeta = 0.63333333300000005 # Ver 0.3
         #Test the save of a model created from a train data with meta attributes
         self.assert_(len(self.WMetaTest.domain.getmetas())>=1,"The dataset WMetaTest should have Meta Attributes")
         CvANNlearner = AZorngCvANN.CvANNLearner(randomWeights = False, nHidden = [3], nEpochs = 100, scale = True)
