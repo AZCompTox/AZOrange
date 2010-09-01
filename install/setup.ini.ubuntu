@@ -3,8 +3,8 @@
 [Repository]
 ;method for repositories interaction: "yes" "no"
 repoInteraction = yes
-;repository is the URL for the root place where all source code is (the complete Path of the repo where setup.py is placed)
-repository = git@github.com:AZCompTox/AZOrange.git
+;repository is the URL for the Git Repository
+repository = git://github.com/AZCompTox/AZOrange.git
 
 [Paths]
 ;Always use full paths. 
