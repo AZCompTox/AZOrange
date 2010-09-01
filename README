@@ -6,7 +6,7 @@ Installation (Using Ubuntu Lucid Lynx 10.04):
 2) Install git: 
        sudo apt-get install -y git-core gitosis
 3) Get the source code to the <installDir> (<installDir> cannot exist. If <installDir> is not specified, then a folder AZOrange will be created):
-       git clone git@github.com:AZCompTox/AZOrange.git [<installDir>]
+       git clone git://github.com/AZCompTox/AZOrange.git [<installDir>]
 4) Prepare the system with 3rd party dependencies (inside the <installDir>/AZOrange/install dir):
         ./prepareUbuntu4AZO.sh
 5) Create/configure a setup.ini file from a template (inside the <installDir>/AZOrange/install dir):
