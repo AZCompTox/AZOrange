@@ -33,8 +33,8 @@ class RFClassifierTest(AZorngTestUtil.AZorngTestUtil):
         dataNoMetaTrainPath = trainDataPhosPath
 
         #These 2 datasets are equal apart from the meta atribute
-        dataNoMetaTestPath = testDataPhosPath
-        dataWMetaTestPath = os.path.join(AZOC.AZORANGEHOME,"tests/source/data/dummywMeta.tab")
+        dataNoMetaTestPath = os.path.join(AZOC.AZORANGEHOME,"tests/source/data/BinClass_No_metas_SmallTest.tab")
+        dataWMetaTestPath = os.path.join(AZOC.AZORANGEHOME,"tests/source/data/BinClass_W_metas_SmallTest.tab")
 
         # Read in the data   
         #contData = self.testDataSol 
@@ -45,11 +45,11 @@ class RFClassifierTest(AZorngTestUtil.AZorngTestUtil):
         self.WMetaTest = dataUtilities.DataTable(dataWMetaTestPath)
 
         #Data for domain fix handling        
-        badVarTypePath = os.path.join(AZOC.AZORANGEHOME,"tests/source/data/dummyBadVarType.tab")
-        badVarNamePath = os.path.join(AZOC.AZORANGEHOME,"tests/source/data/dummyBadVarName.tab")
-        badVarOrderPath = os.path.join(AZOC.AZORANGEHOME,"tests/source/data/dummyBadVarOrder.tab")
-        badVarCountPath = os.path.join(AZOC.AZORANGEHOME,"tests/source/data/dummyBadVarCount.tab")
-        RegDAttrPath = os.path.join(AZOC.AZORANGEHOME,"tests/source/data/RegWithCatVarsData.tab")
+        badVarTypePath = os.path.join(AZOC.AZORANGEHOME,"tests/source/data/BinClass_BadVarType.tab")
+        badVarNamePath = os.path.join(AZOC.AZORANGEHOME,"tests/source/data/BinClass_BadVarName.tab")
+        badVarOrderPath = os.path.join(AZOC.AZORANGEHOME,"tests/source/data/BinClass_BadVarOrder.tab")
+        badVarCountPath = os.path.join(AZOC.AZORANGEHOME,"tests/source/data/BinClass_BadVarCount.tab")
+        RegDAttrPath = os.path.join(AZOC.AZORANGEHOME,"tests/source/data/Reg_No_metas_Imp_Train.tab")
         # Read in the data
         self.noBadDataTrain = self.NoMetaTrain
         self.noBadDataTest = self.NoMetaTest
@@ -139,7 +139,7 @@ class RFClassifierTest(AZorngTestUtil.AZorngTestUtil):
             self.assert_(type(c[0][1])==orange.DiscDistribution)
             # RF does always return real probabilities on binary classification
             self.assertEqual(RF.isRealProb(),True)
-        expectedExtremes = {'max': 0.47999999999999998, 'min':-0.5 }
+        expectedExtremes = {'max': 0.46000000000000002, 'min':-0.40999999999999998 } # Ver 0.3
         self.assertEqual([round(x,5) for x in RF.getDFVExtremes().values()],[round(x,5) for x in expectedExtremes.values()])
         self.assertEqual(RF.nPredictions,4*len(self.NoMetaTest))
 
@@ -212,8 +212,8 @@ class RFClassifierTest(AZorngTestUtil.AZorngTestUtil):
             res2.append(str(RFsign(ex)))
 
         self.assertEqual(res1,res2)
-        self.assertEqual(res1,['-1.000', '-1.000', '-3.700', '-1.000', '-2.000', '-1.000', '-3.000', '-1.000', '-1.000', '-1.000', '-8.2300', '-1.000', '-1.000', '-1.000', '-1.000', '-1.000', '-1.000'])
-        
+        self.assertEqual(res1,['5.404782', '2.568249', '2.979486', '4.287185', '5.335753', '4.439877', '3.682451', '8.054751', '6.511803', '5.760388', '7.771009', '2.328262', '6.062288', '5.577081', '3.639579', '6.862591', '3.793468', '2.865258', '3.531777', '6.833398', '6.376686', '3.338588', '7.002612', '7.137580', '7.258987', '6.899173', '7.547265', '8.708020', '6.262212', '7.563741', '8.166364', '6.614120', '7.865033', '9.060866', '8.057292', '4.877943', '7.993115', '9.198319', '9.428467', '8.537990', '9.130789', '6.328936', '8.247712', '7.605743', '8.755456', '6.983065', '7.712387', '9.972745', '9.763152', '7.934700', '8.447981', '7.272462', '8.824869', '7.654151', '7.795481', '7.229007', '8.680950', '9.439033', '9.130064', '8.505672', '8.082146', '6.086042', '7.493593', '8.981513', '8.880632', '6.548739'])
+   
         # Remove the scratch directory
         os.system("/bin/rm -rf "+scratchdir)
 
@@ -223,7 +223,7 @@ class RFClassifierTest(AZorngTestUtil.AZorngTestUtil):
         """Test prediction with diff. VarType
         Test the prediction of examples with different varType
         """
-        expectedAcc = 0.875 #opencv1.1: 0.83333333333333337
+        expectedAcc =0.96296296296296291 # Ver 0.3 
         # Create a rf model
         RFlearner = AZorngRF.RFLearner(NumThreads = 1, maxDepth = "20", minSample = "5", useSurrogates = "false", getVarVariance = "false", \
                                         nActVars = "0", nTrees = "100", forestAcc = "0.1", termCrit = "0")
@@ -233,15 +233,15 @@ class RFClassifierTest(AZorngTestUtil.AZorngTestUtil):
         Acc1 = evalUtilities.getClassificationAccuracy(self.badVarTypeData[3:],rf)
         self.assertEqual(Acc1,expectedAcc)
         self.assertEqual(Acc2,expectedAcc)   
-        self.assert_(('Fixed Types of variables' in rf.examplesFixedLog) and (rf.examplesFixedLog['Fixed Types of variables']==24), "No report of fixing in classifier class")
-        self.assert_(('Vars needing type fix' in rf.examplesFixedLog) and (rf.examplesFixedLog['Vars needing type fix']['SELMA_Max_pos_chrg_GH']=="EnumVariable to FloatVariable", "No report of fixing in classifier class"))
+        self.assert_(('Fixed Types of variables' in rf.examplesFixedLog) and (rf.examplesFixedLog['Fixed Types of variables']==27), "No report of fixing in classifier class")
+        self.assert_(('Vars needing type fix' in rf.examplesFixedLog) and (rf.examplesFixedLog['Vars needing type fix']['[Br]([C])']=="EnumVariable to FloatVariable", "No report of fixing in classifier class"))
 
 
     def test_PredictionWithDiffVarOrder(self):
         """Test Prediction with diff. VarOrder
         Test the prediction  examples with different varOrder
         """
-        expectedAcc = 0.81481481499999997 #opencv1.1: 0.77777777800000003
+        expectedAcc = 0.96666666700000003 # ver 0.3
         # Create a rf model
         RFlearner = AZorngRF.RFLearner(NumThreads = 1, maxDepth = "20", minSample = "5", useSurrogates = "false", getVarVariance = "false", \
                                         nActVars = "0", nTrees = "100", forestAcc = "0.1", termCrit = "0")
@@ -258,7 +258,7 @@ class RFClassifierTest(AZorngTestUtil.AZorngTestUtil):
         """Test prediction with uncompatible domain
         Test the non-prediction of examples with an incompatible domain  
         """
-        expectedAcc1 = 0.81481481499999997 #opencv1.1: 0.77777777800000003
+        expectedAcc1 = 0.96666666700000003 # Ver 0.3
         # Create a rf model
         RFlearner = AZorngRF.RFLearner(NumThreads = 1, maxDepth = "20", minSample = "5", useSurrogates = "false", getVarVariance = "false", \
                                         nActVars = "0", nTrees = "100", forestAcc = "0.1", termCrit = "0")
@@ -283,7 +283,7 @@ class RFClassifierTest(AZorngTestUtil.AZorngTestUtil):
     
         Acc = evalUtilities.getClassificationAccuracy(self.missingTest, rf)
         
-        self.assertEqual(round(0.99038000000000004,5),round(Acc,5))   #opencv1.0: 0.98077000000000003  
+        self.assertEqual(round(0.95757999999999999,5),round(Acc,5))   #Ver 0.3  
 
 
     def test_Impute(self):
@@ -451,7 +451,7 @@ class RFClassifierTest(AZorngTestUtil.AZorngTestUtil):
     def test_MetaDataHandle(self):
         """Test the handling of Data with Meta Atributes
         """
-        expectedAcc = 0.81481481499999997 #opencv1.1:  0.77777777800000003
+        expectedAcc = 0.96666666700000003 # Ver 0.3
         # Create an rf model
         RFlearner = AZorngRF.RFLearner(NumThreads = 1, maxDepth = "20", minSample = "5", useSurrogates = "false", getVarVariance = "false", \
                                         nActVars = "0", nTrees = "100", forestAcc = "0.1", termCrit = "0")
@@ -466,8 +466,8 @@ class RFClassifierTest(AZorngTestUtil.AZorngTestUtil):
     def test_MetaDataHandleForSavingModel(self):
         """Test the handling of SaveModel for Data with Meta Atributes
         """
-        expectedAccWMeta = 0.925925925926  
-        expectedAccNoMeta = 0.875 #opencv1.1: 0.85576923100000002 
+        expectedAccWMeta = 1.0 # VEr 0.3 
+        expectedAccNoMeta = 0.56666666700000001 # Ver 0.3 
         #Test the save of a model created from a train data with meta attributes
         self.assert_(len(self.WMetaTest.domain.getmetas())>=1,"The dataset WMetaTest should have Meta Attributes")
         RFlearner = AZorngRF.RFLearner(NumThreads = 1, maxDepth = "20", minSample = "5", useSurrogates = "false", getVarVariance = "false", \
@@ -592,7 +592,7 @@ class RFClassifierTest(AZorngTestUtil.AZorngTestUtil):
         # Calculate classification accuracy 
         Acc = evalUtilities.getClassificationAccuracy(self.testDataPhos, RFmodel)
         # Check that the accuracy is what it used to be
-        self.assertEqual(round(0.81481000000000003,5),round(Acc,5)) #opencv1.1: 0.77778000000000003
+        self.assertEqual(round(0.93869999999999998,5),round(Acc,5)) #opencv1.1: 0.77778000000000003
 
     def test_PersistentRegAcc(self): 
         """
@@ -607,7 +607,7 @@ class RFClassifierTest(AZorngTestUtil.AZorngTestUtil):
         Acc = evalUtilities.getRMSE(self.testDataSol, RFmodel)
 
         # Check that the accuracy is what it used to be
-        self.assertEqual(round(0.33533000000000002,5),round(Acc,5)) #opencv1.1:  0.32984999999999998,5
+        self.assertEqual(round(2.0158,5),round(Acc,5)) #opencv1.1:  0.32984999999999998,5
 
 
 if __name__ == "__main__":
