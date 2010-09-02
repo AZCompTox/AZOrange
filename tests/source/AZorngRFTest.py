@@ -15,29 +15,29 @@ class RFClassifierTest(AZorngTestUtil.AZorngTestUtil):
 
     def setUp(self):
         """Creates the training and testing data set attributes. """
-        trainDataPhosPath = os.path.join(AZOC.AZORANGEHOME,"tests/source/data/BinClass_No_metas_Train.tab")
-        testDataPhosPath = os.path.join(AZOC.AZORANGEHOME,"tests/source/data/BinClass_No_metas_Test.tab")
-        trainDataSolPath = os.path.join(AZOC.AZORANGEHOME,"tests/source/data/Reg_No_metas_Train.tab")
-        testDataSolPath = os.path.join(AZOC.AZORANGEHOME,"tests/source/data/Reg_No_metas_Test.tab")
+        trainDataPath = os.path.join(AZOC.AZORANGEHOME,"tests/source/data/BinClass_No_metas_Train.tab")
+        testDataPath = os.path.join(AZOC.AZORANGEHOME,"tests/source/data/BinClass_No_metas_Test.tab")
+        trainDataRegPath = os.path.join(AZOC.AZORANGEHOME,"tests/source/data/Reg_No_metas_Train.tab")
+        testDataRegPath = os.path.join(AZOC.AZORANGEHOME,"tests/source/data/Reg_No_metas_Test.tab")
         missingTestDataPath = os.path.join(AZOC.AZORANGEHOME,"tests/source/data/BinClass_No_metas_Train_missing.tab")
         irisPath = os.path.join(AZOC.AZORANGEHOME,"tests/source/data/iris.tab")
         # Read in the data
         missingInData = dataUtilities.DataTable(missingTestDataPath)
-        self.trainDataPhos = dataUtilities.DataTable(trainDataPhosPath)
-        self.testDataPhos = dataUtilities.DataTable(testDataPhosPath)
-        self.trainDataSol = dataUtilities.DataTable(trainDataSolPath)
-        self.testDataSol = dataUtilities.DataTable(testDataSolPath)
+        self.trainData = dataUtilities.DataTable(trainDataPath)
+        self.testData = dataUtilities.DataTable(testDataPath)
+        self.trainDataReg = dataUtilities.DataTable(trainDataRegPath)
+        self.testDataReg = dataUtilities.DataTable(testDataRegPath)
         self.irisData = dataUtilities.DataTable(irisPath)
 
         ##scPA
-        dataNoMetaTrainPath = trainDataPhosPath
+        dataNoMetaTrainPath = trainDataPath
 
         #These 2 datasets are equal apart from the meta atribute
         dataNoMetaTestPath = os.path.join(AZOC.AZORANGEHOME,"tests/source/data/BinClass_No_metas_SmallTest.tab")
         dataWMetaTestPath = os.path.join(AZOC.AZORANGEHOME,"tests/source/data/BinClass_W_metas_SmallTest.tab")
 
         # Read in the data   
-        #contData = self.testDataSol 
+        #contData = self.testDataReg 
         self.missingTrain = missingInData
         self.missingTest = missingInData
         self.NoMetaTrain = dataUtilities.DataTable(dataNoMetaTrainPath)
@@ -59,8 +59,8 @@ class RFClassifierTest(AZorngTestUtil.AZorngTestUtil):
         self.badVarCountData = dataUtilities.DataTable(badVarCountPath)   #One less example 
         self.RegDAttr = dataUtilities.DataTable(RegDAttrPath)
         # Random sampling
-        #self.contTrain = self.trainDataSol
-        #self.contTest = self.testDataSol
+        #self.contTrain = self.trainDataReg
+        #self.contTest = self.testDataReg
         ##ecPA
 ##scPA
 
@@ -168,9 +168,9 @@ class RFClassifierTest(AZorngTestUtil.AZorngTestUtil):
     def test_Probabilities(self):
         """Test if the returned probabilities are not fake"""
 
-        RF = AZorngRF.RFLearner(self.trainDataPhos, nTrees = 200, nActVars = 155, maxDepth = 100)
+        RF = AZorngRF.RFLearner(self.trainData, nTrees = 200, nActVars = 155, maxDepth = 100)
         res = []
-        for idx,ex in enumerate(self.testDataPhos):
+        for idx,ex in enumerate(self.testData):
             res.append(RF(ex,resultType = orange.GetProbabilities))
             self.assertEqual(RF.isRealProb(),True,"Example "+str(idx)+" did not return real probability")
             self.assert_(res[-1][0]>=0 and res[-1][0]<=1,"Example "+str(idx)+" have impossible probability:"+str(res[-1]))
@@ -180,7 +180,7 @@ class RFClassifierTest(AZorngTestUtil.AZorngTestUtil):
             self.assertEqual(round(sum(res[-1]),5),1,"Probabilities of Example "+str(idx)+" did not sum 1")
         sum0 = sum([x[0] for x in res])
         sum1 = sum([x[1] for x in res])
-        self.assertEqual(len(self.testDataPhos),round(sum0+sum1,5))
+        self.assertEqual(len(self.testData),round(sum0+sum1,5))
         self.assert_(sum0-int(sum0) > 0)
         self.assert_(sum1-int(sum1) > 0)
 
@@ -507,10 +507,10 @@ class RFClassifierTest(AZorngTestUtil.AZorngTestUtil):
         # Create a RF model
         RFlearner = AZorngRF.RFLearner(maxDepth = "20", minSample = "5", useSurrogates = "false", getVarVariance = "false", \
                                         nActVars = "0", nTrees = "100", forestAcc = "0.1", termCrit = "0")
-        RFmodel = RFlearner(self.trainDataPhos)
+        RFmodel = RFlearner(self.trainData)
 
         # Calculate classification accuracy 
-        Acc = evalUtilities.getClassificationAccuracy(self.testDataPhos, RFmodel)
+        Acc = evalUtilities.getClassificationAccuracy(self.testData, RFmodel)
 
         # Save the model 
         scratchdir = os.path.join(AZOC.SCRATCHDIR, "scratchdirTest"+str(time.time()))
@@ -522,7 +522,7 @@ class RFClassifierTest(AZorngTestUtil.AZorngTestUtil):
         newRFmodel = AZorngRF.RFread(modelPath)
 
         # Calculate classification accuracy 
-        savedAcc = evalUtilities.getClassificationAccuracy(self.testDataPhos, RFmodel)
+        savedAcc = evalUtilities.getClassificationAccuracy(self.testData, RFmodel)
 
         # Test that the accuracy of the two classifiers is the exact same
         self.assertEqual(Acc, savedAcc)
@@ -533,8 +533,8 @@ class RFClassifierTest(AZorngTestUtil.AZorngTestUtil):
         file.close()
         priors = [round(x,2) for x in eval((lines[22].strip()).replace("data:",""))]
         self.assertEqual(len(priors),2)
-        self.assertEqual(priors[self.testDataPhos.domain.classVar.values.index("POS")],0.50)
-        self.assertEqual(priors[self.testDataPhos.domain.classVar.values.index("NEG")],0.50)
+        self.assertEqual(priors[self.testData.domain.classVar.values.index("POS")],0.50)
+        self.assertEqual(priors[self.testData.domain.classVar.values.index("NEG")],0.50)
 
         # Remove the scratch directory
         os.system("/bin/rm -rf "+scratchdir)
@@ -588,9 +588,9 @@ class RFClassifierTest(AZorngTestUtil.AZorngTestUtil):
         # Create a RF model
         RFlearner = AZorngRF.RFLearner(NumThreads = 1, maxDepth = "20", minSample = "5", useSurrogates = "false", getVarVariance = "false", \
                                         nActVars = "0", nTrees = "100", forestAcc = "0.1", termCrit = "0")
-        RFmodel = RFlearner(self.trainDataPhos)
+        RFmodel = RFlearner(self.trainData)
         # Calculate classification accuracy 
-        Acc = evalUtilities.getClassificationAccuracy(self.testDataPhos, RFmodel)
+        Acc = evalUtilities.getClassificationAccuracy(self.testData, RFmodel)
         # Check that the accuracy is what it used to be
         self.assertEqual(round(0.93869999999999998,5),round(Acc,5)) #opencv1.1: 0.77778000000000003
 
@@ -601,10 +601,10 @@ class RFClassifierTest(AZorngTestUtil.AZorngTestUtil):
         # Create a RF model
         RFlearner = AZorngRF.RFLearner(NumThreads = 1, maxDepth = "20", minSample = "5", useSurrogates = "false", getVarVariance = "false", \
                                         nActVars = "0", nTrees = "100", forestAcc = "0.1", termCrit = "0")
-        RFmodel = RFlearner(self.trainDataSol)
+        RFmodel = RFlearner(self.trainDataReg)
 
         # Calculate classification accuracy 
-        Acc = evalUtilities.getRMSE(self.testDataSol, RFmodel)
+        Acc = evalUtilities.getRMSE(self.testDataReg, RFmodel)
 
         # Check that the accuracy is what it used to be
         self.assertEqual(round(2.0158,5),round(Acc,5)) #opencv1.1:  0.32984999999999998,5
