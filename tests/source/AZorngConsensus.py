@@ -18,10 +18,10 @@ import orngImpute
 class ConsensusClassifierTest(AZorngTestUtil.AZorngTestUtil):
     def setUp(self):
         """Creates the training and testing data set attributes. """
-        testDataSolPath = os.path.join(AZOC.AZORANGEHOME,"tests/source/data/dummy.tab")
+        testDataRegPath = os.path.join(AZOC.AZORANGEHOME,"tests/source/data/Reg_No_metas_Train.tab")
         irisPath = os.path.join(AZOC.AZORANGEHOME,"tests/source/data/iris2.tab")
         # Read in the data
-        self.DataSol = dataUtilities.DataTable(testDataSolPath)
+        self.DataReg = dataUtilities.DataTable(testDataRegPath)
         self.irisData = dataUtilities.DataTable(irisPath)
 
     def test_saveloadClass(self):
@@ -75,9 +75,9 @@ class ConsensusClassifierTest(AZorngTestUtil.AZorngTestUtil):
         learnersNames = ["CvANN","CvSVM","RF"]
 
         learner = AZorngConsensus.ConsensusLearner(learnersNames = learnersNames)
-        classifier = learner(self.DataSol)
+        classifier = learner(self.DataReg)
         predictions = []
-        for ex in self.DataSol:
+        for ex in self.DataReg:
             predictions.append(classifier(ex))
 
         scratchdir = miscUtilities.createScratchDir(desc="ConsensusSaveLoadTest")
@@ -85,10 +85,10 @@ class ConsensusClassifierTest(AZorngTestUtil.AZorngTestUtil):
 
         predictionsL = []
         Loaded = AZorngConsensus.Consensusread(os.path.join(scratchdir,"./CM.model"))
-        for ex in self.DataSol:
+        for ex in self.DataReg:
             predictionsL.append(Loaded(ex))
 
-        self.assertEqual(predictions,predictionsL)
+        self.assertEqual([round(pred.value,4) for pred in predictions],[round(pred.value,4) for pred in predictionsL],"Loaded model predictions differ: Pred. 1 (saved/loaded):"+str(predictions[0])+" / "+str(predictionsL[0]))
 
         miscUtilities.removeDir(scratchdir)
  
@@ -100,9 +100,9 @@ class ConsensusClassifierTest(AZorngTestUtil.AZorngTestUtil):
 
         #Passing now the learnersObj instead
         learner = AZorngConsensus.ConsensusLearner(learnersObj = learners)
-        classifier = learner(self.DataSol)
+        classifier = learner(self.DataReg)
         predictions = []
-        for ex in self.DataSol:
+        for ex in self.DataReg:
             predictions.append(classifier(ex))
 
         scratchdir = miscUtilities.createScratchDir(desc="ConsensusSaveLoadTest")
@@ -110,10 +110,10 @@ class ConsensusClassifierTest(AZorngTestUtil.AZorngTestUtil):
 
         predictionsL = []
         Loaded = AZorngConsensus.Consensusread(os.path.join(scratchdir,"./CM.model"))
-        for ex in self.DataSol:
+        for ex in self.DataReg:
             predictionsL.append(Loaded(ex))
 
-        self.assertEqual(predictions,predictionsL)
+        self.assertEqual([round(pred.value,4) for pred in predictions],[round(pred.value,4) for pred in predictionsL],"Loaded model predictions differ: Pred. 1 (saved/loaded):"+str(predictions[0])+" / "+str(predictionsL[0]))
 
         miscUtilities.removeDir(scratchdir)
 
@@ -146,8 +146,8 @@ class ConsensusClassifierTest(AZorngTestUtil.AZorngTestUtil):
 
     def test_FeedClassifiersReg(self):
         """Test the feeding of regression classifiers """
-        DataSet = dataUtilities.DataTable(os.path.join(AZOC.AZORANGEHOME,"tests/source/data/dummy.tab"))
-        #DataSet = self.DataSol
+        #DataSet = dataUtilities.DataTable("/home/palmeida/dev/OpenAZOTesteInstall/tests/source/data/linearTrain.tab")
+        DataSet = self.DataReg
         learners = [AZorngCvSVM.CvSVMLearner(), AZorngCvANN.CvANNLearner(), AZorngRF.RFLearner()]
         classifiers = [l(DataSet) for l in learners]
 
@@ -163,8 +163,7 @@ class ConsensusClassifierTest(AZorngTestUtil.AZorngTestUtil):
         Loaded = AZorngConsensus.Consensusread(os.path.join(scratchdir,"./CM.model"))
         for ex in DataSet:
             predictionsL.append(Loaded(ex))
-
-        self.assertEqual(predictions,predictionsL)
+        self.assertEqual([round(pred.value,4) for pred in predictions],[round(pred.value,4) for pred in predictionsL],"Loaded model predictions differ: Pred. 1 (saved/loaded):"+str(predictions[0])+" / "+str(predictionsL[0]))
 
         miscUtilities.removeDir(scratchdir)
 
