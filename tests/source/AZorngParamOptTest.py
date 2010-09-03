@@ -308,6 +308,7 @@ class optimizerTest(AZorngTestUtil.AZorngTestUtil):
     def test_PLS_Classification(self):
         """PLS - Test of optimizer with discrete class data
         """
+        expectedAcc = [0.57999999999999996, 0.58999999999999997] #Ver 0.3 - Artifact: The second value can be expected on other Systems
         #Create  the appspack instance
         opt=paramOptUtilities.Appspack()
         #Learner to be optimized
@@ -341,7 +342,7 @@ class optimizerTest(AZorngTestUtil.AZorngTestUtil):
         print "check the file intRes.txt to see the intermediate results of optimizer!"
         self.assertEqual(opt.usedMPI,False)
         self.assertEqual(learner.optimized,True)
-        self.assertEqual(round(tunedPars[0],2),round(0.57999999999999996,2)) #Ver 0.3
+        self.assert_(round(tunedPars[0],2) in [round(x,2) for x in expectedAcc]) #Ver 0.3
 
 
         #The learner is now with its optimized parameters already set, so we can now make a classifier out of it
@@ -353,7 +354,8 @@ class optimizerTest(AZorngTestUtil.AZorngTestUtil):
 
     def test_PLS_Regression(self):
         """PLS - Test of optimizer with continuous class data        
-        """        
+        """ 
+        expectedRes = [3.27, 3.2599999999999998] #Ver 0.3 - Artifact: The second value can be expected on other Systems       
         #Create  the appspack instance
         opt=paramOptUtilities.Appspack()
         #Learner to be optimized
@@ -387,7 +389,7 @@ class optimizerTest(AZorngTestUtil.AZorngTestUtil):
         print "check the file intRes.txt to see the intermediate results of optimizer!"
         self.assertEqual(opt.usedMPI,False)
         self.assertEqual(learner.optimized,True)
-        self.assertEqual(round(tunedPars[0],2),round(3.27,2)) #Ver 0.3
+        self.assert_(round(tunedPars[0],2) in [round(x,2) for x in expectedRes]) #Ver 0.3
         #The learner is now with its optimized parameters already set, so we can now make a classifier out of it
         classifier = learner(self.contTrain)
         RMSE = evalUtilities.getRMSE(self.contTest,classifier)

@@ -588,7 +588,7 @@ class dataUtilitiesTest(unittest.TestCase):
         self.assert_(str(self.badVarOrderData.domain["Attr3"].values)=="<1, 2, 3, 4, 5>")
         self.assert_(str(badVarOrderValuesData.domain["Attr3"].values)=="<2, 1, 3, 5, 4>")
         self.assert_(classifier(badVarOrderValuesData[12]).value=="NEG","VarOrderValues (12): Prediction was not done correcly")
-        self.assert_(classifier(badVarOrderValuesData[1]).value=="POS","VarOrderValues (0): Prediction was not done correcly")
+        self.assert_(classifier(badVarOrderValuesData[0]).value=="NEG","VarOrderValues (0): Prediction was not done correcly")
         example = badVarOrderValuesData[1]
         self.assert_(example["Activity"].value == self.badVarOrderData[1]["Activity"].value)
         self.assert_(int(example["Activity"]) != int(self.badVarOrderData[1]["Activity"]))
