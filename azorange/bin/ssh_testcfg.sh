@@ -7,7 +7,7 @@ errmsg() {
 	echo
 	echo "1. Run $DIR/ssh_fixcfg.sh"
 	echo "   This creates a backup or your .ssh directory and attempts to fix the current configuration."
-	echo "2. Run $DIR/azorange/bin/ssh_newcfg.sh"
+	echo "2. Run $DIR/ssh_newcfg.sh"
         echo "   This creates a backup of your .ssh directory and creates a new working ssh configuration."
         echo "--------------------------------------------------------------------------------------------"
 }
