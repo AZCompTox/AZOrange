@@ -28,10 +28,10 @@ class optimizerTest(AZorngTestUtil.AZorngTestUtil):
         #appspack with proper environment.
         self.assert_(os.path.isfile(os.path.join(os.environ["AZORANGEHOME"], "templateProfile")),"Missing file: "+os.path.join(os.environ["AZORANGEHOME"], "templateProfile"))
 
-        self.contTestDataPath = os.path.join(AZOC.AZORANGEHOME,"tests/source/data/dummy.tab")
-        self.contTrainDataPath = os.path.join(AZOC.AZORANGEHOME,"tests/source/data/dummy.tab")
-        self.discTrainDataPath = os.path.join(AZOC.AZORANGEHOME,"tests/source/data/dummyTrain.tab")
-        self.discTestDataPath = os.path.join(AZOC.AZORANGEHOME,"tests/source/data/dummyTest.tab")
+        self.contTestDataPath = os.path.join(AZOC.AZORANGEHOME,"tests/source/data/Reg_No_metas_Test.tab")
+        self.contTrainDataPath = os.path.join(AZOC.AZORANGEHOME,"tests/source/data/Reg_No_metas_Train.tab")
+        self.discTrainDataPath = os.path.join(AZOC.AZORANGEHOME,"tests/source/data/BinClass_No_metas_Train.tab")
+        self.discTestDataPath = os.path.join(AZOC.AZORANGEHOME,"tests/source/data/BinClass_No_metas_Test.tab")
 
         # Read in the data
         self.discTrain = dataUtilities.DataTable(self.discTrainDataPath)
@@ -95,7 +95,7 @@ class optimizerTest(AZorngTestUtil.AZorngTestUtil):
         self.assertEqual(learner.optimized,True)
 
         # Check the accuracy
-        self.assertEqual(round(tunedPars[0],2), round(0.766700000000000,2)) #0.853333333333,4
+        self.assertEqual(round(tunedPars[0],2), round(0.64000000000000001,2)) # Ver 0.3
 
         #Check if the number of results remain equal
         self.assert_(len(dataUtilities.DataTable(os.path.join(runPath,"optimizationLog.txt")))>=5)
@@ -104,7 +104,7 @@ class optimizerTest(AZorngTestUtil.AZorngTestUtil):
         self.assert_(opt.GSRes["nFailedPoints"]==0)
         self.assert_(opt.GSRes["nPoints"]==3)
         #CheckSum to assure results are the same
-        self.assert_(round(sum(opt.GSRes["results"]),2) == -2.09)  # -2.44
+        self.assert_(round(sum(opt.GSRes["results"]),2) == -1.78," Got: "+str(round(sum(opt.GSRes["results"]),2)) )  # Ver 0.3
 
         #Check if the best result was not the one with numThreads different of 1 since that way we can get 
         #different results among runs
@@ -296,12 +296,12 @@ class optimizerTest(AZorngTestUtil.AZorngTestUtil):
         print "check the file intRes.txt to see the intermediate results of optimizer!"
         self.assertEqual(opt.usedMPI,False)
         self.assertEqual(learner.optimized,True)
-        self.assertEqual(round(tunedPars[0],2),round(0.86523799999999995,2)) #0.87571399999999,6
+        self.assertEqual(round(tunedPars[0],2),round(0.59999999999999998,2)) #Ver 0.3
 
         #The learner is now with its optimized parameters already set, so we can now make a classifier out of it
         classifier = learner(self.discTrain)
         CA = evalUtilities.getClassificationAccuracy(self.discTest,classifier)
-        self.assertEqual(round(CA,2),round(0.851851851852,2))
+        self.assertEqual(round(CA,2),round(0.56999999999999995,2)) #Ver 0.3
         self.assert_(len(dataUtilities.DataTable(os.path.join(runPath,"optimizationLog.txt")))>=5) # Must be > 2
         miscUtilities.removeDir(runPath)
 
@@ -341,13 +341,13 @@ class optimizerTest(AZorngTestUtil.AZorngTestUtil):
         print "check the file intRes.txt to see the intermediate results of optimizer!"
         self.assertEqual(opt.usedMPI,False)
         self.assertEqual(learner.optimized,True)
-        self.assertEqual(round(tunedPars[0],2),round(0.87523799999999996,2))
+        self.assertEqual(round(tunedPars[0],2),round(0.57999999999999996,2)) #Ver 0.3
 
 
         #The learner is now with its optimized parameters already set, so we can now make a classifier out of it
         classifier = learner(self.discTrain)
         CA = evalUtilities.getClassificationAccuracy(self.discTest,classifier)
-        self.assertEqual(round(CA,2),round(0.851851851852,2))
+        self.assertEqual(round(CA,2),round(0.58999999999999997,2)) # Ver 0.3
 
         miscUtilities.removeDir(runPath)
 
@@ -387,11 +387,11 @@ class optimizerTest(AZorngTestUtil.AZorngTestUtil):
         print "check the file intRes.txt to see the intermediate results of optimizer!"
         self.assertEqual(opt.usedMPI,False)
         self.assertEqual(learner.optimized,True)
-        self.assertEqual(round(tunedPars[0],2),round(0.858060000000,2))
+        self.assertEqual(round(tunedPars[0],2),round(3.27,2)) #Ver 0.3
         #The learner is now with its optimized parameters already set, so we can now make a classifier out of it
         classifier = learner(self.contTrain)
         RMSE = evalUtilities.getRMSE(self.contTest,classifier)
-        self.assertEqual(round(RMSE,2),round(0.656979500000,2))
+        self.assertEqual(round(RMSE,2),round(2.8900000000000001,2)) #Ver 0.3
 
         miscUtilities.removeDir(runPath)
 
@@ -450,9 +450,9 @@ class optimizerTest(AZorngTestUtil.AZorngTestUtil):
         self.assertEqual(opt.usedMPI,False)
 
         self.assertEqual(learner.optimized,True)
-        self.assertEqual(round(tunedPars[0],2),round(0.90333333333300003,2)) #  0.92380952381000003      opencv1.1: 0.92380952381000003 (0.93333333333299995)
+        self.assertEqual(round(tunedPars[0],2),round(0.62,2)) # Ver 0.3:390
 
-        self.assertEqual(round(CA,2),round(0.81481499999999996,2)) #opencv 1.1: 0.77777799999999997
+        self.assertEqual(round(CA,2),round(0.97999999999999998,2)) #Ver 0.3
         #Check if the best result was not the one with numThreads different of 1 since that way we can get 
         #different results among runs
         self.assertEqual(int(tunedPars[1]["NumThreads"]),1)
@@ -505,12 +505,12 @@ class optimizerTest(AZorngTestUtil.AZorngTestUtil):
 
         self.assertEqual(opt.usedMPI,False)
         self.assertEqual(learner.optimized,True)
-        self.assertEqual(round(tunedPars[0],2),round(0.72,2))
+        self.assertEqual(round(tunedPars[0],2),round(3.1499999999999999,2))
 
         #The learner is now with its optimized parameters already set, so we can now make a classifier out of it
         classifier = learner(self.contTrain)
         RMSE = evalUtilities.getRMSE(self.contTest,classifier)
-        self.assertEqual(round(RMSE,2),round(0.3387,2)) #opencv1.1: 0.33829999999999999
+        self.assertEqual(round(RMSE,2),round(2.02,2)) #Ver 0.3
 
         #Check if the best result was not the one with numThreads different of 1 since that way we can get 
         #different results among runs
@@ -524,7 +524,7 @@ class optimizerTest(AZorngTestUtil.AZorngTestUtil):
         Tests changing the default range of the optimizer.
         """             
         # Classification accuracy:
-        ExpectedCA = [0.846]  #0.864761904762  #0.895238095238 #opencv1.1: 0.87619047619
+        ExpectedCA = [0.564]  #Ver 0.3
                         
         optimizer = paramOptUtilities.Appspack()
 
@@ -533,7 +533,7 @@ class optimizerTest(AZorngTestUtil.AZorngTestUtil):
         
         # Create an interface for setting optimizer parameters
         pars = AZLearnersParamsConfig.API(learnerName)
-        
+       
         # Set all parameters to not be optimized
         pars.setOptimizeAllParameters(False)
 
@@ -592,7 +592,7 @@ class optimizerTest(AZorngTestUtil.AZorngTestUtil):
         Tests changing the default range of the optimizer.
         """
         # Classification accuracy:
-        ExpectedCA = [0.827142857143] # New at orange2.0
+        ExpectedCA = [0.6] # Ver 0.3
 
         optimizer = paramOptUtilities.Appspack()
 
@@ -658,7 +658,7 @@ class optimizerTest(AZorngTestUtil.AZorngTestUtil):
 
         #Check Priors
         self.assertEqual(dataUtilities.DataTable(os.path.join(runPath,"optimizationLog.txt"))[1]["priors"].value,"{'NEG':4,'POS':2}")
-        self.assertEqual( tunedPars[1]["priors"],"None") 
+        self.assertEqual( tunedPars[1]["priors"],"{'NEG':4,'POS':2}") # Ver 0.3 
 
         #Set the priors since it could be choosing the first row as the best, which would be the default values, without the priors
         learner.priors = {"POS":2, "NEG":4}
