@@ -305,7 +305,55 @@ diff -crBN orange2.0/source/orange/tabdelim.hpp orange2.0_PatchedOK/source/orang
   
     virtual bool readExample (TFileExampleIteratorData &, TExample &);
   
-diff -crBN orange2.0/install-scripts/linux/setup.py orange2.0_PatchedOK/install-scripts/linux/setup.py
+*** orange2.0/orngAddOns.py	2010-08-26 14:18:32.000000000 +0200
+--- orange2.0_PatchedOK/orngAddOns.py	2010-08-26 14:19:38.000000000 +0200
+***************
+*** 805,811 ****
+              try:
+                  addOn = OrangeAddOnInstalled(addOnDir)
+              except Exception, e:
+!                 print "Add-on in directory '%s' has no valid descriptor (addon.xml): %s" % (addOnDir, e)
+                  continue
+              if addOn.id in installedAddOns:
+                  print "Add-on in directory '%s' has the same ID as the addon in '%s'!" % (addOnDir, installedAddOns[addOn.id].directory)
+--- 805,811 ----
+              try:
+                  addOn = OrangeAddOnInstalled(addOnDir)
+              except Exception, e:
+! #                print "Add-on in directory '%s' has no valid descriptor (addon.xml): %s" % (addOnDir, e)
+                  continue
+              if addOn.id in installedAddOns:
+                  print "Add-on in directory '%s' has the same ID as the addon in '%s'!" % (addOnDir, installedAddOns[addOn.id].directory)
+***************
+*** 832,838 ****
+          except Exception, e:
+              print "Unable to load repository list! Error: %s" % e
+      try:
+!         updateDefaultRepositories()
+      except Exception, e:
+          print "Unable to refresh default repositories: %s" % (e)
+      for r in availableRepositories:
+--- 832,839 ----
+          except Exception, e:
+              print "Unable to load repository list! Error: %s" % e
+      try:
+! #        updateDefaultRepositories()
+!          pass
+      except Exception, e:
+          print "Unable to refresh default repositories: %s" % (e)
+      for r in availableRepositories:
+***************
+*** 1043,1046 ****
+  
+  addAddOnDirectoriesToPath()
+  
+! loadRepositories()
+\ No newline at end of file
+--- 1044,1047 ----
+  
+  addAddOnDirectoriesToPath()
+  
+! loadRepositories()
 *** orange2.0/install-scripts/linux/setup.py    2007-02-20 20:20:17.000000000 +0000
 --- orange2.0_PatchedOK/install-scripts/linux/setup.py  2010-05-27 14:59:32.673526075 +0100
 ***************
@@ -420,7 +468,7 @@ diff -crBN orange2.0/install-scripts/linux/setup.py orange2.0_PatchedOK/install-
   
   # Adding each doc/* directory by itself
   for root, dirs, files in os.walk(os.path.join("doc")):
---- 461,488 ----
+--- 461,498 ----
   OrangeWidgetIcons = glob(os.path.join("OrangeWidgets", "icons", "*.png"))
   OrangeCanvasIcons = glob(os.path.join("OrangeCanvas",  "icons", "*.png"))
   OrangeCanvasPyw   = glob(os.path.join("OrangeCanvas", "orngCanvas.pyw"));
@@ -434,6 +482,16 @@ diff -crBN orange2.0/install-scripts/linux/setup.py orange2.0_PatchedOK/install-
 ! 	      (os.path.join(OrangeInstallDir, "OrangeCanvas"),
 !                OrangeCanvasPyw)]
 ! 
+! # Adding each add-ons directory by itself
+! for root, dirs, files in os.walk(os.path.join("add-ons")):
+!     addOns = glob(os.path.join("", "")) 
+!     if 'CVS' in dirs:
+!         dirs.remove('CVS')  # don't visit CVS directories
+!     for name in files:
+!          addOns += glob(os.path.join(root,name))
+!     if addOns:
+!         data_files += [(os.path.join(OrangeInstallDir, root),
+!                                  addOns)]
 ! 
 ! # Adding each OrangeWidgets directory by itself
 ! for root, dirs, files in os.walk(os.path.join("OrangeWidgets")):
@@ -449,52 +507,13 @@ diff -crBN orange2.0/install-scripts/linux/setup.py orange2.0_PatchedOK/install-
   
   # Adding each doc/* directory by itself
   for root, dirs, files in os.walk(os.path.join("doc")):
-*** orange2.0/orngAddOns.py	2010-08-26 14:18:32.000000000 +0200
---- orange2.0_PatchedOK/orngAddOns.py	2010-08-26 14:19:38.000000000 +0200
 ***************
-*** 805,811 ****
-              try:
-                  addOn = OrangeAddOnInstalled(addOnDir)
-              except Exception, e:
-!                 print "Add-on in directory '%s' has no valid descriptor (addon.xml): %s" % (addOnDir, e)
-                  continue
-              if addOn.id in installedAddOns:
-                  print "Add-on in directory '%s' has the same ID as the addon in '%s'!" % (addOnDir, installedAddOns[addOn.id].directory)
---- 805,811 ----
-              try:
-                  addOn = OrangeAddOnInstalled(addOnDir)
-              except Exception, e:
-! #                print "Add-on in directory '%s' has no valid descriptor (addon.xml): %s" % (addOnDir, e)
-                  continue
-              if addOn.id in installedAddOns:
-                  print "Add-on in directory '%s' has the same ID as the addon in '%s'!" % (addOnDir, installedAddOns[addOn.id].directory)
-***************
-*** 832,838 ****
-          except Exception, e:
-              print "Unable to load repository list! Error: %s" % e
-      try:
-!         updateDefaultRepositories()
-      except Exception, e:
-          print "Unable to refresh default repositories: %s" % (e)
-      for r in availableRepositories:
---- 832,839 ----
-          except Exception, e:
-              print "Unable to load repository list! Error: %s" % e
-      try:
-! #        updateDefaultRepositories()
-!          pass
-      except Exception, e:
-          print "Unable to refresh default repositories: %s" % (e)
-      for r in availableRepositories:
-***************
-*** 1043,1046 ****
+*** 467,472 ****
+--- 506,512 ----
+      data_files += [(os.path.join(OrangeInstallDoc,root.split('doc/')[-1]),
+                                   OrangeDocs)]
   
-  addAddOnDirectoriesToPath()
++ 
+  # we save setup.py, so we can uninstall complete orange installation
+  data_files += [(OrangeInstallDoc,['setup.py'])]
   
-! loadRepositories()
-\ No newline at end of file
---- 1044,1047 ----
-  
-  addAddOnDirectoriesToPath()
-  
-! loadRepositories()
