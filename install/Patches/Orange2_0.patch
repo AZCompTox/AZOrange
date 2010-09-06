@@ -413,10 +413,20 @@ diff -crBN orange2.0/source/orange/tabdelim.hpp orange2.0_PatchedOK/source/orang
                                  (os.path.join(OrangeInstallDir,
 ***************
 *** 267,272 ****
---- 267,285 ----
+--- 267,293 ----
                   self.data_files += [(os.path.join(OrangeInstallDoc,
                                                root.split('doc/')[-1]), OrangeDocs)]
   
++             for root, dirs, files in os.walk(os.path.join("add-ons")):
++                 addOns = glob(os.path.join("", "")) # Create a Widgets icons list
++                 if 'CVS' in dirs:
++                     dirs.remove('CVS')  # don't visit CVS directories
++                 for name in files:
++                     addOns += glob(os.path.join(root,name))
++                 if addOns:
++                     self.data_files += [(os.path.join(OrangeInstallDir, root),
++                                              addOns)]
++ 
 +             for root, dirs, files in os.walk(os.path.join("OrangeWidgets")):
 +                 NewOWIcons = glob(os.path.join("", "")) # Create a Widgets icons list
 +                 if 'CVS' in dirs:
@@ -427,8 +437,6 @@ diff -crBN orange2.0/source/orange/tabdelim.hpp orange2.0_PatchedOK/source/orang
 +                 if NewOWIcons:
 +                     self.data_files += [(os.path.join(OrangeInstallDir, root),
 +                                              NewOWIcons)]
-+ 
-+ 
 + 
               self.data_files += [(OrangeInstallDoc,['setup.py'])]
               
@@ -443,7 +451,7 @@ diff -crBN orange2.0/source/orange/tabdelim.hpp orange2.0_PatchedOK/source/orang
               fo.write(self.orangepath)
               fo.close()
               OrangeInstallDir = os.path.join(self.orangepath, "orange")
---- 397,405 ----
+--- 405,413 ----
   
           if self.orangepath != None:
               # we save orangepath for uninstallation to the file user_install
@@ -468,7 +476,7 @@ diff -crBN orange2.0/source/orange/tabdelim.hpp orange2.0_PatchedOK/source/orang
   
   # Adding each doc/* directory by itself
   for root, dirs, files in os.walk(os.path.join("doc")):
---- 461,498 ----
+--- 469,506 ----
   OrangeWidgetIcons = glob(os.path.join("OrangeWidgets", "icons", "*.png"))
   OrangeCanvasIcons = glob(os.path.join("OrangeCanvas",  "icons", "*.png"))
   OrangeCanvasPyw   = glob(os.path.join("OrangeCanvas", "orngCanvas.pyw"));
@@ -507,13 +515,3 @@ diff -crBN orange2.0/source/orange/tabdelim.hpp orange2.0_PatchedOK/source/orang
   
   # Adding each doc/* directory by itself
   for root, dirs, files in os.walk(os.path.join("doc")):
-***************
-*** 467,472 ****
---- 506,512 ----
-      data_files += [(os.path.join(OrangeInstallDoc,root.split('doc/')[-1]),
-                                   OrangeDocs)]
-  
-+ 
-  # we save setup.py, so we can uninstall complete orange installation
-  data_files += [(OrangeInstallDoc,['setup.py'])]
-  
