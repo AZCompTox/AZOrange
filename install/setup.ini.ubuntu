@@ -94,7 +94,7 @@ appspack = http://software.sandia.gov/appspack/downloads/appspack-5.0.1.tar.gz,5
 boost = http://downloads.sourceforge.net/project/boost/boost/1.34.1/boost_1_34_1.tar.gz,1.34.1
 opencv = http://downloads.sourceforge.net/project/opencvlibrary/opencv-unix/2.0/OpenCV-2.0.0.tar.bz2,2.0.0
 plearn = svn://svn.berlios.de/plearn/trunk,8124
-cinfony = http://cinfony.googlecode.com/files/cinfony-1.0.zip,1.0
+cinfony = http://cinfony.googlecode.com/files/cinfony-1.0.tar.gz,1.0
 
 [FeedBack]
 ;For sending reports to multiple accounts, separate them by comma

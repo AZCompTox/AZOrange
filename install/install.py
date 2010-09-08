@@ -384,8 +384,8 @@ class installer:
                 self.addLog(commands.getstatusoutput("wget " + URL ))
         else:
                 self.addLog("*Using APPSPACK in SVN Repo")
-        self.addLog(commands.getstatusoutput("unzip " + os.path.split(URL)[-1]))
-        self.addLog(commands.getstatusoutput("mv " + os.path.split(URL)[-1][0:os.path.split(URL)[-1].rfind(".zip")] + " cinfony" ))
+        self.addLog(commands.getstatusoutput("tar xfz " + os.path.split(URL)[-1]))
+        self.addLog(commands.getstatusoutput("mv " + os.path.split(URL)[-1][0:os.path.split(URL)[-1].rfind(".tar")] + " cinfony" ))
  
 
 
