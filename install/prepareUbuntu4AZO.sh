@@ -26,6 +26,10 @@ sudo apt-get install -y python-qwt5-qt4
 sudo apt-get install -y git-core gitosis
 sudo apt-get install -y subversion
 #sudo apt-get install -y sip4
+#Openbabel
+sudo apt-get install -y openbabel
+sudo apt-get install -y python-openbabel
+#WARNING for uninstall: cinfony is installed by the install script in the system default location !
 
 echo "Updating db..."
 sudo updatedb
