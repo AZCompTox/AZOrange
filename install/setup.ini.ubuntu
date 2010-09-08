@@ -3,8 +3,8 @@
 [Repository]
 ;method for repositories interaction: "yes" "no"
 repoInteraction = yes
-;repository is the URL for the root place where all source code is (the complete Path of the repo where setup.py is placed)
-repository = git@github.com:larscarlsson/AZOrange.git
+;repository is the URL for the Git Repository
+repository = git://github.com/AZCompTox/AZOrange.git
 
 [Paths]
 ;Always use full paths. 
@@ -19,7 +19,7 @@ installDir =
 ;System: Checkout to trunk, Build, install.
 ;developer: Checkout to trunk, build, install on same trunkDir (will not use installDir)
 InstallType = developer
-;When installing using only the opensource repository, set next option to True
+;When installing using only the open source repository, set next option to True
 OpenInstallation = True
 ;Clean actions before starting installation procedure. "Yes" or "No"
 ;The "NO" is mandatory, but the "Yes" still depends on other options. 
@@ -39,10 +39,10 @@ TemplateProfileFile = ./templateProfile
 
 
 [Tests]
-;Run the tests in testsuite after install: Yes or No
+;Run the tests in test suite after install: Yes or No
 RunTestsAfterInstall = No
 ;Script inside the tests directory to run
-TestScript = runDailyTests.sh
+TestScript = runOpenTests.sh
 ;relative paths are related to the current install dir
 LogFile = ./tests.log
 DetailsLogFile = ./testDetails.log
@@ -65,11 +65,11 @@ PYTHON = /usr/bin/python%PYTHON_VER%
 [LocalSetupVars]
 ;the var names MUST be in CAPITALS!
 ;Do not use localVars within this section
-;to use them in this setup file, place them between %% Ex: PlatformType = GAS-py%PYTHON_VER% 
+;To use them in this setup file, place them between %% Ex: PYTHON = /usr/bin/python%PYTHON_VER% 
 PYTHON_VER = 2.6
 
 [Advanced]
-;Platform Type can be workstation, GAS-py2.4, GAS-py2.5, cluster
+;Platform Type can be workstation or something else like for instance cluster if you want separate types of installations.
 PlatformType = workstation
 ;include in the template profile the source of the files in the option "sources" (comma separated files) 
 ; Use just if needed. For example, when we need to load modules it might be needed to use the following option
@@ -85,7 +85,7 @@ GCCmoduleForAppspackMPI = None
 ;   DependencyName = FileURL|SVNURL[,VersionNumber|RevNumber][,*]
 ;
 ;If RevNum, in SVN cases, is not provided, the SVN HEAD will be used
-;If dependency not specifyed or is empty, it will not use the dependency at all. 
+;If dependency not specified or is empty, it will not use the dependency at all. 
 ;    It must be somehow already installed or being loaded by modules
 ;If the third argument * is present, the respective dependency will not be built and it will use a previous installed one.
 ;    It must already have been installed in a previous azorange full installation (without *) 
