@@ -242,14 +242,26 @@ class installerClass:
             return
         cinfonyinstallDir = os.path.join(self.orangeDependenciesDir,os.path.split(self.cinfonyDir)[1])
         if self.dependencies["cinfony"]:   #compile and install 
+                print "Compiling cinfony"
                 os.chdir(self.cinfonyDir)
                 print "Building in:   ",self.cinfonyDir
-                print "Installing in system default location "
-                stat, out = commands.getstatusoutput("sudo python setup.py install")
-                checkStatus(stat, out,"Error compiling/installing cinfony.")
+                print "Installing in: ",cinfonyinstallDir
+                stat, out = commands.getstatusoutput("python setup.py build")
+                checkStatus(stat, out,"Error compiling cinfony.")
+                stat, out = commands.getstatusoutput("python setup.py install --prefix=\"" + cinfonyinstallDir  + "\"")
+                checkStatus(stat, out,"Error installing cinfony")
         else:
                 print "Not reinstalled"
 
+        status, out = commands.getstatusoutput("find \""+cinfonyinstallDir+"\" | grep webel.py | grep -v \".svn\"")
+        checkStatus(status, out,"Error: webel.py not found while finding site-packages of cinfony!")
+        sitePackagesPath = os.path.split(os.path.split(out.split("\n")[-1])[0])[0]
+        if not sitePackagesPath:
+            print "ERROR: webel.py not found while finding site-packages of cinfony"
+            sys.exit(1)
+
+        # At runtime we will need PYTHONPATH to include the location of new installed modules
+        self.__prependEnvVar("PYTHONPATH" , sitePackagesPath)
 
 
     def compileOrange(self):
@@ -731,8 +743,7 @@ class installerClass:
 
         # Compile cinfony
         self.compileCinfony()
-
-        
+       
         # Compile the Orange C++ layer
         self.compileOrange()
     
