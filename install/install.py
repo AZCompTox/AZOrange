@@ -354,6 +354,41 @@ class installer:
                 self.addLog(commands.getstatusoutput("svn revert -R ./*")) 
                 os.chdir(install.currentDir)
 
+    def checkOutCinfony(self):
+        # Get the dependency Config
+        if "cinfony" not in self.dependencies:
+            URL = None
+            REV = None
+            USE_INSTALLED = True
+        else:
+            depCfg = self.dependencies["cinfony"].split(",")
+            URL = depCfg[0]
+            if len(depCfg)<2 or depCfg[1] == "":
+                REV = "HEAD"
+            else:
+                REV = depCfg[1]
+            if len(depCfg)>=3 and depCfg[2] == "*":
+                USE_INSTALLED = True
+            else:
+                USE_INSTALLED = False
+
+        if not URL or USE_INSTALLED or self.repoInter == "no":
+           self.addLog("*Not downloading cinfony")
+           return
+
+        self.addLog(commands.getstatusoutput("rm -rf " + os.path.join(self.DepSrcDir,"cinfony")))
+        os.chdir(self.DepSrcDir)
+        if self.openInstallation:
+                self.addLog("*Downloading cinfony to trunk ("+URL+":"+REV+")")
+                self.addLog(commands.getstatusoutput("rm -rf " + os.path.split(URL)[-1]))
+                self.addLog(commands.getstatusoutput("wget " + URL ))
+        else:
+                self.addLog("*Using APPSPACK in SVN Repo")
+        self.addLog(commands.getstatusoutput("unzip " + os.path.split(URL)[-1]))
+        self.addLog(commands.getstatusoutput("mv " + os.path.split(URL)[-1][0:os.path.split(URL)[-1].rfind(".zip")] + " cinfony" ))
+ 
+
+
 
     def checkOutOrange(self):
         # Get the dependency Config
@@ -909,6 +944,8 @@ if __name__ == "__main__":
     #Checkout any 3rd party software to the proper locations
     if install.successInstall:
         install.checkOutOpenAZO()
+    if install.successInstall:
+        install.checkOutCinfony()
     if install.successInstall:
         install.checkOutOrange() 
     if install.successInstall:
