@@ -13,7 +13,7 @@ Installation (Using Ubuntu Lucid Lynx 10.04):
        cp setup.ini.ubuntu setup.ini
             (edit the setup.ini to configure accordingly to your system)
 6) Start the installation scripts (inside the <installDir>/AZOrange/install dir):
-       sudo python install.py
+       python install.py
 
 7) After successful installation, there will be 3 ways of starting AZOrange:
     a) Click in the orange Icon installed in the Desktop (available if the installer found a way of creating it)
