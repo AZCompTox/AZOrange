@@ -71,6 +71,7 @@ class installerClass:
         self.azFannDir = os.path.join(rootDir,"orangeDependencies/src/azFann-2.0.0")
         self.opencvDir = os.path.join(rootDir,"orangeDependencies/src/opencv")
         self.oasaDir = os.path.join(rootDir,"orangeDependencies/src/oasa")
+        self.cinfonyDir = os.path.join(rootDir,"orangeDependencies/src/cinfony")
         self.plearnDir = os.path.join(rootDir,"orangeDependencies/src/plearn")
         self.R8Dir = os.path.join(rootDir,"orangeDependencies/src/R8/Src")
         self.trainingDir = os.path.join(rootDir,"azorange/trainingMethods")
@@ -234,6 +235,21 @@ class installerClass:
         os.system("python "+self.testsDir+"/AZorngRFTest.py")
         print "Testing the PLS implementation!!!"
         os.system("python "+self.testsDir+"/AZorngPLSTest.py")
+
+    def compileCinfony(self):
+        if ("cinfony" not in self.dependencies) or not self.OpenInstallation:
+            print "Not using the local cinfony"
+            return
+        cinfonyinstallDir = os.path.join(self.orangeDependenciesDir,os.path.split(self.cinfonyDir)[1])
+        if self.dependencies["cinfony"]:   #compile and install 
+                os.chdir(self.cinfonyDir)
+                print "Building in:   ",self.cinfonyDir
+                print "Installing in system default location "
+                stat, out = commands.getstatusoutput("sudo python setup.py install")
+                checkStatus(stat, out,"Error compiling/installing cinfony.")
+        else:
+                print "Not reinstalled"
+
 
 
     def compileOrange(self):
@@ -713,7 +729,10 @@ class installerClass:
         # Setup the correct environment.
         self.setEnv()
 
+        # Compile cinfony
+        self.compileCinfony()
 
+        
         # Compile the Orange C++ layer
         self.compileOrange()
     
