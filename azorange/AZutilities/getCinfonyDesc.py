@@ -8,9 +8,16 @@ import orange
 from AZutilities import dataUtilities
 import AZOrangeConfig as AZOC
 
-from cinfony import rdk      # crashing with *** glibc detected *** python: double free or corruption (fasttop): 0x0a0f36a8 ***
-from cinfony import obabel   # crashing with Floating exception starting azorange and ** Open Babel Error  in SMARTSError
-from cinfony import webel
+
+toolkitsEnabled = ["rdk","obabel","webel"]
+#toolkitsEnabled = ["rdk","obabel","webel"]
+
+if "rdk" in toolkitsEnabled:
+    from cinfony import rdk      # crashing with *** glibc detected *** python: double free or corruption (fasttop): 0x0a0f36a8 ***
+if "obabel" in toolkitsEnabled:
+    from cinfony import obabel   # crashing with Floating exception starting azorange and ** Open Babel Error  in SMARTSError
+if "webel" in toolkitsEnabled:
+    from cinfony import webel
 
 obabelTag = "obabel."
 rdkTag = "rdk."
@@ -36,7 +43,7 @@ def getObabelDescResult(data,descList):
         It returns a dataset with the same smiles input variable, and as many variables as the descriptors 
        returned by the toolkit
     """
-    if "obabel" not in dir():
+    if "obabel" not in toolkitsEnabled:
         return None
     smilesName = getSMILESAttr(data)
     if not smilesName: return None
@@ -61,7 +68,7 @@ def getWebelDescResult(data,descList):
         It returns a dataset with the same smiles input variable, and as many variables as the descriptors 
        returned by the toolkit
     """
-    if "webel" not in dir():
+    if "webel" not in toolkitsEnabled:
         return None
     smilesName = getSMILESAttr(data)
     if not smilesName: return None
@@ -99,7 +106,7 @@ def getRdkDescResult(data,descList):
         It returns a dataset with the same smiles input variable, and as many variables as the descriptors 
        returned by the toolkit
     """
-    if "rdk" not in dir():
+    if "rdk" not in toolkitsEnabled:
         return None
     smilesName = getSMILESAttr(data) 
     if not smilesName: return None
@@ -155,15 +162,21 @@ def getCinfonyDescResults(data,descList):
 
 def getAvailableDescs():
     #Get descs from obabel
-    if "obabel" in dir():
+    if "obabel" in toolkitsEnabled:
         obabelDescs = [obabelTag+desc for desc in obabel.descs]
+    else:
+        obabelDescs = []
     #Get descs from RDKit
-    if "rdk" in dir():
+    if "rdk" in toolkitsEnabled:
         rdkDescs = [rdkTag+desc for desc in rdk.descs]
+    else:
+        rdkDescs = [] 
     #Get descs from webel     
     try:
-        if "webel" in dir(): 
+        if "webel" in toolkitsEnabled: 
             webelDescs = [webelTag+desc for desc in webel.getdescs()]
+        else:
+            webelDescs = []
     except:
         print "WARNING: Could not get the descriptors from webel!"
         webelDescs = []
