@@ -9,7 +9,7 @@ from AZutilities import dataUtilities
 import AZOrangeConfig as AZOC
 
 from cinfony import rdk      # crashing with *** glibc detected *** python: double free or corruption (fasttop): 0x0a0f36a8 ***
-from cinfony import obabel   # crashing with Floating exception starting azorange
+from cinfony import obabel   # crashing with Floating exception starting azorange and ** Open Babel Error  in SMARTSError
 from cinfony import webel
 
 obabelTag = "obabel."
