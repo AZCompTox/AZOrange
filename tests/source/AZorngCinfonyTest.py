@@ -2,21 +2,26 @@ import unittest
 import os
 import time
 
-#import orange
-#import AZorngTestUtil
-
+from AZutilities import dataUtilities
+from AZutilities import getCinfonyDesc
+import AZOrangeConfig as AZOC
 
 class evalUtilitiesTest(unittest.TestCase):
 
     def setUp(self):
-        pass
-        #trainDataPath = os.path.join(AZOC.AZORANGEHOME,"tests/source/data/BinClass_No_metas_FullNumeric_Train.tab")
-        #self.trainData = dataUtilities.DataTable(trainDataPath,createNewOn=orange.Variable.MakeStatus.OK)
+        
+        smiDataPath = os.path.join(AZOC.AZORANGEHOME,"tests/source/data/mol.smi")
+        self.smiData = dataUtilities.loadSMI(smiDataPath)
 
-        #testDataPath = os.path.join(AZOC.AZORANGEHOME,"tests/source/data/BinClass_No_metas_FullNumeric_Test.tab")
-        #self.testData = dataUtilities.DataTable(testDataPath,createNewOn=orange.Variable.MakeStatus.OK)
+    def test_getCinfonyDesc(self):
+        allDescs = getCinfonyDesc.getAvailableDescs()
+        self.assert_(len(allDescs) > 230)
+        descs = ['webel.AtomCountDescriptor', 'webel.AutocorrelationDescriptorCharge', 'webel.AutocorrelationDescriptorMass',"obabel.TPSA","obabel.HBA2" , "obabel.MW","rdk.TPSA","rdk.Chi0n","rdk.MolWt"]
+        resD = getCinfonyDesc.getCinfonyDescResults(self.smiData,descs)
+        self.assertEqual(len(resD),len(self.smiData))
+        self.assertEqual(str(resD.domain),"[SMILES, TPSA, HBA2, MW, TPSA_1, Chi0n, MolWt, AtomCountDescriptor_nAtom, AutocorrelationDescriptorMass_ATSm5, AutocorrelationDescriptorMass_ATSm4, AutocorrelationDescriptorMass_ATSm3, AutocorrelationDescriptorMass_ATSm2, AutocorrelationDescriptorMass_ATSm1, AutocorrelationDescriptorCharge_ATSc5, AutocorrelationDescriptorCharge_ATSc3, AutocorrelationDescriptorCharge_ATSc1, AutocorrelationDescriptorCharge_ATSc4]")
+        
 
-        #self.regDataPath = os.path.join(AZOC.AZORANGEHOME,"tests/source/data/Reg_No_metas_Train.tab")
 
     def test_openbabel(self):
         from cinfony import obabel
