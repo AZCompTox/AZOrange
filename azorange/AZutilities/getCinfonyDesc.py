@@ -36,6 +36,8 @@ def getObabelDescResult(data,descList):
         It returns a dataset with the same smiles input variable, and as many variables as the descriptors 
        returned by the toolkit
     """
+    if "obabel" not in dir():
+        return None
     smilesName = getSMILESAttr(data)
     if not smilesName: return None
 
@@ -59,6 +61,8 @@ def getWebelDescResult(data,descList):
         It returns a dataset with the same smiles input variable, and as many variables as the descriptors 
        returned by the toolkit
     """
+    if "webel" not in dir():
+        return None
     smilesName = getSMILESAttr(data)
     if not smilesName: return None
 
@@ -95,6 +99,8 @@ def getRdkDescResult(data,descList):
         It returns a dataset with the same smiles input variable, and as many variables as the descriptors 
        returned by the toolkit
     """
+    if "rdk" not in dir():
+        return None
     smilesName = getSMILESAttr(data) 
     if not smilesName: return None
     
@@ -149,12 +155,15 @@ def getCinfonyDescResults(data,descList):
 
 def getAvailableDescs():
     #Get descs from obabel
-    obabelDescs = [obabelTag+desc for desc in obabel.descs]
+    if "obabel" in dir():
+        obabelDescs = [obabelTag+desc for desc in obabel.descs]
     #Get descs from RDKit
-    rdkDescs = [rdkTag+desc for desc in rdk.descs]
+    if "rdk" in dir():
+        rdkDescs = [rdkTag+desc for desc in rdk.descs]
     #Get descs from webel     
-    try:  
-        webelDescs = [webelTag+desc for desc in webel.getdescs()]
+    try:
+        if "webel" in dir(): 
+            webelDescs = [webelTag+desc for desc in webel.getdescs()]
     except:
         print "WARNING: Could not get the descriptors from webel!"
         webelDescs = []
