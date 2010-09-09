@@ -72,6 +72,7 @@ class installerClass:
         self.opencvDir = os.path.join(rootDir,"orangeDependencies/src/opencv")
         self.oasaDir = os.path.join(rootDir,"orangeDependencies/src/oasa")
         self.cinfonyDir = os.path.join(rootDir,"orangeDependencies/src/cinfony")
+        self.rdkitDir = os.path.join(rootDir,"orangeDependencies/src/rdkit")
         self.plearnDir = os.path.join(rootDir,"orangeDependencies/src/plearn")
         self.R8Dir = os.path.join(rootDir,"orangeDependencies/src/R8/Src")
         self.trainingDir = os.path.join(rootDir,"azorange/trainingMethods")
@@ -263,6 +264,36 @@ class installerClass:
         # At runtime we will need PYTHONPATH to include the location of new installed modules
         self.__prependEnvVar("PYTHONPATH" , sitePackagesPath)
 
+    def compileRdkit(self):
+        if ("rdkit" not in self.dependencies) or not self.OpenInstallation:
+            print "Not using the local rdkit"
+            return
+        rdkitinstallDir = os.path.join(self.orangeDependenciesDir,os.path.split(self.rdkitDir)[1])
+        if self.dependencies["rdkit"]:   #compile and install
+                # The source Dir will have to be available at running time
+                print "Copying rdkit dir to orangeDependencies"
+                stat, out = commands.getstatusoutput("rm -rf " + rdkitinstallDir)
+                stat, out = commands.getstatusoutput("cp -R " + self.rdkitDir+ " " + rdkitinstallDir)
+                os.chdir(rdkitinstallDir)
+                stat, out = commands.getstatusoutput("mkdir " + os.path.join(rdkitinstallDir,"build"))
+                os.chdir(os.path.join(rdkitinstallDir,"build"))
+                print "Building in:   ",os.path.join(rdkitinstallDir,"build")
+                stat, out = commands.getstatusoutput("cmake ../")
+                stat, out = commands.getstatusoutput("make")
+                checkStatus(stat, out,"Error compiling rdkit.")
+                print "Installing in: ",rdkitinstallDir
+                stat, out = commands.getstatusoutput("make install")
+                checkStatus(stat, out,"Error installing rdkit.")
+        else:
+                print "Not reinstalled"
+
+        # At runtime we will need PYTHONPATH to include the location of new installed modules
+        self.__prependEnvVar("PYTHONPATH" , rdkitinstallDir)
+        # At runtime we will need LD_LIBRARY_PATH to include the location of shared objects
+        self.__prependEnvVar("LD_LIBRARY_PATH" , os.path.join(rdkitinstallDir,"bin"))
+        # At runtime we will need RDBASE to include the location of RDKit
+        self.__prependEnvVar("RDBASE" , rdkitinstallDir)
+        
 
     def compileOrange(self):
         # Orange is being compiled three times because there is something wrong with how the dependencies and the entire orange make procedure is set up.
@@ -743,7 +774,10 @@ class installerClass:
 
         # Compile cinfony
         self.compileCinfony()
-       
+     
+        # Compile rdkit
+        self.compileRdkit()
+ 
         # Compile the Orange C++ layer
         self.compileOrange()
     

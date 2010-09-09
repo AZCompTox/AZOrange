@@ -354,14 +354,15 @@ class installer:
                 self.addLog(commands.getstatusoutput("svn revert -R ./*")) 
                 os.chdir(install.currentDir)
 
-    def checkOutCinfony(self):
+    def checkOutRdkit(self):
         # Get the dependency Config
-        if "cinfony" not in self.dependencies:
+        name = "rdkit"
+        if name not in self.dependencies:
             URL = None
             REV = None
             USE_INSTALLED = True
         else:
-            depCfg = self.dependencies["cinfony"].split(",")
+            depCfg = self.dependencies[name].split(",")
             URL = depCfg[0]
             if len(depCfg)<2 or depCfg[1] == "":
                 REV = "HEAD"
@@ -373,19 +374,74 @@ class installer:
                 USE_INSTALLED = False
 
         if not URL or USE_INSTALLED or self.repoInter == "no":
-           self.addLog("*Not downloading cinfony")
+           self.addLog("*Not downloading "+name)
            return
 
-        self.addLog(commands.getstatusoutput("rm -rf " + os.path.join(self.DepSrcDir,"cinfony")))
+        self.addLog(commands.getstatusoutput("rm -rf " + os.path.join(self.DepSrcDir,name)))
         os.chdir(self.DepSrcDir)
+        tarFile = os.path.split(URL)[-1].strip()
         if self.openInstallation:
-                self.addLog("*Downloading cinfony to trunk ("+URL+":"+REV+")")
-                self.addLog(commands.getstatusoutput("rm -rf " + os.path.split(URL)[-1]))
+                self.addLog("*Downloading "+name+" to trunk ("+URL+":"+REV+")")
+                self.addLog(commands.getstatusoutput("rm -rf " + tarFile))
                 self.addLog(commands.getstatusoutput("wget " + URL ))
         else:
-                self.addLog("*Using APPSPACK in SVN Repo")
-        self.addLog(commands.getstatusoutput("tar xfz " + os.path.split(URL)[-1]))
-        self.addLog(commands.getstatusoutput("mv " + os.path.split(URL)[-1][0:os.path.split(URL)[-1].rfind(".tar")] + " cinfony" ))
+                self.addLog("*Using "+name+" in SVN Repo")
+        UnpackCmd = "tar "
+        if  tarFile[-6:] == "tar.gz":
+            UnpackCmd += "xfz "
+        elif tarFile[-6:] == "tar.bz2":
+            UnpackCmd += "xfj "
+        else:
+            self.addLog("#ERROR: Not a known tar file.")
+            self.successInstall = False
+            return 
+        self.addLog(commands.getstatusoutput(UnpackCmd + tarFile))
+        self.addLog(commands.getstatusoutput("mv " + tarFile[0:tarFile.rfind(".tar")] + " " + name ))
+
+
+    def checkOutCinfony(self):
+        # Get the dependency Config
+        name = "cinfony"
+        if name not in self.dependencies:
+            URL = None
+            REV = None
+            USE_INSTALLED = True
+        else:
+            depCfg = self.dependencies[name].split(",")
+            URL = depCfg[0]
+            if len(depCfg)<2 or depCfg[1] == "":
+                REV = "HEAD"
+            else:
+                REV = depCfg[1]
+            if len(depCfg)>=3 and depCfg[2] == "*":
+                USE_INSTALLED = True
+            else:
+                USE_INSTALLED = False
+
+        if not URL or USE_INSTALLED or self.repoInter == "no":
+           self.addLog("*Not downloading "+name)
+           return
+
+        self.addLog(commands.getstatusoutput("rm -rf " + os.path.join(self.DepSrcDir,name)))
+        os.chdir(self.DepSrcDir)
+        tarFile = os.path.split(URL)[-1].strip()
+        if self.openInstallation:
+                self.addLog("*Downloading "+name+" to trunk ("+URL+":"+REV+")")
+                self.addLog(commands.getstatusoutput("rm -rf " + tarFile))
+                self.addLog(commands.getstatusoutput("wget " + URL ))
+        else:
+                self.addLog("*Using "+name+" in SVN Repo")
+        UnpackCmd = "tar "
+        if  tarFile[-6:] == "tar.gz":
+            UnpackCmd += "xfz "
+        elif tarFile[-6:] == "tar.bz2":
+            UnpackCmd += "xfj "
+        else:
+            self.addLog("#ERROR: Not a known tar file.")
+            self.successInstall = False
+            return 
+        self.addLog(commands.getstatusoutput(UnpackCmd + tarFile))
+        self.addLog(commands.getstatusoutput("mv " + tarFile[0:tarFile.rfind(".tar")] + " " + name ))
  
 
 
@@ -946,6 +1002,8 @@ if __name__ == "__main__":
         install.checkOutOpenAZO()
     if install.successInstall:
         install.checkOutCinfony()
+    if install.successInstall:
+        install.checkOutRdkit()
     if install.successInstall:
         install.checkOutOrange() 
     if install.successInstall:

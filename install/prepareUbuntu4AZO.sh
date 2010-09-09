@@ -26,14 +26,27 @@ sudo apt-get install -y python-qwt5-qt4
 sudo apt-get install -y git-core gitosis
 sudo apt-get install -y subversion
 #sudo apt-get install -y sip4
+
 #Openbabel
 sudo apt-get install -y openbabel
 sudo apt-get install -y python-openbabel
 
+#RDKit
+sudo apt-get install -y cmake
+sudo apt-get install -y bison
+sudo apt-get install -y flex
+sudo apt-get install -y sqlite3
+sudo apt-get install -y libsqlite3-dev
+sudo apt-get install -y libboost-all-dev
+
 echo "Updating db..."
 sudo updatedb
-
+echo ""
+echo "============================================================="
+echo "             Finished preparation of Ubuntu"
+echo "-------------------------------------------------------------"
 echo "Configure Git if you plan to check in changes:"
 echo '      git config --global user.name "YouGitUserName"'
-echo "     git config --global user.email YourEmail@ServerX"
+echo "      git config --global user.email YourEmail@ServerX"
+echo ""
 
