@@ -98,7 +98,14 @@ class Appspack:
             if self.appspackPID == 0:
                 return self.finishedFlag
             else:
-                psLine = os.popen( "ps -p "+str(self.appspackPID) ).read()
+                readsDone = 0
+                while readsDone <5:
+                    try:                 
+                        psLine = os.popen( "ps -p "+str(self.appspackPID) ).read()
+                        readsDone = 5
+                    except:
+                        time.sleep(0.5)
+                    readsDone += 1
                 if ("appspack" in psLine or "mpirun" in psLine or "qsub" in psLine) and "<defunct>" not in psLine:
                     return False
                 else:
@@ -121,7 +128,14 @@ class Appspack:
                         return False
                 else:
                     os.kill(self.appspackPID,9)
-                    psLine = os.popen( "ps -p "+str(self.appspackPID) ).read()
+                    readsDone = 0
+                    while readsDone <5:
+                        try:
+                            psLine = os.popen( "ps -p "+str(self.appspackPID) ).read()
+                            readsDone = 5
+                        except:
+                            time.sleep(0.5)
+                        readsDone += 1
                     if "appspack" not in psLine or "<defunct>" in psLine:
                             self.tunedParameters = "The optimizer was stopped by the user"
                             self.appspackPID = 0
