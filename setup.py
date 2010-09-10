@@ -238,7 +238,13 @@ class installerClass:
         os.system("python "+self.testsDir+"/AZorngPLSTest.py")
 
     def compileCinfony(self):
-        if ("cinfony" not in self.dependencies) or not self.OpenInstallation:
+        # this is only untill the cinfony functionality is implemented at InHouse
+        if not self.OpenInstallation:
+            stat, out = commands.getstatusoutput("rm -f "+os.path.join(self.orangeInstallDir,"orange/OrangeWidgets/Data/OWCinfonyDesc.py"))
+            print "Removed the Cinfony widget from the installation"
+            return
+        #==================================================
+        if ("cinfony" not in self.dependencies):
             print "Not using the local cinfony"
             return
         cinfonyinstallDir = os.path.join(self.orangeDependenciesDir,os.path.split(self.cinfonyDir)[1])
@@ -265,7 +271,7 @@ class installerClass:
         self.__prependEnvVar("PYTHONPATH" , sitePackagesPath)
 
     def compileRdkit(self):
-        if ("rdkit" not in self.dependencies) or not self.OpenInstallation:
+        if ("rdkit" not in self.dependencies):
             print "Not using the local rdkit"
             return
         rdkitinstallDir = os.path.join(self.orangeDependenciesDir,os.path.split(self.rdkitDir)[1])

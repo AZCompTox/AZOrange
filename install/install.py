@@ -385,7 +385,7 @@ class installer:
                 self.addLog(commands.getstatusoutput("rm -rf " + tarFile))
                 self.addLog(commands.getstatusoutput("wget " + URL ))
         else:
-                self.addLog("*Using "+name+" in SVN Repo")
+                self.addLog("*Using "+name+" in SVN Repo (Not implemented yet)")
         UnpackCmd = "tar "
         if  tarFile[-6:] == "tar.gz":
             UnpackCmd += "xfz "
@@ -430,7 +430,7 @@ class installer:
                 self.addLog(commands.getstatusoutput("rm -rf " + tarFile))
                 self.addLog(commands.getstatusoutput("wget " + URL ))
         else:
-                self.addLog("*Using "+name+" in SVN Repo")
+                self.addLog("*Using "+name+" in SVN Repo (Not implemented yet)")
         UnpackCmd = "tar "
         if  tarFile[-6:] == "tar.gz":
             UnpackCmd += "xfz "
