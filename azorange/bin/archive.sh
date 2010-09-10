@@ -2,7 +2,12 @@
 
 # Archive old directories from previous executions
 
-DIRS="$HOME/qsubDataDebug $HOME/AZO_NFS_scratchDir"
+NFS_SD="$HOME/AZO_NFS_scratchDir"
+if [ ! -d $NFS_SD ]; then
+    mkdir $NFS_SD
+fi
+
+DIRS="$HOME/qsubDataDebug $NFS_SD"
 for DIR in $DIRS; do
         if [ -d $DIR ]; then
             mkdir -p $DIR.archive

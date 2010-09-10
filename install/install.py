@@ -751,7 +751,12 @@ class installer:
         self.addLog(commands.getstatusoutput('python setup.py build %s %s %s "%s" %s "%s" "%s" %s' % (self.platformType,self.buildDir,self.AZOrangeInstallDir,self.InstallTimeModules , envTmp , self.dependencies,self.GCCmoduleForAppspackMPI,self.openInstallation)))
         #Update the local self.EnvVars with the ones passed by setup.py which will be needed at runtime
         self.__update_EnvVars(envTmp) 
-	
+
+    def runAfterInstallScripts(self):	
+        # This runs  once the .../azorange/bin/archive.sh in order to create the AZO_NFZ_scratchDir if it does not exists
+        self.addLog("#Running after-install scripts")
+        self.addLog(commands.getstatusoutput(os.path.join(self.AZOrangeInstallDir,'azorange/bin/archive.sh')))
+
     def createProfileExample(self):
         # In addition to the place defined in setup.ini for the template profile, a file called templateProfile will always be
         # placed in:
@@ -841,6 +846,12 @@ class installer:
                 strFile += "module load %s\n" % (mname)
         else:
             strFile += "\n# Using NO specific modules for runtime only!\n"
+
+        #Scripts to run upon setting the envitonment or loading the respective module
+        strFile += "\n# Startup scripts\n"
+        strFile += os.path.join(self.AZOrangeInstallDir, "azorange/bin/archive.sh\n")
+        #strFile += os.path.join(self.AZOrangeInstallDir, "azorange/bin/ssh_testcfg.sh")  # This will be uncommented when using local mpi for the optimizer
+        
 
         #Write the template file to current dir
         try:
@@ -1030,6 +1041,7 @@ if __name__ == "__main__":
     if install.successInstall and not PREPARE_ONLY:
         install.createProfileExample()
         install.InstallCacheCleaner()
+        install.runAfterInstallScripts()
 	
     #==========================
     install.addLog("*Finished")
