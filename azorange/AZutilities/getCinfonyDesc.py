@@ -9,18 +9,39 @@ from AZutilities import dataUtilities
 import AZOrangeConfig as AZOC
 
 
-toolkitsEnabled = ["rdk","obabel","webel"]
-#toolkitsEnabled = ["rdk","obabel","webel"]
+toolkitsEnabled = ["cdk","rdk","obabel","webel"]
+
+if "cdk" in toolkitsEnabled:
+    try: 
+        from cinfony import cdk  
+    except:
+        print "WARNING: cdk is not available for cinfony."
+        toolkitsEnabled.remove("cdk")
 
 if "rdk" in toolkitsEnabled:
-    from cinfony import rdk      # crashing with *** glibc detected *** python: double free or corruption (fasttop): 0x0a0f36a8 ***
+    try:
+        from cinfony import rdk      # crashing with *** glibc detected *** python: double free or corruption (fasttop): 0x0a0f36a8 ***
+    except:
+        print "WARNING: rdk is not available for cinfony."
+        toolkitsEnabled.remove("rdk")
+
 if "obabel" in toolkitsEnabled:
-    from cinfony import obabel   # crashing with Floating exception starting azorange and ** Open Babel Error  in SMARTSError
+    try:
+        from cinfony import obabel   # crashing with Floating exception starting azorange and ** Open Babel Error  in SMARTSError
+    except:
+        print "WARNING: obabel is not available for cinfony."
+        toolkitsEnabled.remove("obabel")
+
 if "webel" in toolkitsEnabled:
-    from cinfony import webel
+    try:
+        from cinfony import webel
+    except:
+        print "WARNING: webel is not available for cinfony."
+        toolkitsEnabled.remove("webel")
 
 obabelTag = "obabel."
 rdkTag = "rdk."
+cdkTag = "cdk."
 webelTag = "webel."
 
 
@@ -63,7 +84,7 @@ def getObabelDescResult(data,descList):
     return resData
    
 def getWebelDescResult(data,descList):
-    """ Calculates the descriptors for the descList using obabel
+    """ Calculates the descriptors for the descList using Webel
         It expects an attribute containing smiles with a name defined in AZOrangeConfig.SMILESNAMES
         It returns a dataset with the same smiles input variable, and as many variables as the descriptors 
        returned by the toolkit
@@ -99,9 +120,48 @@ def getWebelDescResult(data,descList):
         resData.append(newEx)
 
     return resData
-   
+
+
+def getCdkDescResult(data,descList):
+    """ Calculates the descriptors for the descList using cdk
+        It expects an attribute containing smiles with a name defined in AZOrangeConfig.SMILESNAMES
+        It returns a dataset with the same smiles input variable, and as many variables as the descriptors 
+       returned by the toolkit
+    """
+    if "cdk" not in toolkitsEnabled:
+        return None
+    smilesName = getSMILESAttr(data)
+    if not smilesName: return None
+
+    myDescList = [desc.replace(cdkTag,"") for desc in descList if cdkTag in desc]
+    if not myDescList: return None
+    #Compute the results
+    results = {}
+    for ex in data:
+        smile = str(ex[smilesName].value)
+        mol = cdk.readstring("smi", smile)
+        results[smile] = mol.calcdesc(myDescList)
+    # Get all the different descriptor names returned by cdk
+    varNames = []
+    for res in results:
+        for desc in results[res]:
+            if desc not in varNames:
+                varNames.append(desc)
+    # Generate the dataset assuring the same order of examples
+    resData = orange.ExampleTable(orange.Domain([data.domain[smilesName]] + [orange.FloatVariable(name) for name in varNames],0))
+    for ex in data:
+        newEx = orange.Example(resData.domain)
+        smile = str(ex[smilesName].value)
+        newEx[smilesName] =smile
+        for desc in results[smile]:
+            newEx[desc] = results[smile][desc]
+        resData.append(newEx)
+
+    return resData
+  
+ 
 def getRdkDescResult(data,descList):
-    """ Calculates the descriptors for the descList using obabel
+    """ Calculates the descriptors for the descList using RDK
         It expects an attribute containing smiles with a name defined in AZOrangeConfig.SMILESNAMES
         It returns a dataset with the same smiles input variable, and as many variables as the descriptors 
        returned by the toolkit
@@ -141,6 +201,9 @@ def getCinfonyDescResults(data,descList):
     res = getWebelDescResult(data,descList)
     if res: results.append(res)
 
+    res = getCdkDescResult(data,descList)
+    if res: results.append(res)
+
     # Convert any nan to a '?'
     if len(results):
         for res in results:
@@ -171,6 +234,12 @@ def getAvailableDescs():
         rdkDescs = [rdkTag+desc for desc in rdk.descs]
     else:
         rdkDescs = [] 
+    #Get cdk from CDK
+    if "cdk" in toolkitsEnabled:
+        cdkDescs = [cdkTag+desc for desc in cdk.descs]
+    else:
+        cdkDescs = []
+
     #Get descs from webel     
     try:
         if "webel" in toolkitsEnabled: 
@@ -181,7 +250,7 @@ def getAvailableDescs():
         print "WARNING: Could not get the descriptors from webel!"
         webelDescs = []
 
-    cinfonyDesc = obabelDescs + rdkDescs + webelDescs
+    cinfonyDesc = obabelDescs + rdkDescs + cdkDescs + webelDescs
 
     return cinfonyDesc
 
