@@ -32,6 +32,9 @@ class OWCinfonyDesc(OWWidget):
 
         # GUI definition
         self.Descriptors = widgetSelector(self.controlArea, "Descriptors",applyText = "Retrieve", callbackOnApply=self.__retrieve)
+        box = OWGUI.widgetBox(self.controlArea, "Info")
+        self.info = OWGUI.widgetLabel(box, '')
+
         self.__initListBox()
 
 
@@ -105,7 +108,12 @@ class OWCinfonyDesc(OWWidget):
 
         # Create a sorted list of descriptors available in Cinfony
         self.Descriptors.setInputItems(availableDescriptors)
-
+        #toolkitsEnabled
+        if getCinfonyDesc.toolkitsEnabled:
+            self.info.setText("Toolkits available for retrieving descriptors: "+ str(getCinfonyDesc.toolkitsEnabled)[1:-1].replace("'",""))
+        else:
+            self.error("No available toolkits for retrieving descriptors!")
+            self.info.setText("Cinfony returned no available scripts!")
 
 
 if __name__ == "__main__":

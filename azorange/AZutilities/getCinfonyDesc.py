@@ -9,15 +9,17 @@ from AZutilities import dataUtilities
 import AZOrangeConfig as AZOC
 
 
-toolkitsEnabled = ["cdk","rdk","obabel","webel"]
+toolkitsEnabled = ["cdk","rdk","obabel","webel"]        # NOT so stable!!
+#toolkitsEnabled = ["rdk","webel"]                      # Stable
 
 if "cdk" in toolkitsEnabled:
     try: 
         from cinfony import cdk  
     except:
         print "WARNING: cdk is not available for cinfony."
-        toolkitsEnabled.remove("cdk")
-
+        toolkitsEnabled.remove("cdk")   # craching with :  A fatal error has been detected by the Java Runtime Environment:
+                                        #                  SIGFPE (0x8) at pc=0x89de6617, pid=12239, tid=3078584000
+                                        #  Seems that this is coused by openbabel
 if "rdk" in toolkitsEnabled:
     try:
         from cinfony import rdk      # crashing with *** glibc detected *** python: double free or corruption (fasttop): 0x0a0f36a8 ***
@@ -248,6 +250,7 @@ def getAvailableDescs():
             webelDescs = []
     except:
         print "WARNING: Could not get the descriptors from webel!"
+        if "webel" in toolkitsEnabled: toolkitsEnabled.remove("webel")
         webelDescs = []
 
     cinfonyDesc = obabelDescs + rdkDescs + cdkDescs + webelDescs
