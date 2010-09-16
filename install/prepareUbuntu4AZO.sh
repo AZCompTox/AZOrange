@@ -39,6 +39,9 @@ sudo apt-get install -y sqlite3
 sudo apt-get install -y libsqlite3-dev
 sudo apt-get install -y libboost-all-dev
 
+#CDK
+sudo apt-get install -y python-jpype
+
 echo "Updating db..."
 sudo updatedb
 echo ""

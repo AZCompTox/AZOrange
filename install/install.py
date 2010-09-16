@@ -354,6 +354,40 @@ class installer:
                 self.addLog(commands.getstatusoutput("svn revert -R ./*")) 
                 os.chdir(install.currentDir)
 
+    def checkOutCDK(self):
+        # Get the dependency Config
+        name = "cdk"
+        if name not in self.dependencies:
+            URL = None
+            REV = None
+            USE_INSTALLED = True
+        else:
+            depCfg = self.dependencies[name].split(",")
+            URL = depCfg[0]
+            if len(depCfg)<2 or depCfg[1] == "":
+                REV = "HEAD"
+            else:
+                REV = depCfg[1]
+            if len(depCfg)>=3 and depCfg[2] == "*":
+                USE_INSTALLED = True
+            else:
+                USE_INSTALLED = False
+
+        if not URL or USE_INSTALLED or self.repoInter == "no":
+           self.addLog("*Not downloading "+name)
+           return
+
+        self.addLog(commands.getstatusoutput("rm -rf " + os.path.join(self.DepSrcDir,name)))
+        os.chdir(os.path.join(self.DepSrcDir,"cdk"))
+        jarFile = os.path.split(URL)[-1].strip()
+        if self.openInstallation:
+                self.addLog("*Downloading "+name+" to trunk ("+URL+":"+REV+")")
+                self.addLog(commands.getstatusoutput("rm -rf " + jarFile))
+                self.addLog(commands.getstatusoutput("wget " + URL ))
+        else:
+                self.addLog("*Using "+name+" in SVN Repo (Not implemented yet)")
+
+
     def checkOutRdkit(self):
         # Get the dependency Config
         name = "rdkit"
@@ -386,6 +420,7 @@ class installer:
                 self.addLog(commands.getstatusoutput("wget " + URL ))
         else:
                 self.addLog("*Using "+name+" in SVN Repo (Not implemented yet)")
+                return
         UnpackCmd = "tar "
         if  tarFile[-6:] == "tar.gz":
             UnpackCmd += "xfz "
@@ -431,6 +466,7 @@ class installer:
                 self.addLog(commands.getstatusoutput("wget " + URL ))
         else:
                 self.addLog("*Using "+name+" in SVN Repo (Not implemented yet)")
+                return
         UnpackCmd = "tar "
         if  tarFile[-6:] == "tar.gz":
             UnpackCmd += "xfz "
@@ -1015,6 +1051,8 @@ if __name__ == "__main__":
         install.checkOutCinfony()
     if install.successInstall:
         install.checkOutRdkit()
+    if install.successInstall:
+        install.checkOutCDK()
     if install.successInstall:
         install.checkOutOrange() 
     if install.successInstall:

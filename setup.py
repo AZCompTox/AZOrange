@@ -73,6 +73,7 @@ class installerClass:
         self.oasaDir = os.path.join(rootDir,"orangeDependencies/src/oasa")
         self.cinfonyDir = os.path.join(rootDir,"orangeDependencies/src/cinfony")
         self.rdkitDir = os.path.join(rootDir,"orangeDependencies/src/rdkit")
+        self.cdkDir = os.path.join(rootDir,"orangeDependencies/src/cdk")
         self.plearnDir = os.path.join(rootDir,"orangeDependencies/src/plearn")
         self.R8Dir = os.path.join(rootDir,"orangeDependencies/src/R8/Src")
         self.trainingDir = os.path.join(rootDir,"azorange/trainingMethods")
@@ -269,6 +270,34 @@ class installerClass:
 
         # At runtime we will need PYTHONPATH to include the location of new installed modules
         self.__prependEnvVar("PYTHONPATH" , sitePackagesPath)
+    
+    def compileCdk(self):
+        if ("cdk" not in self.dependencies):
+            print "Not using the local cdk"
+            return
+        cdkinstallDir = os.path.join(self.orangeDependenciesDir,os.path.split(self.cdkDir)[1])
+        if self.dependencies["cdk"]:   #compile and install
+                # The source Dir will have to be available at running time
+                print "Copying cdk dir to orangeDependencies"
+                stat, out = commands.getstatusoutput("rm -rf " + cdkinstallDir)
+                stat, out = commands.getstatusoutput("cp -R " + self.cdkDir+ " " + cdkinstallDir)
+                checkStatus(stat, out,"Error installing cdk.")
+        else:
+                print "Not reinstalled"
+       
+        libjvm = os.path.join(getDirOfFile("libjvm.so"),"libjvm.so") 
+        if not libjvm:
+            print "ERROR: cdk jar file not found at "+ cdkinstallDir
+            sys.exit(1)
+
+        CDKJar = [x for x in os.listdir(cdkinstallDir) if x[-4:] == ".jar"][0] 
+        if not CDKJar:
+            print "ERROR: cdk jar file not found at "+ cdkinstallDir
+            sys.exit(1)
+        self.__prependEnvVar("JPYPE_JVM" , libjvm)
+        self.__prependEnvVar("CLASSPATH" , CDKJar)
+            
+
 
     def compileRdkit(self):
         if ("rdkit" not in self.dependencies):
@@ -783,6 +812,9 @@ class installerClass:
      
         # Compile rdkit
         self.compileRdkit()
+
+        # Compile CDK
+        self.compileCdk()
  
         # Compile the Orange C++ layer
         self.compileOrange()
