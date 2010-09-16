@@ -61,10 +61,10 @@ class OWCinfonyDesc(OWWidget):
             progress1.setValue(1)
             time.sleep(0.1)
             progress1.setValue(2)
-            if 1:#try: 
+            try: 
                 resultsData = getCinfonyDesc.getCinfonyDescResults(self.data , descList)
                 progress1.setValue(3)
-            else:#except:
+            except:
                 progress1.close()
                 self.error("Error calculating the descriptors with Cinfony.\n")
                 self.send("Examples",None)
