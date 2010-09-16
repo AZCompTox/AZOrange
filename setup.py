@@ -285,7 +285,7 @@ class installerClass:
         else:
                 print "Not reinstalled"
        
-        libjvm = os.path.join(getDirOfFile("libjvm.so"),"libjvm.so") 
+        libjvm = os.path.join(self.getDirOfFile("libjvm.so"),"libjvm.so") 
         if not libjvm:
             print "ERROR: cdk jar file not found at "+ cdkinstallDir
             sys.exit(1)
