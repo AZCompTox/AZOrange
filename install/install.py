@@ -378,6 +378,7 @@ class installer:
            return
 
         self.addLog(commands.getstatusoutput("rm -rf " + os.path.join(self.DepSrcDir,name)))
+        self.addLog(commands.getstatusoutput("mkdir " +  os.path.join(self.DepSrcDir,name)))
         os.chdir(os.path.join(self.DepSrcDir,"cdk"))
         jarFile = os.path.split(URL)[-1].strip()
         if self.openInstallation:
