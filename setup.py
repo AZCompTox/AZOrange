@@ -286,12 +286,12 @@ class installerClass:
                 print "Not reinstalled"
        
         libjvm = os.path.join(self.getDirOfFile("libjvm.so"),"libjvm.so") 
-        if not libjvm:
-            print "ERROR: cdk jar file not found at "+ cdkinstallDir
+        if not libjvm or not os.path.isfile(libjvm):
+            print "ERROR: Could not locate libjvm.so. Invalid: ", libjvm
             sys.exit(1)
 
-        CDKJar = [x for x in os.listdir(cdkinstallDir) if x[-4:] == ".jar"][0] 
-        if not CDKJar:
+        CDKJar = os.path.join(cdkinstallDir,[x for x in os.listdir(cdkinstallDir) if x[-4:] == ".jar"][0])
+        if not CDKJar or not os.path.isfile(CDKJar):
             print "ERROR: cdk jar file not found at "+ cdkinstallDir
             sys.exit(1)
         self.__prependEnvVar("JPYPE_JVM" , libjvm)
