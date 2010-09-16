@@ -25,6 +25,7 @@ sudo apt-get install -y liblapack-dev
 sudo apt-get install -y python-qwt5-qt4
 sudo apt-get install -y git-core gitosis
 sudo apt-get install -y subversion
+sudo apt-get install -y git-core gitosis
 #sudo apt-get install -y sip4
 
 #Openbabel

@@ -313,9 +313,9 @@ class installer:
             #Update the AZO source from GITHub
             os.chdir(self.trunkDir)
             if self.openInstallation:
-                self.addLog("*Updating trunk from GIT")
+                self.addLog("*Using current files.")
                 self.addLog("#trunk: "+self.trunkDir)
-                self.addLog(commands.getstatusoutput("git pull"))
+                #self.addLog(commands.getstatusoutput("git pull"))
             else:
                 if self.installType == "developer":
                         self.addLog("*Cloning from GIT")

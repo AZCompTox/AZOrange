@@ -4,6 +4,8 @@
 ;method for repositories interaction: "yes" "no"
 repoInteraction = yes
 ;repository is the URL for the Git Repository
+;For developers with read and right access, change the URL to the SSH or HTTP form:  git@github.com:AZCompTox/AZOrange.git 
+;  or     https://UserName@github.com/AZCompTox/AZOrange.git
 repository = git://github.com/AZCompTox/AZOrange.git
 
 [Paths]
