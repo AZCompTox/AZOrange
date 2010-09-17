@@ -508,7 +508,8 @@ class installer:
         #self.addLog(commands.getstatusoutput("rm -rf " + os.path.join(self.trunkDir,"orange/*")))
         #This command may have some failures, but it's no problem. We just want to delete if there is something to delete!
         self.addLog(commands.getstatusoutput("mkdir -p " + os.path.join(self.trunkDir,"orange")))
-        commands.getstatusoutput('find ' + os.path.join(self.trunkDir,"orange") + '| grep -v "\.svn" | xargs rm -f')
+        if self.installType == "developer":
+            commands.getstatusoutput('find ' + os.path.join(self.trunkDir,"orange") + '| grep -v "\.svn" | xargs rm -f')
         self.addLog(commands.getstatusoutput("rm -rf " + os.path.join(self.DepSrcDir,"orange")))
         if self.openInstallation:
                 self.addLog("*Checking out from orange SVN to trunk ("+URL+":"+REV+")")
@@ -524,8 +525,12 @@ class installer:
                 self.addLog("*Extracting orange from " + URL)
                 os.chdir(self.DepSrcDir)
                 self.addLog(commands.getstatusoutput("tar xfz " + os.path.split(URL)[-1]))
+        os.chdir(self.DepSrcDir)
         self.addLog(commands.getstatusoutput('find '+os.path.join(self.DepSrcDir,"orange")+' -name ".svn" | xargs rm -Rf'))
-        self.addLog(commands.getstatusoutput("cp -rn orange/* " + os.path.join(self.trunkDir,"orange/") ))
+        if self.installType == "developer":
+            self.addLog(commands.getstatusoutput("cp -rf orange/* " + os.path.join(self.trunkDir,"orange/") ))
+        else:
+            self.addLog(commands.getstatusoutput("cp -rn orange/* " + os.path.join(self.trunkDir,"orange/") ))
 
         # Apply Patch
         self.addLog("#Applying Patch...")
@@ -537,12 +542,14 @@ class installer:
             self.addLog([0,out])
         else:
             self.addLog([status,out])
-        #Revert to the Orange GIT files
-        os.chdir(os.path.join(self.trunkDir,"orange"))
-        self.addLog("#Reverting orange to Git version...")
-        # Reverting GIT is not needed anymore since we are using -n option in cp
-        #self.addLog(commands.getstatusoutput("git checkout -f ./"))
+        #Revert to the Orange GIT files for the developer version since they were removed previously and wre copied with -rf flaga
+        if self.installType == "developer":
+            os.chdir(os.path.join(self.trunkDir,"orange"))
+            self.addLog("#Reverting orange to Git version...")
+            self.addLog(commands.getstatusoutput("git checkout -f ./"))
+
         if not self.openInstallation:
+            os.chdir(os.path.join(self.trunkDir,"orange"))
             self.addLog("#Reverting orange to SVN version...")
             self.addLog(commands.getstatusoutput("svn revert -R ./*"))
 
