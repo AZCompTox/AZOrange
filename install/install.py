@@ -525,7 +525,7 @@ class installer:
                 self.addLog(commands.getstatusoutput("rm -rf " + os.path.join(self.DepSrcDir,"orange")))
                 self.addLog(commands.getstatusoutput("tar xfz " + os.path.split(URL)[-1]))
                 self.addLog(commands.getstatusoutput('find '+os.path.join(self.DepSrcDir,"orange")+' -name ".svn" | xargs rm -Rf'))
-                self.addLog(commands.getstatusoutput("cp -rf orange/* " + os.path.join(self.trunkDir,"orange/") ))
+                self.addLog(commands.getstatusoutput("cp -rn orange/* " + os.path.join(self.trunkDir,"orange/") ))
 
         # Apply Patch
         self.addLog("#Applying Patch...")
@@ -540,7 +540,8 @@ class installer:
         #Revert to the Orange GIT files
         os.chdir(os.path.join(self.trunkDir,"orange"))
         self.addLog("#Reverting orange to Git version...")
-        self.addLog(commands.getstatusoutput("git checkout -f ./"))
+        # Reverting GIT is not needed anymore since we are using -n option in cp
+        #self.addLog(commands.getstatusoutput("git checkout -f ./"))
         if not self.openInstallation:
             self.addLog("#Reverting orange to SVN version...")
             self.addLog(commands.getstatusoutput("svn revert -R ./*"))
