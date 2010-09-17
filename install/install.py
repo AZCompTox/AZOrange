@@ -507,25 +507,25 @@ class installer:
 
         #self.addLog(commands.getstatusoutput("rm -rf " + os.path.join(self.trunkDir,"orange/*")))
         #This command may have some failures, but it's no problem. We just want to delete if there is something to delete!
+        self.addLog(commands.getstatusoutput("mkdir -p " + os.path.join(self.trunkDir,"orange"))
         commands.getstatusoutput('find ' + os.path.join(self.trunkDir,"orange") + '| grep -v "\.svn" | xargs rm -f')
+        self.addLog(commands.getstatusoutput("rm -rf " + os.path.join(self.DepSrcDir,"orange")))
         if self.openInstallation:
                 self.addLog("*Checking out from orange SVN to trunk ("+URL+":"+REV+")")
-                self.addLog(commands.getstatusoutput("mkdir -p " + os.path.join(self.trunkDir,"orange")))
-                os.chdir(os.path.join(self.trunkDir,"orange"))
+                #os.chdir(os.path.join(self.trunkDir,"orange"))
+                self.addLog(commands.getstatusoutput("mkdir -p " + os.path.join(self.DepSrcDir,"orange")))
+                os.chdir(os.path.join(self.DepSrcDir,"orange"))
                 self.addLog(commands.getstatusoutput("svn export --force" + " -r " + REV + " " + os.path.join(URL,"add-ons") + " ./add-ons"))
                 self.addLog(commands.getstatusoutput("svn export --force" + " -r " + REV + " " + os.path.join(URL,"install-scripts/linux") + " ./install-scripts/linux"))
                 self.addLog(commands.getstatusoutput("svn export --force" + " -r " + REV + " " + os.path.join(URL,"source") + " ./source"))
                 self.addLog(commands.getstatusoutput("svn export --force" + " -r " + REV + " " + os.path.join(URL,"testing") + " ./testing"))
                 self.addLog(commands.getstatusoutput("svn export --force" + " -r " + REV + " " + os.path.join(URL,"orange") + " ./ --force"))
-                self.addLog(commands.getstatusoutput('find '+os.path.join(self.trunkDir,"orange")+' -name ".svn" | xargs rm -Rf'))
-
         else:
                 self.addLog("*Extracting orange from " + URL)
                 os.chdir(self.DepSrcDir)
-                self.addLog(commands.getstatusoutput("rm -rf " + os.path.join(self.DepSrcDir,"orange")))
                 self.addLog(commands.getstatusoutput("tar xfz " + os.path.split(URL)[-1]))
-                self.addLog(commands.getstatusoutput('find '+os.path.join(self.DepSrcDir,"orange")+' -name ".svn" | xargs rm -Rf'))
-                self.addLog(commands.getstatusoutput("cp -rn orange/* " + os.path.join(self.trunkDir,"orange/") ))
+        self.addLog(commands.getstatusoutput('find '+os.path.join(self.DepSrcDir,"orange")+' -name ".svn" | xargs rm -Rf'))
+        self.addLog(commands.getstatusoutput("cp -rn orange/* " + os.path.join(self.trunkDir,"orange/") ))
 
         # Apply Patch
         self.addLog("#Applying Patch...")

@@ -9,8 +9,8 @@ from AZutilities import dataUtilities
 import AZOrangeConfig as AZOC
 
 
-toolkitsEnabled = ["cdk","rdk","obabel","webel"]        # NOT so stable!!
-#toolkitsEnabled = ["rdk","webel"]                      # Stable
+#toolkitsEnabled = ["cdk","rdk","obabel","webel"]        # NOT so stable!!
+toolkitsEnabled = ["rdk","webel"]                      # Stable
 
 if "cdk" in toolkitsEnabled:
     try: 
