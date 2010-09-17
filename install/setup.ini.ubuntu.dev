@@ -20,18 +20,18 @@ installDir =
 ;Type of installation: "system" or "developer"
 ;System: Checkout to trunk, Build, install.
 ;developer: Checkout to trunk, build, install on same trunkDir (will not use installDir)
-InstallType = system
+InstallType = developer
 ;When installing using only the open source repository, set next option to True
 OpenInstallation = True
 ;Clean actions before starting installation procedure. "Yes" or "No"
 ;The "NO" is mandatory, but the "Yes" still depends on other options. 
 preCleanBuildDir = yes
-preCleanInstallDir = yes
+preCleanInstallDir = no
 
 ;Clean actions after installation. "Yes" or "No"
 ;For system installation, removes trunk and build dir after installation
 ;For developer installation, removes build dir after the installation
-CleanInstallCache = yes
+CleanInstallCache = No
 ;relative paths are related to the current install dir
 LogFile = ./install.log
 DetailsLogFile = ./details.log
