@@ -507,7 +507,7 @@ class installer:
 
         #self.addLog(commands.getstatusoutput("rm -rf " + os.path.join(self.trunkDir,"orange/*")))
         #This command may have some failures, but it's no problem. We just want to delete if there is something to delete!
-        self.addLog(commands.getstatusoutput("mkdir -p " + os.path.join(self.trunkDir,"orange"))
+        self.addLog(commands.getstatusoutput("mkdir -p " + os.path.join(self.trunkDir,"orange")))
         commands.getstatusoutput('find ' + os.path.join(self.trunkDir,"orange") + '| grep -v "\.svn" | xargs rm -f')
         self.addLog(commands.getstatusoutput("rm -rf " + os.path.join(self.DepSrcDir,"orange")))
         if self.openInstallation:
