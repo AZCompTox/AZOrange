@@ -929,10 +929,10 @@ class installer:
 	    self.addLog(commands.getstatusoutput("chmod -R 777 " + self.buildDir))
             self.addLog(commands.getstatusoutput("rm -Rf " + self.buildDir))
             #export did not create trunkDir, so, there will be no trunk to delete
-	    if self.installType == "system" and self.repoInter != "export":
-		self.addLog("#Removing TrunkDir")
-		self.addLog(commands.getstatusoutput("chmod -R 777 " + self.trunkDir))
-                self.addLog(commands.getstatusoutput("rm -Rf " + self.trunkDir))
+            #if self.installType == "system" and self.repoInter != "export":
+            #    self.addLog("#Removing TrunkDir")
+            #    self.addLog(commands.getstatusoutput("chmod -R 777 " + self.trunkDir))
+            #    self.addLog(commands.getstatusoutput("rm -Rf " + self.trunkDir))
 
     def printConfiguration(self,sendOnlyToDetails = False):
         logStr = ""

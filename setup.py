@@ -195,9 +195,10 @@ class installerClass:
             sumStatus += os.system("cp -Rf ../azorange/statlib %s/azorange/." % self.orangeInstallDir)
             sumStatus += os.system("cp -f ../azorange/*.py %s/azorange/." % self.orangeInstallDir)
             sumStatus += os.system("cp -Rf ../azorange/bin %s/azorange/." % self.orangeInstallDir)
+            if self.OpenInstallation:
+                sumStatus += os.system("cp -Rf ../COPYING* %s/." % self.orangeInstallDir)
 
             if not self.OpenInstallation:
-                # The azorange/bin may be needed for the appspackMPI for the open installation
                 sumStatus += os.system("cp -Rf ../doc %s/." % self.orangeInstallDir)
                 sumStatus += os.system("cp -Rf ../azorange/documentation %s/azorange/." % self.orangeInstallDir)
                 sumStatus += os.system("cp -f ../azorange/*.txt %s/azorange/." % self.orangeInstallDir)
