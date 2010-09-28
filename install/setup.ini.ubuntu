@@ -98,7 +98,7 @@ opencv = http://downloads.sourceforge.net/project/opencvlibrary/opencv-unix/2.0/
 plearn = svn://svn.berlios.de/plearn/trunk,8124
 cinfony = http://cinfony.googlecode.com/files/cinfony-1.0.tar.gz,1.0
 rdkit = http://rdkit.googlecode.com/files/RDKit_Q42009_1.tar.gz,Q42009_1
-cdk = http://sunet.dl.sourceforge.net/project/cdk/cdk/1.0.2/cdk-1.0.2.jar,1.0.2
+cdk = http://switch.dl.sourceforge.net/project/cdk/cdk/1.2.5/cdk-1.2.5.jar,1.2.5
 
 [FeedBack]
 ;For sending reports to multiple accounts, separate them by comma

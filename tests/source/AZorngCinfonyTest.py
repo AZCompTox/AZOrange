@@ -41,7 +41,7 @@ class evalUtilitiesTest(unittest.TestCase):
         for d in desc:
             if desc[d] != desc[d]:
                 desc[d] = '?'
-        expectedDesc = {'ip': -1.0, 'weight': 44.062600320000001}
+        expectedDesc = {'ip': 0.0, 'weight': 44.062600320000001}
         self.assertEqual(desc,expectedDesc)
 
 
