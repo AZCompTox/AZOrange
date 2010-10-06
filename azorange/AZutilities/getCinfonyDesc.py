@@ -214,15 +214,12 @@ def getCinfonyDescResults(data,descList):
                     if ex[attr] != ex[attr]:   # Will fail if it is 'nan'
                         ex[attr] = '?'
 
-
-    if len(results) == 1:
-        return results[0]
-        
     resData = results[0]
-    for res in results[1:]:
-        resData = dataUtilities.horizontalMerge(resData, res, smilesName, smilesName)
+    if len(results) > 1:
+        for res in results[1:]:
+            resData = dataUtilities.horizontalMerge(resData, res, smilesName, smilesName)
         
-    return resData
+    return dataUtilities.horizontalMerge(data, resData, smilesName, smilesName)
       
 
 def getAvailableDescs():
