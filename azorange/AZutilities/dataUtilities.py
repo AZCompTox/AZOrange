@@ -5,6 +5,7 @@ import sys
 import os
 import time
 import commands
+import random
 from opencv import ml
 from opencv import cv
 
@@ -28,6 +29,48 @@ def getIsMissing(ex):
     return isMissing
 
 ##scPA
+def SeedDataSampler(data, nFolds):
+    """ Samples the data for being used in Folds: Pseudo-Random Selected based on a Seed
+        It assures that the sampling is constant for the same dataset using the same number of folds
+        Outputs the respective fold indices, not the actual data.
+        Output example for 3 Folds:
+                [ [0 0 1 1 0 1 0 0 0]
+                  [0 1 0 0 0 0 1 0 1]
+                  [1 0 0 0 1 0 0 1 0] ]
+        Where (0s) represents the train set
+              (1s) represents the test set
+           for each fold
+        The seed used will be based on data dimensions and nFolds.
+        It is assured that all examples are used as test exampels but within only one testSet.
+        In the case when nEx is not divisible by nFolds, the last Fold will also include the remaining examples in testSet 
+    """
+    if not data or not nFolds:
+        return None
+    nEx = len(data)
+    nTestEx = int(nEx/nFolds)
+    if not nTestEx:
+        return None
+    usedReg = [0] * nEx
+    foldsIdxs = []
+    for n in range(nFolds):
+        foldsIdxs.append([0] * nEx)
+
+    random.seed(nEx + nFolds + len(data.domain.attributes))
+    for idx in range(nFolds - 1):
+        for x in range(nTestEx):
+            Zidx = int(random.random() * (usedReg.count(0) - 1))
+            #Find the index of the Zidx'th Zero  
+            realIdx = [idxReg[0] for idxReg in enumerate(usedReg) if idxReg[1]==0][Zidx]
+            usedReg[realIdx] = 1
+            foldsIdxs[idx][realIdx] = 1
+    #The last Fold will have the remain examples
+    for idx in [idxReg[0] for idxReg in enumerate(usedReg) if idxReg[1]==0]:
+        foldsIdxs[-1][idx] = 1
+
+    return foldsIdxs
+
+
+
 def getPossibleMetas(data, checkIndividuality = False):
     """Retuns a list of attributes that sould be considered meta but they were not.
         Criteria for considering an attribute as meta:
