@@ -41,8 +41,9 @@ def SeedDataSampler(data, nFolds):
               (1s) represents the test set
            for each fold
         The seed used will be based on data dimensions and nFolds.
-        It is assured that all examples are used as test exampels but within only one testSet.
-        In the case when nEx is not divisible by nFolds, the last Fold will also include the remaining examples in testSet 
+        It is assured that examples are used as test exampels in only one testSet.
+        In the case when nEx is not divisible by nFolds, the remaining examples will never 
+          be part of a testSet, although they will always be included in the trainSets. 
     """
     if not data or not nFolds:
         return None
@@ -56,16 +57,13 @@ def SeedDataSampler(data, nFolds):
         foldsIdxs.append([0] * nEx)
 
     random.seed(nEx + nFolds + len(data.domain.attributes))
-    for idx in range(nFolds - 1):
+    for idx in range(nFolds):
         for x in range(nTestEx):
             Zidx = int(random.random() * (usedReg.count(0) - 1))
             #Find the index of the Zidx'th Zero  
             realIdx = [idxReg[0] for idxReg in enumerate(usedReg) if idxReg[1]==0][Zidx]
             usedReg[realIdx] = 1
             foldsIdxs[idx][realIdx] = 1
-    #The last Fold will have the remain examples
-    for idx in [idxReg[0] for idxReg in enumerate(usedReg) if idxReg[1]==0]:
-        foldsIdxs[-1][idx] = 1
 
     return foldsIdxs
 
