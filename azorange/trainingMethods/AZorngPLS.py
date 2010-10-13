@@ -126,7 +126,7 @@ class PLSLearner(AZBaseClasses.AZLearner):
 	    print "The directory " + scratchdir + " was not deleted because DEBUG flag is ON"
 	del trainData
         impData=self.imputer.defaults
-        return PLSClassifier(classifier = learner, name = "Classifier of " + self.name, classVar = trainingData.domain.classVar, imputeData=impData, verbose = self.verbose)#learner.GetClassVarName())#
+        return PLSClassifier(classifier = learner, name = "Classifier of " + self.name, classVar = trainingData.domain.classVar, imputeData=impData, verbose = self.verbose, varNames = [attr.name for attr in trainingData.domain.attributes], NTrainEx = len(trainingData), basicStat = self.basicStat)#learner.GetClassVarName())#
 
 
 class PLSClassifier(AZBaseClasses.AZClassifier):
@@ -265,6 +265,13 @@ class PLSClassifier(AZBaseClasses.AZClassifier):
                 # Remove the meta attributes from the imputer data. We don't need to store them along with the model
                 impData = dataUtilities.getCopyWithoutMeta(impData)
                 impData.save(str(filePath)+"/ImputeData.tab")
+                #Save the var names orderes the same way the Learner was trained
+                varNamesFile = open(os.path.join(filePath,"varNames.txt"),"w")
+                varNamesFile.write(str(self.varNames)+"\n")
+                varNamesFile.write(str(self.NTrainEx)+"\n")
+                varNamesFile.write(str(self.basicStat)+"\n")
+                varNamesFile.close()
+
         except:            
                 if self.verbose > 0: print "ERROR: Could not save model to ", path
                 return False
@@ -272,6 +279,9 @@ class PLSClassifier(AZBaseClasses.AZClassifier):
 
 def PLSread(filePath, verbose = 0):
     """Read a PLS classifier from disk and return as a PLSClassifier instance. """
+    NTrainEx = None
+    basicStat = None
+    varNames = None
     # Create a PLS instance
     PLSInstance=pls.PlsAPI()
     # Read PLS model from disk
@@ -285,7 +295,20 @@ def PLSread(filePath, verbose = 0):
     except:
 	if verbose > 0: print "ERROR: It was not possible to load the impute data"
 	return 
+    #Load the var names oredered the way it was used when training
+    if (os.path.isfile(os.path.join(filePath,"varNames.txt"))):
+            varNamesFile = open(os.path.join(filePath,"varNames.txt"),"r")
+            lines = varNamesFile.readlines()
+            varNames = eval(lines[0].strip())
+            if len(lines) >= 3:
+                NTrainEx = eval(lines[1].strip())
+                basicStat = eval(lines[2].strip())
+            varNamesFile.close()
+    else:
+            if verbose > 0: print "WARNING: The model loaded was saved with an old azorange version."
+            varNames = [attr.name for attr in impData.domain.attributes]
+
 	 
-    return PLSClassifier(classifier = PLSInstance, classVar=classVar, imputeData=impData[0], verbose = verbose)
+    return PLSClassifier(classifier = PLSInstance, classVar=classVar, imputeData=impData[0], varNames = varNames, NTrainEx = NTrainEx, basicStat = basicStat, verbose = verbose)
 
 
