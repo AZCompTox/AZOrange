@@ -60,12 +60,13 @@ def getRMSE(testData, predictor):
 
 def getRsqrt(testData, predictor):
     """Calculate the coefficient of determination (R-squared) for the orange model predictor on the data set testData. 
-        R^2 = 1 - sum((pred - actual)^2)/(sum((mean - actual)^2))"""
+        This uses the Test Set Activity Mean
+        R^2 = 1 - sum((pred - actual)^2)/(sum((testMean - actual)^2))"""
 
     # Calc average of the prediction variable
     predValuesList = []
     for ex in testData:
-        predValuesList.append(ex[ex.domain.classVar.name])
+        predValuesList.append(ex.getclass().value)
     testMean = statc.mean(predValuesList)
 
     errSum = 0.0
@@ -76,6 +77,33 @@ def getRsqrt(testData, predictor):
 
     Rsqrt = 1 - errSum/meanSum
     return Rsqrt
+
+def getQ2(testData, predictor):
+    """Calculate the predictive squared correlation coefficient Q2, which uses the Training Set Activity Mean.. 
+        Q^2 = 1 - sum((pred - actual)^2)/(sum((trainMean - actual)^2))
+        This is according:   
+                Comments on the Definition of the Q2 Parameter for QSAR Validation
+                Viviana Consonni, Davide Ballabio, Roberto Todeschini
+                Journal of Chemical Information and Modeling 2009 49 (7), 1669-1678"""
+
+    # Test if the predictor is compatible with getQ2
+    if not testData.domain.classVar or testData.domain.classVar.varType != orange.VarTypes.Continuous:
+        print "The dataset is not suitable for calculatinmg Q2. Data must have Continuous Class" 
+        return None
+    elif not hasattr(predictor,"basicStat") or not predictor.basicStat:
+        print "Q2 Error: The predictor is not compatible with the use fo getQ2. It has no basicStat defined."
+        return None
+    # Calc average of the training class variable
+    trainMean = (predictor.basicStat[testData.domain.classVar.name]["min"] + predictor.basicStat[testData.domain.classVar.name]["max"])/2.0
+
+    errSum = 0.0
+    meanSum = 0.0
+    for ex in testData:
+        errSum = errSum + math.pow(ex.getclass() - string.atof(str(predictor(ex))),2)
+        meanSum = meanSum + math.pow(trainMean - ex.getclass(),2)
+
+    Q2 = 1 - errSum/meanSum
+    return Q2
 
 
 def Sensitivity(confMatrixList, classes):
