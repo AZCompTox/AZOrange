@@ -460,11 +460,12 @@ class installer:
 
         self.addLog(commands.getstatusoutput("rm -rf " + os.path.join(self.DepSrcDir,name)))
         os.chdir(self.DepSrcDir)
-        tarFile = os.path.split(URL)[-1].strip()
+        tarFile = "cinfony_Download.tar.gz"
         if self.openInstallation:
                 self.addLog("*Downloading "+name+" to trunk ("+URL+":"+REV+")")
                 self.addLog(commands.getstatusoutput("rm -rf " + tarFile))
-                self.addLog(commands.getstatusoutput("wget " + URL ))
+                # Download the File 
+                self.addLog(commands.getstatusoutput("wget " + URL + " -O " + tarFile))
         else:
                 self.addLog("*Using "+name+" in SVN Repo (Not implemented yet)")
                 return
@@ -477,10 +478,14 @@ class installer:
             self.addLog("#ERROR: Not a known tar file.")
             self.successInstall = False
             return 
-        self.addLog(commands.getstatusoutput(UnpackCmd + tarFile))
-        self.addLog(commands.getstatusoutput("mv " + tarFile[0:tarFile.rfind(".tar")] + " " + name ))
- 
-
+        # This file has different folder name from the tar file
+        os.mkdir("./"+name)
+        UnpackCmd += " " + tarFile + " -C "+name
+        self.addLog(commands.getstatusoutput(UnpackCmd))
+        folderName = os.listdir("./"+name)[0]
+        self.addLog(commands.getstatusoutput("mv "+os.path.join(name,folderName,"*") + " " + name))
+        self.addLog(commands.getstatusoutput("rmdir "+os.path.join(name,folderName)))
+        #self.addLog(commands.getstatusoutput("mv " + tarFile[0:tarFile.rfind(".tar")] + " " + name ))
 
 
     def checkOutOrange(self):
