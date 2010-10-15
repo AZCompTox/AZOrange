@@ -467,8 +467,7 @@ class installer:
                 # Download the File 
                 self.addLog(commands.getstatusoutput("wget " + URL + " -O " + tarFile))
         else:
-                self.addLog("*Using "+name+" in SVN Repo (Not implemented yet)")
-                return
+                self.addLog("*Using "+name+" in SVN Repo")
         UnpackCmd = "tar "
         if  tarFile[-6:] == "tar.gz":
             UnpackCmd += "xfz "
