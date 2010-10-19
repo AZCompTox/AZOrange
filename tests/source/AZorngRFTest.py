@@ -205,11 +205,11 @@ class RFClassifierTest(AZorngTestUtil.AZorngTestUtil):
         modelPath = os.path.join(scratchdir,"RFModel")
         RFsign.write(modelPath)
 
-        loadedRFmodel = AZorngRF.RFread("modelPath")
+        loadedRFmodel = AZorngRF.RFread(modelPath)
 
         res2 = []
         for ex in self.RegDAttr:
-            res2.append(str(RFsign(ex)))
+            res2.append(str(loadedRFmodel(ex)))
 
         self.assertEqual(res1,res2)
         self.assertEqual(res1,['5.404782', '2.568249', '2.979486', '4.287185', '5.335753', '4.439877', '3.682451', '8.054751', '6.511803', '5.760388', '7.771009', '2.328262', '6.062288', '5.577081', '3.639579', '6.862591', '3.793468', '2.865258', '3.531777', '6.833398', '6.376686', '3.338588', '7.002612', '7.137580', '7.258987', '6.899173', '7.547265', '8.708020', '6.262212', '7.563741', '8.166364', '6.614120', '7.865033', '9.060866', '8.057292', '4.877943', '7.993115', '9.198319', '9.428467', '8.537990', '9.130789', '6.328936', '8.247712', '7.605743', '8.755456', '6.983065', '7.712387', '9.972745', '9.763152', '7.934700', '8.447981', '7.272462', '8.824869', '7.654151', '7.795481', '7.229007', '8.680950', '9.439033', '9.130064', '8.505672', '8.082146', '6.086042', '7.493593', '8.981513', '8.880632', '6.548739'])
@@ -523,7 +523,7 @@ class RFClassifierTest(AZorngTestUtil.AZorngTestUtil):
         newRFmodel = AZorngRF.RFread(modelPath)
 
         # Calculate classification accuracy 
-        savedAcc = evalUtilities.getClassificationAccuracy(self.testData, RFmodel)
+        savedAcc = evalUtilities.getClassificationAccuracy(self.testData, newRFmodel)
 
         # Test that the accuracy of the two classifiers is the exact same
         self.assertEqual(Acc, savedAcc)
@@ -562,7 +562,7 @@ class RFClassifierTest(AZorngTestUtil.AZorngTestUtil):
         newRFmodel = AZorngRF.RFread(modelPath)
 
         # Calculate classification accuracy 
-        savedAcc = evalUtilities.getClassificationAccuracy(self.irisData, RFmodel)
+        savedAcc = evalUtilities.getClassificationAccuracy(self.irisData, newRFmodel)
 
         # Test that the accuracy of the two classifiers is the exact same
         self.assertEqual(Acc, savedAcc)
