@@ -78,7 +78,7 @@ class AZLearner(orange.Learner):
             if attr.varType == orange.VarTypes.Discrete:
                 self.basicStat[attr.name] = None
             else:       
-                self.basicStat[attr.name] = {"min":basicStat[attr].min, "max":basicStat[attr].max}
+                self.basicStat[attr.name] = {"min":basicStat[attr].min, "max":basicStat[attr].max, "avg":basicStat[attr].avg}
             
         return True
 
