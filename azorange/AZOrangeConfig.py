@@ -65,6 +65,11 @@ RFDEFAULTDICT = {"maxDepth":"20", "minSample":"5", "useSurrogates":"false", "get
                  "nTrees":"100", "forestAcc":"0.1", "termCrit":"0", "stratify":"false", "priors":None, "useBuiltInMissValHandling":False, "NumThreads":"1"}
 
 ##scPA
+#R-RF default parameters
+RRFDEFAULTDICT = {"nTrees":500, "minSample":1, "maxDepth":"NULL", "nActVars":0}
+#nActVars = 0 => nActVars = sqrt(dataAttrs) 
+#nActVars = -1 => nActVars (mTry) will be optimized by it's internal algorithm 
+
 # PLS defaul parameters
 OPTMETHODDICT = {"kernel":0, "simpls":1, "pls1":2}
 PLSDEFAULTDICT = {"precision":"1e-6", "k":"10", "method":"kernel"}
