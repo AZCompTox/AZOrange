@@ -12,6 +12,8 @@ from OWWidget import *
 import orngTest, orngStat, OWGUI
 import time
 import warnings
+from AZutilities import evalUtilities
+
 warnings.filterwarnings("ignore", "'id' is not a builtin attribute",
                         orange.AttributeWarning)
 
@@ -29,12 +31,13 @@ class Classifier:
         self.time = time.time() # used to order the classifiers in the table
 
 class Score:
-    def __init__(self, name, label, f, show=True, cmBased=False):
+    def __init__(self, name, label, f, show=True, cmBased=False, evalModule="orngStat"):
         self.name = name
         self.label = label
         self.f = f
         self.show = show
         self.cmBased = cmBased
+        self.evalModule = evalModule
 
 class OWAZTestClassifiers(OWWidget):
     settingsList = ["precision",
@@ -62,7 +65,7 @@ class OWAZTestClassifiers(OWWidget):
         ("Relative squared error", "RSE", "RSE(res)", False),
         ("Root relative squared error", "RRSE", "RRSE(res)"),
         ("Relative absolute error", "RAE", "RAE(res)", False),
-        ("Q-squared", "Q2", "Q2(res)"),
+        ("Q-squared", "Q2", "Q2(res,trainMeans)",True,False,"evalUtilities"),
         ("R-squared", "R2", "R2(res)")]]
 
 
@@ -270,6 +273,12 @@ class OWAZTestClassifiers(OWWidget):
         pb = OWGUI.ProgressBar(self, iterations=len(classifiers))
         res = orngTest.testOnData(classifiers, self.testdata,None,1,callback=pb.advance)
         pb.finish()
+        trainMeans = []
+        for c in classifiers:
+            if hasattr(c,"basicStat"):
+                trainMeans.append(c.basicStat[c.classVar.name]["avg"])
+            else:
+                trainMeans.append(None)
 
         if self.isclassification():
             cm = orngStat.computeConfusionMatrices(res, classIndex = self.targetClass)
@@ -283,9 +292,9 @@ class OWAZTestClassifiers(OWWidget):
         scores = []
         for i, s in enumerate(self.stat):
             try:
-                scores.append(eval("orngStat." + s.f))
+                scores.append(eval(s.evalModule+"." + s.f))
             except Exception, ex:
-                self.error(i, "An error occurred while evaluating orngStat." + s.f + "on %s due to %s" % \
+                self.error(i, "An error occurred while evaluating " + s.evalModule + "." + s.f + "on %s due to %s" % \
                            (" ".join([l.name for l in classifiers]), ex.message))
                 scores.append([None] * len(self.classifiers))
                 
@@ -298,7 +307,7 @@ class OWAZTestClassifiers(OWWidget):
         if not self.results:
             return
         cm = orngStat.computeConfusionMatrices(self.results, classIndex = self.targetClass)
-        scores = [(indx, eval("orngStat." + s.f))
+        scores = [(indx, eval(s.evalModule+"." + s.f))
                   for (indx, s) in enumerate(self.stat) if s.cmBased]
         for (indx, score) in scores:
             for (i, l) in enumerate([l for l in self.classifiers.values() if l.scores]):
