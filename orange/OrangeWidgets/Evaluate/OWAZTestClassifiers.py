@@ -62,6 +62,7 @@ class OWAZTestClassifiers(OWWidget):
         ("Relative squared error", "RSE", "RSE(res)", False),
         ("Root relative squared error", "RRSE", "RRSE(res)"),
         ("Relative absolute error", "RAE", "RAE(res)", False),
+        ("Q-squared", "Q2", "Q2(res)"),
         ("R-squared", "R2", "R2(res)")]]
 
 
