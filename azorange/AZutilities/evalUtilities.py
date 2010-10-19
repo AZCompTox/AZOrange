@@ -94,7 +94,7 @@ def getQ2(testData, predictor):
         print "Q2 Error: The predictor is not compatible with the use fo getQ2. It has no basicStat defined."
         return None
     # Calc average of the training class variable
-    trainMean = (predictor.basicStat[testData.domain.classVar.name]["min"] + predictor.basicStat[testData.domain.classVar.name]["max"])/2.0
+    trainMean = predictor.basicStat[testData.domain.classVar.name]["avg"]
 
     errSum = 0.0
     meanSum = 0.0
