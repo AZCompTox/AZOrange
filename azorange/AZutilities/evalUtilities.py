@@ -204,6 +204,38 @@ def AUC_single(res, classIndex = -1, useWeights = True):
         return orngStat.AUC_i(res, classIndex, useWeights)
         #return AUC_i([res], classIndex, useWeights)
 
+def Q2(res = None, trainMeans = None):
+    """Calculate the predictive squared correlation coefficient Q2, which uses the Training Set Activity Mean.. 
+        Q^2 = 1 - sum((pred - actual)^2)/(sum((trainMean - actual)^2))
+        res will have n Learner predictions and trainMeans the mean of the class on the trainSet resectively to the n Learners
+        This is according:   
+                Comments on the Definition of the Q2 Parameter for QSAR Validation
+                Viviana Consonni, Davide Ballabio, Roberto Todeschini
+                Journal of Chemical Information and Modeling 2009 49 (7), 1669-1678"""
+    if res == None:
+        return {"type":REGRESSION}
+    nLearners = len(res.results[0].classes)
+    if trainMeans == None or len(trainMeans) != nLearners:
+        print "Q2 ERROR: The train mean must be provided in order to calculate Q2"
+        return None
+
+    if res.numberOfIterations > 1:
+        print "ERROR: Q2 does not support more than one iteration!"
+        return None
+    else:
+        errSums = [0.0]*res.numberOfLearners
+        meanSums = [0.0]*res.numberOfLearners
+        for tex in res.results:
+            errSums = map(lambda res, cls, ac = float(tex.actualClass):
+                       res + (float(cls) - ac)**2, errSums, tex.classes)
+            meanSums = map(lambda res, mean, ac = float(tex.actualClass):
+                       mean and res + (ac - mean)**2 or 0.0, meanSums, trainMeans)
+
+        Q2s =  [ x[1] and 1-(x[0]/x[1]) or None for x in zip(errSums, meanSums)]
+
+    return [x!=None and round(x,3) or None for x in Q2s]
+
+
 def R2(res = None):
     """
     Truncate the orange method to 3 decimals. Allow for no input arguments. Used by the optimizer.
