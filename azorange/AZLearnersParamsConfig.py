@@ -157,6 +157,17 @@ RFLearner = {'maxDepth':["types.StringType", "values", "[int(round(x)) for x in 
             }
 
 
+#RRF parameters
+"""
+maxDepth    Integer from (1/50)N_ATTR to (4/5)N_ATTR with increments of (1/50)N_ATTR
+nActVars    Integer from (1/4)*sqrt(N_ATTR) to 1/2*(N_ATTR) with increments of (1/4)*sqrt(N_ATTR)
+minSample   Integer from 2 to 50 with increments of 2\nIf N_EX <= 50: Integer from 2 to N_EX/5 with increments of 2
+"""
+RRFLearner = {'maxDepth':["types.StringType", "values", "[int(round(x)) for x in miscUtilities.Range(1.0/50.0*N_ATTR,4.0/5.0*N_ATTR,1.0/50.0*N_ATTR)]",[],AZOrangeConfig.RFDEFAULTDICT["maxDepth"],False,True,"Integer from (1/50)N_ATTR to (4/5)N_ATTR with increments of (1/50)N_ATTR"],\
+             'minSample':["types.IntType", "values", "(1.0/5.0)*N_EX<3 and [2] or miscUtilities.Range(2,N_EX >= 50 and 50 or N_EX/5.0,2)",[],AZOrangeConfig.RFDEFAULTDICT["minSample"],False,True,"Integer from 2 to 50 with increments of 2\nIf N_EX <= 50: Integer from 2 to N_EX/5 with increments of 2"],\
+             'nActVars':["types.IntType", "values", "[ int(round(x)) for x in miscUtilities.Range(1.0/4.0*sqrt(N_ATTR),(1/2.0)*(N_ATTR),1.0/4.0*sqrt(N_ATTR))]",[],AZOrangeConfig.RRFDEFAULTDICT["nActVars"],True,True,"Integer from (1/4)*sqrt(N_ATTR) to 1/2*(N_ATTR) with increments of (1/4)*sqrt(N_ATTR)"],\
+             'nTrees':["types.IntType", "values", "miscUtilities.Range(10,1000,10)",[],AZOrangeConfig.RRFDEFAULTDICT["nTrees"],False,True,"Integer from 10 to 1000 with increments of 10"],\
+            }
 
 #ANN parameters
 ANNLearner = {'nHidden':["[types.IntType]", "values", "(1.0/10.0)*N_EX<3 and [2] or [int(round(x)) for x in miscUtilities.Range(2,((1/10.0)*N_EX))]",[],str(AZOrangeConfig.ANNDEFAULTDICT["nHidden"]),True,True,"2-N_EX/10"],\
