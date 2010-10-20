@@ -275,7 +275,7 @@ class OWAZTestClassifiers(OWWidget):
         pb.finish()
         trainMeans = []
         for c in classifiers:
-            if hasattr(c,"basicStat"):
+            if c.classVar and hasattr(c,"basicStat") and c.classVar.name in c.basicStat and c.basicStat[c.classVar.name] != None:
                 trainMeans.append(c.basicStat[c.classVar.name]["avg"])
             else:
                 trainMeans.append(None)
