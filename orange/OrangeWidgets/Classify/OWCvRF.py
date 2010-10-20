@@ -160,7 +160,7 @@ file name here and clicking the save button.")
             if not self.classifier.write(str(self.modelFile)):
                 print "ERROR: model was NOT saved!"
             else:
-                print "Saved CvSVM type model to ",self.modelFile
+                print "Saved CvRF type model to ",self.modelFile
         else:
             print "ERROR: Something is missing:"
             print "   classifier:",self.classifier
