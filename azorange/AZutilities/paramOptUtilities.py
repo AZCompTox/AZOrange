@@ -245,6 +245,38 @@ class Appspack:
         for part in sorted(glob(os.path.join(self.runPath,"*intRes.txt"))):
             os.remove(part)
 
+        #====================================================================================
+        # Code for forcing to use the builtin R mTry optimization when only nActVars is selected for optimization
+        optSelParams = [x for x in self.parameters if self.parameters[x][5]]
+        if "AZorngRRF" in str(self.learner.__class__) and len(optSelParams) == 1 and optSelParams[0] == 'nActVars':
+            print "Using R Builtin functionality to optimize the nActVars (mTry) parameter."
+            data = dataUtilities.DataTable(self.dataSet)
+            self.learner.nActVars = -1
+            classifier = self.learner(data)
+            if classifier.nActVars == None or classifier.nActVars == -1 or classifier.nActVars == 0:
+                print "ERROR: Couls not optimize R mTry (nActVars)"
+                return None
+            self.learner.nActVars = classifier.nActVars 
+            if hasattr(self.learner, "setattr"):
+                self.learner.setattr("optimized", True)
+            else:
+                setattr(self.learner,"optimized", True)
+            optParams = {}
+            for par in self.parameters:
+                optParams[par]= self.parameters[par]
+            optParams["nActVars"] = classifier.nActVars
+            self.tunedParameters = [-1,optParams,-1]
+
+            if self.externalControl==0:     # the control is internal to this class, and then the appspack has finished
+                return self.tunedParameters
+            else:                           # The control is external to this class, someone will check the finished state
+                if self.machinefile == "qsub":
+                    return int(10)
+                else:
+                    return int(11)
+        #====================================================================================
+
+
         # Create the input file for appspack (this includes calculating default point and midrange point)
         appsInput = self.__CreateInput()
         if appsInput == None:
