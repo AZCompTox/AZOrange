@@ -21,6 +21,12 @@ OPTALGDICT = {"FANN_TRAIN_INCREMENTAL":0, "FANN_TRAIN_BATCH":1, "FANN_TRAIN_RPRO
               "FANN_TRAIN_QUICKPROP":3}
 ANNDEFAULTDICT = {"nHidden":5, "randomWeights":True, "scale":True ,"nEpochs":1000, "optAlg":"FANN_TRAIN_QUICKPROP", "MSE":0.001}
 
+
+#CvBoost parameters
+CVBOOSTTYPE = { "DISCRETE":0, "REAL":1, "LOGIT":2, "GENTLE":3 }
+CVBOOSTSPLITCRIT = { "DEFAULT":0, "GINI":1, "MISCLASS":3, "SQERR":4 }
+CVBOOSTDEFAULTDICT = {"boost_type":"DISCRETE","weak_count":100,"split_criteria":"DEFAULT","weight_trim_rate":0.95, "max_depth":1, "use_surrogates":True, "priors":None}
+
 # CvANN specific parameters
 # Backprop does not seem to work very well, in general no use trying
 CVANNOPTALGDICT = {"FANN_TRAIN_BACKPROP":0, "FANN_TRAIN_RPROP":1} # RPROP = resilient-propagation
