@@ -1790,7 +1790,7 @@ class scalizer(object):
         # create empty example [?,?,?,...,?] of the correct domain
         scaledEx = orange.Example(self.domain)
         
-        #Scale Attributes
+        #Scale Attributes  -  Scale function is according to libSVM code
         for attr in ex.domain.attributes:
             if not self.varNameIdx.has_key(attr.name):
                 if self.verbose >0: print "Attribute ",attr," was not found in varNames local variable."
