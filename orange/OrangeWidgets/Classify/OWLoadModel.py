@@ -14,7 +14,7 @@
 
 from OWWidget import *
 import OWGUI
-import os
+import os,string
 import orange
 #import orngSVM_Jakulin
 from trainingMethods import AZBaseClasses
@@ -122,7 +122,7 @@ class OWLoadModel(OWWidget):
         self.classifier = AZBaseClasses.modelRead(self.modelFile)
         self.modelType = AZBaseClasses.modelRead(self.modelFile, retrunClassifier = False)
         if not self.classifier:
-            QMessageBox.information(None, "Invalid Model", "There is no valid model in the specifyed location,\nor the model is not compatible with the accepted ones.\nPlease choose the correct model path.\nThis widget can only load CvSVM, CvRF, CvANN, PLS and Consensus models.", QMessageBox.Ok + QMessageBox.Default)  
+            QMessageBox.information(None, "Invalid Model", "There is no valid model in the specifyed location,\nor the model is not compatible with the accepted ones.\nPlease choose the correct model path.\nThis widget can only load " + string.join(AZBaseClasses.modelRead()[:-1],", ") + " and " + AZBaseClasses.modelRead()[-1] + " models.", QMessageBox.Ok + QMessageBox.Default)  
             self.info.setText("No model Loaded") 
             self.send("Classifier", None)
             return

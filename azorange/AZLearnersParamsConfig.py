@@ -66,6 +66,28 @@ import AZOrangeConfig
 #The version of this file. This version should be change when modifications are made. Also change the requiredParamVer on AZParamOpt,py
 version = 12
 
+
+
+#CvBoost parameters
+"""
+AZOrangeConfig.CVBOOSTTYPE = { "DISCRETE":0, "REAL":1, "LOGIT":2, "GENTLE":3 }
+AZOrangeConfig.CVBOOSTSPLITCRIT = { "DEFAULT":0, "GINI":1, "MISCLASS":3, "SQERR":4 }
+AZOrangeConfig.CVBOOSTDEFAULTDICT = {"boost_type":"DISCRETE","weak_count":100,"split_criteria":"DEFAULT","weight_trim_rate":0.95, "max_depth":1, "use_surrogates":True, "priors":None}
+"""
+CvBoostLearner = {
+             'max_depth':["types.IntType", "values", "[int(round(x)) or 1 for x in miscUtilities.Range(1.0/50.0*N_ATTR,4.0/5.0*N_ATTR,1.0/50.0*N_ATTR)]",[],AZOrangeConfig.CVBOOSTDEFAULTDICT["max_depth"],True,True,"Integer from (1/50)N_ATTR to (4/5)N_ATTR with increments of (1/50)N_ATTR.\nMinimum is 1"],\
+             'weak_count':["types.IntType", "values", "miscUtilities.Range(0,1000)",[],AZOrangeConfig.CVBOOSTDEFAULTDICT["max_depth"],True,True,"Integer from 1 to 1000"],\
+             'weight_trim_rate':["types.FloatType", "interval", "[0 , 1]",[],AZOrangeConfig.CVBOOSTDEFAULTDICT["max_depth"],False,True,"Integer from 1 to 1000"],\
+             'boost_type':["types.StringType", "values", "['DISCRETE' , 'REAL' , 'LOGIT' , 'GENTLE']",['DISCRETE','REAL','LOGIT','GENTLE'],AZOrangeConfig.CVBOOSTDEFAULTDICT["boost_type"],False,False,"DISCRETE\nREAL\nLOGIT\nGENTLE"],\
+             'split_criteria':["types.StringType", "values", "['DEFAULT' , 'GINI' , 'MISCLASS' , 'SQERR']",['DEFAULT' , 'GINI' , 'MISCLASS' , 'SQERR'],AZOrangeConfig.CVBOOSTDEFAULTDICT["split_criteria"],False,False,"DEFAULT\nGINI\nMISCLASS\nSQERR"],\
+             #'priors':["types.StringType", "values", "[None]",[],str(AZOrangeConfig.CVBOOSTDEFAULTDICT["priors"]),False,False,"Do not use for optimization, just to change the default values of priors"],\
+             #'useBuiltInMissValHandling':["types.BooleanType", "values", "[False , True]",["No","Yes"],str(AZOrangeConfig.CVBOOSTDEFAULTDICT["useBuiltInMissValHandling"]),False,False,"Do not use for optimization, just for choosing the method to use when there are missing values on datasets."],\
+             'use_surrogates':["types.BooleanType", "values", "[False , True]",["No","Yes"],str(AZOrangeConfig.CVBOOSTDEFAULTDICT["use_surrogates"]),False,False,"True or False."]\
+            }
+
+
+
+
 # PLS parameters
 PLSLearner = {'method' : [ "types.StringType", "values", "['kernel' , 'simpls']",["Kernel","SimPLS"],str(AZOrangeConfig.PLSDEFAULTDICT["method"]),False,False,"Kernel\nsimpls"], \
               'k' : ["types.StringType", "values", "miscUtilities.Range(1,N_ATTR-1)",[],str(AZOrangeConfig.PLSDEFAULTDICT["k"]),True,True,"Integer from 1 to N_ATTR-1"], \

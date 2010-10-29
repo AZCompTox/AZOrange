@@ -6,12 +6,17 @@ import orange
 import types,os
 from AZutilities import dataUtilities
 
-def modelRead(modelFile,verbose = 0,retrunClassifier = True):
+def modelRead(modelFile=None,verbose = 0,retrunClassifier = True):
     """Get the type of model saved in 'modelPath' and loads the respective model
        Returns the Classifier saved in the respective model path
-       It can returns the classifier, or just a tring with the Type: CvSVM, CvANN, PLS or CvRF
+       If called without parameters, it returns a list of known classifier types
+       It can returns the classifier, or just a string with the Type
 
             modelRead (modelFile [, verbose = 0] [, retrunClassifier = True] )"""
+
+    if not modelFile:
+        return ("CvSVM", "CvANN", "PLS", "CvRF", "CvBoost", "Consensus")
+
     modelType = None
     loadedModel = None
     if os.path.isfile(os.path.join(modelFile,"model.svm")):
@@ -39,6 +44,12 @@ def modelRead(modelFile,verbose = 0,retrunClassifier = True):
         if not retrunClassifier: return modelType
         from trainingMethods import AZorngConsensus
         loadedModel = AZorngConsensus.Consensusread(modelFile,verbose)
+    elif os.path.isfile(os.path.join(modelFile,"model.boost")):
+        modelType =  "CvBoost"
+        if not retrunClassifier: return modelType
+        from trainingMethods import AZorngCvBoost
+        loadedModel = AZorngCvBoost.CvBoostread(modelFile,verbose)
+
     return loadedModel
  
 
