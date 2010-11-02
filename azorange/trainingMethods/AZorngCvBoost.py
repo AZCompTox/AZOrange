@@ -252,7 +252,7 @@ class CvBoostClassifier(AZBaseClasses.AZClassifier):
         return True
                         
 def CvBoostread(path, verbose = 0):
-    '''Read a PLS classifier from disk and return as a PLSClassifier instance. '''
+    '''Read a CvBopost classifier from disk and return as a CvBoostClassifier instance. '''
     NTrainEx = 0
     basicStat = None
     thePath = str(path)
