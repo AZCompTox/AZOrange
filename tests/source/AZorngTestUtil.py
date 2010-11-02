@@ -7,8 +7,10 @@ class AZorngTestUtil(unittest.TestCase):
         """Use random sampling to partition inData into a training and a test set.
            The seed seem to be reset and the same data partitioning is obtained each time
            the same data is partitioned. """
-
-        selection = orange.MakeRandomIndices2(inData, trainingFrac)
+        indices = orange.MakeRandomIndices2(p0=1-trainingFrac)#trainingFrac)
+        indices.randomGenerator = None
+        indices.randseed = len(inData)
+        selection = indices(inData) 
         train_data = inData.select(selection, 0)
         test_data = inData.select(selection, 1)
 

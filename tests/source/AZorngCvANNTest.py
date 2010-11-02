@@ -511,7 +511,7 @@ class CvANNClassifierTest(AZorngTestUtil.AZorngTestUtil):
         # Calculate classification accuracy for the classifier trained in one step
         oneStepAcc = evalUtilities.getClassificationAccuracy(self.test_data, ann)
         # Check that the accuracy is what it used to be
-        self.assertEqual(round(0.97777999999999998,5),round(oneStepAcc,5)) #orange1.0  0.95555999999999996,5
+        self.assertEqual(round(0.92381000000000002,5),round(oneStepAcc,5)) #orange1.0  0.95555999999999996,5
 
 
     def test_PersistentRegAcc(self): 
