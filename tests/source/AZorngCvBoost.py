@@ -28,7 +28,6 @@ class CvBoostClassifierTest(AZorngTestUtil.AZorngTestUtil):
         self.missingTrain = missingInData
         self.missingTest = missingInData
 
-        ##scPA
         
         dataNoMetaTrainPath = os.path.join(AZOC.AZORANGEHOME,"tests/source/data/BinClass_No_metas_Train.tab")
 
@@ -64,7 +63,6 @@ class CvBoostClassifierTest(AZorngTestUtil.AZorngTestUtil):
         self.LdataTrain = dataUtilities.DataTable(LdataTrainPath)
         self.LdataTest = dataUtilities.DataTable(LdataTestPath)
 
-        ##ecPA
 
     def no_test_PredictionVarImportance(self):   #NOT implemnted for Boost
         """Test the variable importance for single predictions"""
@@ -424,46 +422,6 @@ class CvBoostClassifierTest(AZorngTestUtil.AZorngTestUtil):
         # Remove the scratch directory
         os.system("/bin/rm -rf "+scratchdir)
 
-##ecPA
-
-    def test_Scale(self):
-        """
-        Assure that scaling works. Also assures that the scale did not have the same resuts as in the test above (without scaling)
-        """
-       
-        expectedAccWMeta = 1.0 # Ver 0.3
-        expectedAccNoMeta = 0.53636363600000003
-        #Test the save of a model created from a train data with meta attributes
-        self.assert_(len(self.WMetaTest.domain.getmetas())>=1,"The dataset WMetaTest should have Meta Attributes")
-        CvBoostlearner = AZorngCvBoost.CvBoostLearner()
-        BoostM = CvBoostlearner(self.WMetaTest)
-        AccNoMetaBefore = evalUtilities.getClassificationAccuracy(self.NoMetaTrain,BoostM)
-        AccWMetaBefore = evalUtilities.getClassificationAccuracy(self.WMetaTest,BoostM)
-
-
-        # Save the model 
-        scratchdir = os.path.join(AZOC.SCRATCHDIR, "scratchdiriTest"+str(time.time()))
-        os.mkdir(scratchdir)
-        modelPath = os.path.join(scratchdir,"CvBoostModel.CvBoost")
-        BoostM.write(modelPath)
-
-        # Read in the model
-        BoostR = AZorngCvBoost.CvBoostread(modelPath)
-        self.assert_(len(BoostR.imputer.defaults.domain.getmetas())==0,"There shouldn't be any Meta data now!")
-
-        # Calculate classification accuracy 
-        AccNoMetaAfter = evalUtilities.getClassificationAccuracy(self.NoMetaTrain, BoostR)
-        AccWMetaAfter = evalUtilities.getClassificationAccuracy(self.WMetaTest, BoostR)
-
-        # Test that the accuracy of the model before and after saved
-        self.assertEqual(AccNoMetaBefore, AccNoMetaAfter,"NoMeta: Predictions after loading saved model were different")
-        self.assertEqual(AccWMetaBefore, AccWMetaAfter, "WMeta: Predictions after loading saved model were different")
-        self.assertEqual(round(AccWMetaAfter,9), round(expectedAccWMeta,9))
-        self.assertEqual(round(AccNoMetaAfter,9), round(expectedAccNoMeta,9))
-        # Remove the scratch directory
-        os.system("/bin/rm -rf "+scratchdir)
- 
-
 
 
     def test_PersistentClassAcc(self):
@@ -475,7 +433,7 @@ class CvBoostClassifierTest(AZorngTestUtil.AZorngTestUtil):
         # Calculate classification accuracy for the classifier trained in one step
         oneStepAcc = evalUtilities.getClassificationAccuracy(self.test_data, Boost)
         # Check that the accuracy is what it used to be
-        self.assertEqual(round(0.97777999999999998,5),round(oneStepAcc,5)) 
+        self.assertEqual(round(0.98094999999999999,5),round(oneStepAcc,5)) 
 
 
 
