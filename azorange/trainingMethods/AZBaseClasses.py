@@ -15,7 +15,7 @@ def modelRead(modelFile=None,verbose = 0,retrunClassifier = True):
             modelRead (modelFile [, verbose = 0] [, retrunClassifier = True] )"""
 
     if not modelFile:
-        return ("CvSVM", "CvANN", "PLS", "CvRF", "CvBoost", "Consensus")
+        return ("CvSVM", "CvANN", "PLS", "CvRF", "CvBoost", "CvBayes", "Consensus")
 
     modelType = None
     loadedModel = None
@@ -49,6 +49,11 @@ def modelRead(modelFile=None,verbose = 0,retrunClassifier = True):
         if not retrunClassifier: return modelType
         from trainingMethods import AZorngCvBoost
         loadedModel = AZorngCvBoost.CvBoostread(modelFile,verbose)
+    elif os.path.isfile(os.path.join(modelFile,"model.bayes")):
+        modelType =  "CvBayes"
+        if not retrunClassifier: return modelType
+        from trainingMethods import AZorngCvBayes
+        loadedModel = AZorngCvBayes.CvBayesread(modelFile,verbose)
 
     return loadedModel
  
