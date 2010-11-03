@@ -21,6 +21,8 @@ OPTALGDICT = {"FANN_TRAIN_INCREMENTAL":0, "FANN_TRAIN_BATCH":1, "FANN_TRAIN_RPRO
               "FANN_TRAIN_QUICKPROP":3}
 ANNDEFAULTDICT = {"nHidden":5, "randomWeights":True, "scale":True ,"nEpochs":1000, "optAlg":"FANN_TRAIN_QUICKPROP", "MSE":0.001}
 
+#CvBayes parameters
+CVBAYESDEFAULTDICT = {"scale":False}
 
 #CvBoost parameters
 CVBOOSTTYPE = { "DISCRETE":0, "REAL":1, "LOGIT":2, "GENTLE":3 }
