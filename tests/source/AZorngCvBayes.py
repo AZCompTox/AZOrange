@@ -441,7 +441,7 @@ class CvBayesClassifierTest(AZorngTestUtil.AZorngTestUtil):
         # Calculate classification accuracy for the classifier trained in one step
         oneStepAcc = evalUtilities.getClassificationAccuracy(self.test_data, Bayes)
         # Check that the accuracy is what it used to be
-        self.assertEqual(round(0.95238,5),round(oneStepAcc,5)) 
+        self.assertEqual(round(0.96189999999999998,5),round(oneStepAcc,5)) 
 
 
 
