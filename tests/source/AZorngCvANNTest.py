@@ -16,15 +16,20 @@ class CvANNClassifierTest(AZorngTestUtil.AZorngTestUtil):
 
     def setUp(self):
         """Creates the training and testing data set attributes. """
-        testDataPath = os.path.join(AZOC.AZORANGEHOME,"tests/source/data/iris.tab")
         missingTestDataPath = os.path.join(AZOC.AZORANGEHOME,"tests/source/data/BinClass_No_metas_Train_missing.tab")
         
         # Read in the data
-        inData = self.irisData = dataUtilities.DataTable(testDataPath)
-        missingInData = dataUtilities.DataTable(missingTestDataPath)
+        #IrisData
 
-        # Random sampling
-        self.train_data, self.test_data = self.randSamp(inData, 0.7)
+        irisDataPath = os.path.join(AZOC.AZORANGEHOME,"tests/source/data/iris.tab")
+        self.irisData = dataUtilities.DataTable(irisDataPath)
+
+        trainDataPath = os.path.join(AZOC.AZORANGEHOME,"tests/source/data/irisTrain.tab")
+        testDataPath = os.path.join(AZOC.AZORANGEHOME,"tests/source/data/irisTest.tab")
+        self.train_data =  dataUtilities.DataTable(trainDataPath)
+        self.test_data =  dataUtilities.DataTable(testDataPath)
+
+        missingInData = dataUtilities.DataTable(missingTestDataPath)
         self.missingTrain = missingInData
         self.missingTest = missingInData
 

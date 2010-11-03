@@ -24,15 +24,12 @@ class SVMClassifierTest(AZorngTestUtil.AZorngTestUtil):
         self.inDataD = dataUtilities.DataTable(self.dataPathD)
         self.inDataC = dataUtilities.DataTable(self.dataPathC)
 
-        # Random sampling
-        #self.train_data, self.test_data = self.randSamp(self.inData, 0.7)
 
         # Full path to saved svm model
         global scratchdir
         self.modelPath = os.path.join(scratchdir,"model.svm")
 
         """Other datasets..."""
-        testDataPath = os.path.join(AZOC.AZORANGEHOME,"tests/source/data/iris.tab")
         contDataPath = os.path.join(AZOC.AZORANGEHOME,"tests/source/data/Reg_No_metas_Imp_Test.tab")
         SVMregDataPath = os.path.join(AZOC.AZORANGEHOME,"tests/source/data/Reg_No_metas_Train.tab")
         contTrainDataPath = os.path.join(AZOC.AZORANGEHOME,"tests/source/data/Reg_No_metas_Imp_Train.tab")
@@ -44,19 +41,22 @@ class SVMClassifierTest(AZorngTestUtil.AZorngTestUtil):
         dataWMetaTestPath = os.path.join(AZOC.AZORANGEHOME,"tests/source/data/BinClass_W_metas_SmallTest.tab")
 
         # Read in the data
+        #IrisData
+        trainDataPath = os.path.join(AZOC.AZORANGEHOME,"tests/source/data/irisTrain.tab")
+        testDataPath = os.path.join(AZOC.AZORANGEHOME,"tests/source/data/irisTest.tab")
+        self.train_data =  dataUtilities.DataTable(trainDataPath)
+        self.test_data =  dataUtilities.DataTable(testDataPath)
+
         missingInData = dataUtilities.DataTable(missingTestDataPath)
         contTrainData = dataUtilities.DataTable(contTrainDataPath)
         self.regTrainData = dataUtilities.DataTable(SVMregDataPath)
         contData = dataUtilities.DataTable(contDataPath)
-        inData = dataUtilities.DataTable(testDataPath)
         self.NoMetaTrain = dataUtilities.DataTable(dataNoMetaTrainPath)
         self.NoMetaTest = dataUtilities.DataTable(dataNoMetaTestPath)
         self.WMetaTest = dataUtilities.DataTable(dataWMetaTestPath)
 
-        # Random sampling
         self.missingTrain = missingInData
         self.missingTest = missingInData
-        self.train_data, self.test_data = self.randSamp(inData, 0.7)
         self.contTrain = contTrainData
         self.contTest = contData
         
