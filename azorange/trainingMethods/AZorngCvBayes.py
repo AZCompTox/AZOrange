@@ -53,6 +53,8 @@ class CvBayesLearner(AZBaseClasses.AZLearner):
         if self.scale:
             self.scalizer = dataUtilities.scalizer()
             self.scalizer.scaleClass = False
+            self.scalizer.nMin = -1
+            self.scalizer.nMax = 1 
             self.trainData = self.scalizer.scaleAndContinuizeData(trainingData)
         else:
             self.trainData = trainingData
@@ -68,6 +70,7 @@ class CvBayesLearner(AZBaseClasses.AZLearner):
 
         #Create the model it MUST be created with the NON DEFAULT constructor or must call create
         classifier = ml.CvNormalBayesClassifier()
+        classifier.clear()
         #Train the model
         #CvNormalBayesClassifier::train(const CvMat* _train_data, const CvMat* _responses, const CvMat* _var_idx =0, const CvMat* _sample_idx=0, bool update=false)
         classifier.train(mat, responses, None, None, False)
