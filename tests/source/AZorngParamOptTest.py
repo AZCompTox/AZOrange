@@ -348,7 +348,8 @@ class optimizerTest(AZorngTestUtil.AZorngTestUtil):
         #The learner is now with its optimized parameters already set, so we can now make a classifier out of it
         classifier = learner(self.discTrain)
         CA = evalUtilities.getClassificationAccuracy(self.discTest,classifier)
-        self.assertEqual(round(CA,2),round(0.58999999999999997,2)) # Ver 0.3
+        expectedCA = [0.58999999999999997,2 ,0.57999999999999996] # Artifact: Second value expected in UBUNTU 10.10
+        self.assert_(round(CA,2) in [round(ca,2) for ca in expectedCA]) # Ver 0.3
 
         miscUtilities.removeDir(runPath)
 
