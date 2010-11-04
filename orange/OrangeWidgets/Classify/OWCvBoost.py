@@ -33,6 +33,8 @@ class OWCvBoost(OWWidget):
 
         # Settings
         self.name = 'CvBoost'
+        self.classifier = None
+        self.learner = None
         self.modelFile = os.path.join(os.getcwd(),"Boost.model")
         #CVBOOSTTYPE = { "DISCRETE":0, "REAL":1, "LOGIT":2, "GENTLE":3 }
         #CVBOOSTSPLITCRIT{ "DEFAULT":0, "GINI":1, "MISCLASS":3, "SQERR":4 }
@@ -98,12 +100,15 @@ file name here and clicking the save button.")
 
     def saveModel(self):
         """Write a Boost classifier instance to disk """
+        self.warning(0)
         if self.classifier and self.modelFile and self.data:
             if not self.classifier.write(str(self.modelFile)):
+                self.warning("Cannot save model. Please check the output window.")
                 print "ERROR: model was NOT saved!"
             else:
                 print "Saved CvBoost type model to ",self.modelFile
         else:
+            self.warning("Cannot save model. Please check the output window.")
             print "ERROR: Something is missing:"
             print "   classifier:",self.classifier
             print "   modelFile:",self.modelFile
