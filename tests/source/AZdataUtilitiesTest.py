@@ -607,7 +607,7 @@ class dataUtilitiesTest(unittest.TestCase):
 
         # Test different but compatible var number
         classifier=AZorngPLS.PLSLearner(self.badVarCountData)
-        self.assert_(classifier(self.testData[0])=="POS","VarOrder: Prediction was not done correcly")
+        self.assert_(classifier(self.testData[0])=="NEG","VarOrder: Prediction was not done correcly")
 
 
         """Test the convertion of an example to a specific domain if possible(no order check)
