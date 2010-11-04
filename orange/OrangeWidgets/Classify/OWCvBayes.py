@@ -1,17 +1,18 @@
 """
-<name>Cv-Boost</name>
-<description>OpenCV Boost learner/classifier.</description>
-<icon>icons/Boost.png</icon>
+<name>Cv-Bayes</name>
+<description>OpenCV Naive/Normal Bayes learner/classifier.</description>
+<icon>icons/NaiveBayes.png</icon>
 <contact>Pedro Almeida</contact>
 <priority>5</priority>
 """
 from OWWidget import *
 import OWGUI
 from exceptions import Exception
-from trainingMethods import AZorngCvBoost
+from trainingMethods import AZorngCvBayes
 import AZOrangeConfig as AZOC
 
-class OWCvBoost(OWWidget):
+class OWCvBayes(OWWidget):
+    parameters = ["scale"]
     def __init__(self, parent=None, signalManager = None, name='kNN'):
         OWWidget.__init__(self, parent, signalManager, name, wantMainArea = 0, resizingEnabled = 0)
 
@@ -20,46 +21,24 @@ class OWCvBoost(OWWidget):
         self.inputs = [("Examples", ExampleTable, self.setData)]
         self.outputs = [("Learner", orange.Learner),("Classifier", orange.Classifier)]
 
-        self.boostType = [("Discrete Boosting","DISCRETE"),
-                       ("Real Boosting","REAL"),
-                       ("Logit Boosting","LOGIT"),
-                       ("Gentle Boosting","GENTLE")
-                            ]
-        self.splitCrit = [("Default","DEFAULT"),
-                       ("Gini","GINI"),
-                       ("MissClass","MISCLASS"),
-                       ("Squared Error","SQERR")
-                            ]
 
         # Settings
-        self.name = 'CvBoost'
+        self.name = 'CvBayes'
         self.classifier = None
         self.learner = None
-        self.modelFile = os.path.join(os.getcwd(),"Boost.model")
-        #CVBOOSTTYPE = { "DISCRETE":0, "REAL":1, "LOGIT":2, "GENTLE":3 }
-        #CVBOOSTSPLITCRIT{ "DEFAULT":0, "GINI":1, "MISCLASS":3, "SQERR":4 }
-        #CVBOOSTDEFAULTDICT = {"boost_type":"DISCRETE","weak_count":100,"split_criteria":"DEFAULT","weight_trim_rate":0.95, "max_depth":1, "use_surrogates":True, "priors":None}
-        for par in ("boost_type","weak_count","split_criteria","weight_trim_rate", "max_depth", "use_surrogates","priors"):
-            setattr(self, par, AZOC.CVBOOSTDEFAULTDICT[par])
+        self.modelFile = os.path.join(os.getcwd(),"Bayes.model")
+        for par in self.parameters:
+            setattr(self, par, AZOC.CVBAYESDEFAULTDICT[par])
 
 
         self.data = None                    # input data set
-        self.bType = 0
-        self.splitC = 0
         OWGUI.lineEdit(self.controlArea, self, 'name', box='Learner/Classifier Name', \
                  tooltip='Name to be used by other widgets to identify the learner/classifier.')
 
         OWGUI.separator(self.controlArea)
 
         pars = OWGUI.widgetBox(self.controlArea, "Parameters")
-        OWGUI.comboBox(pars, self, "bType", items = [x[0] for x in self.boostType], label = "Boost Type", orientation="horizontal", valueType = str)
-        OWGUI.comboBox(pars, self, "splitC", items = [x[0] for x in self.splitCrit], label = "Split Criteria", orientation="horizontal", valueType = str)
-
-        OWGUI.spin(pars, self, "weak_count", 0, 1000, 1, None,     "Weak Count         ", orientation="horizontal")
-        wtrBox = OWGUI.doubleSpin(pars, self, "weight_trim_rate", 0.0, 1.0, 0.01, label="Weight Trim Rate",  orientation="horizontal")
-        wtrBox.control.setDecimals(2)
-        OWGUI.spin(pars, self, "max_depth", 1, 1000, 1, None,      "Max Depth          ", orientation="horizontal")
-        OWGUI.checkBox(pars, self, "use_surrogates", "Use Surrogates")
+        OWGUI.checkBox(pars, self, "scale", "Scale Data")
         
 
         OWGUI.separator(self.controlArea)
@@ -99,14 +78,14 @@ file name here and clicking the save button.")
 
 
     def saveModel(self):
-        """Write a Boost classifier instance to disk """
+        """Write a Bayes classifier instance to disk """
         self.warning(0)
         if self.classifier and self.modelFile and self.data:
             if not self.classifier.write(str(self.modelFile)):
-                self.warning("Cannot save model. Please check the output window.")
                 print "ERROR: model was NOT saved!"
+                self.warning("Cannot save model. Please check the output window.")
             else:
-                print "Saved CvBoost type model to ",self.modelFile
+                print "Saved CvBayes type model to ",self.modelFile
         else:
             self.warning("Cannot save model. Please check the output window.")
             print "ERROR: Something is missing:"
@@ -136,12 +115,7 @@ file name here and clicking the save button.")
 
     def sendReport(self):
         self.reportSettings("Learning parameters",
-                            [("Boost Type", self.boost_type),
-                             ("Split Criteria", self.split_criteria),
-                             ("Used Surrogates", OWGUI.YesNo[self.use_surrogates]),
-                             ("Weak Count", self.weak_count),
-                             ("Weight Trim Rate", self.weight_trim_rate),
-                             ("Max Depth", self.max_depth),
+                            [("Scale Data", OWGUI.YesNo[self.scale]),
                              ])
         self.reportData(self.data)
         
@@ -152,26 +126,20 @@ file name here and clicking the save button.")
 
     def refreshParams(self):
         if self.learner:
-            for par in ("boost_type","weak_count","split_criteria","weight_trim_rate", "max_depth", "use_surrogates","priors"):
+            for par in self.parameters:
                 setattr(self, par, getattr(self.learner,par))
-        #Convert some parameters to be used in GUI
-        self.bType = [x[1] for x in self.boostType].index(self.boost_type)
-        self.plitC= [x[1] for x in self.splitCrit].index(self.split_criteria)
         #self.printLearnerPars()
 
     def printLearnerPars(self):
-        for par in ("boost_type","weak_count","split_criteria","weight_trim_rate", "max_depth", "use_surrogates","priors"):
+        for par in self.parameters:
             print par,":",getattr(self, par)
 
 
     def setLearner(self):
         self.error(0)
         self.warning(0)
-        #Convert some GUI parameters
-        self.boost_type = self.boostType[self.bType][1]
-        self.split_criteria = self.splitCrit[self.splitC][1]
         #self.printLearnerPars()
-        self.learner = AZorngCvBoost.CvBoostLearner(boost_type = self.boost_type, weak_count = self.weak_count, split_criteria = self.split_criteria, weight_trim_rate = self.weight_trim_rate, max_depth = self.max_depth, use_surrogates = self.use_surrogates)
+        self.learner = AZorngCvBayes.CvBayesLearner(scale = self.scale)
         self.learner.name = self.name
 
         self.send("Learner", self.learner)
@@ -198,7 +166,7 @@ file name here and clicking the save button.")
 
 if __name__=="__main__":
     a=QApplication(sys.argv)
-    ow=OWCvBoost()
+    ow=OWCvBayes()
 
 ##    dataset = orange.ExampleTable('adult_sample')
 ##    ow.setData(dataset)

@@ -28,6 +28,7 @@ class CvBayesLearner(AZBaseClasses.AZLearner):
         self.name = name
         self.trainData = None
         self.imputer = None
+        self.scale = AZOC.CVBAYESDEFAULTDICT["scale"] 
         self.__dict__.update(kwds)
 
 
@@ -48,7 +49,16 @@ class CvBayesLearner(AZBaseClasses.AZLearner):
         # Create the imputer
         self.imputer = orange.ImputerConstructor_average(trainingData)
         # Impute the data 
-        self.trainData = self.imputer(trainingData)
+        trainingData = self.imputer(trainingData)
+        if self.scale:
+            self.scalizer = dataUtilities.scalizer()
+            self.scalizer.scaleClass = False
+            self.scalizer.nMin = -1
+            self.scalizer.nMax = 1 
+            self.trainData = self.scalizer.scaleAndContinuizeData(trainingData)
+        else:
+            self.trainData = trainingData
+            self.scalizer = None
 
         impData=self.imputer.defaults
         #Convert the ExampleTable to CvMat
@@ -60,10 +70,11 @@ class CvBayesLearner(AZBaseClasses.AZLearner):
 
         #Create the model it MUST be created with the NON DEFAULT constructor or must call create
         classifier = ml.CvNormalBayesClassifier()
+        classifier.clear()
         #Train the model
         #CvNormalBayesClassifier::train(const CvMat* _train_data, const CvMat* _responses, const CvMat* _var_idx =0, const CvMat* _sample_idx=0, bool update=false)
         classifier.train(mat, responses, None, None, False)
-        return CvBayesClassifier(classifier = classifier, classVar = self.trainData.domain.classVar, imputeData=impData, verbose = self.verbose, varNames = CvMatrices["varNames"], nIter = None, basicStat = self.basicStat, NTrainEx = len(trainingData))
+        return CvBayesClassifier(classifier = classifier, classVar = trainingData.domain.classVar, imputeData=impData, verbose = self.verbose, varNames = CvMatrices["varNames"], nIter = None, basicStat = self.basicStat, NTrainEx = len(trainingData), scalizer = self.scalizer)
 
 class CvBayesClassifier(AZBaseClasses.AZClassifier):
     def __new__(cls, name = "CvBayes classifier", **kwds):
@@ -125,7 +136,11 @@ class CvBayesClassifier(AZBaseClasses.AZClassifier):
             if self.verbose > 0: print "Perhaps you need to remove meta attributes from your examples."
             return None
 
-        out = self.classifier.predict(dataUtilities.Example2CvMat(examplesImp,self.varNames))
+        if self.scalizer:
+            ex = self.scalizer.scaleEx(examplesImp)
+        else:
+            ex = examplesImp        
+        out = self.classifier.predict(dataUtilities.Example2CvMat(ex,self.varNames))
         #print "OUT:",out
         probabilities = None
         DFV = None
@@ -194,6 +209,8 @@ class CvBayesClassifier(AZBaseClasses.AZClassifier):
             impData.save(os.path.join(thePath,"ImputeData.tab"))
 
             self.classifier.save(os.path.join(thePath,"model.bayes"))
+            if self.scalizer != None:
+                self.scalizer.saveScalingValues(os.path.join(thePath,"scalingValues"))
             #Save the var names orderes the same way the Learner was trained
             varNamesFile = open(os.path.join(thePath,"varNames.txt"),"w")
             varNamesFile.write(str(self.varNames)+"\n")
@@ -222,6 +239,13 @@ def CvBayesread(path, verbose = 0):
         impData = dataUtilities.DataTable(str(os.path.join(thePath,"ImputeData.tab")),createNewOn=orange.Variable.MakeStatus.OK)
         loadedbayes = ml.CvNormalBayesClassifier()
         loadedbayes.load(os.path.join(thePath,"model.bayes"))
+
+        # Load Scaling Values        
+        if os.path.isdir(str(os.path.join(thePath,"scalingValues"))):
+            scalizer = dataUtilities.scalizer(file=str(os.path.join(thePath,"scalingValues")))
+        else:
+            scalizer = None
+
         
         #Load the var names oredered the way it was used when training
         varNamesFile = open(os.path.join(thePath,"varNames.txt"),"r")
@@ -232,7 +256,7 @@ def CvBayesread(path, verbose = 0):
             basicStat = eval(lines[2].strip())
         varNamesFile.close()
 
-        return CvBayesClassifier(classifier = loadedbayes, imputeData=impData[0], classVar = impData.domain.classVar, verbose = verbose, loadedModel = True, varNames = varNames, NTrainEx = NTrainEx, basicStat = basicStat)
+        return CvBayesClassifier(classifier = loadedbayes, imputeData=impData[0], classVar = impData.domain.classVar, verbose = verbose, loadedModel = True, varNames = varNames, NTrainEx = NTrainEx, basicStat = basicStat, scalizer = scalizer)
     except:
         if verbose > 0: print "ERROR: Could not read model from ", path
 
