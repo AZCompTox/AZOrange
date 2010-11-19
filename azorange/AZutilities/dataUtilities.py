@@ -8,6 +8,7 @@ import commands
 import random
 from opencv import ml
 from opencv import cv
+import AZOrangeConfig as AZOC
 
 from AZutilities import miscUtilities
 version = 9
@@ -136,6 +137,10 @@ class DataTable(orange.ExampleTable):
         attributeLoadStatus = None
         metaAttributeLoadStatus = None
         data = orange.ExampleTable(*argTuple,**kwds)
+        #Convert any symbold that are not allowed in the unicode format
+        for attr in data.domain:
+            for sym in AZOC.CVT_SYM:
+                attr.name = attr.name.replace(sym,AZOC.CVT_SYM[sym])
         # Fix the variables that have no name to be 'Unnamed'
         UnnamedVars = fixUnnamedNames(data.domain)
 

@@ -4,7 +4,15 @@ Some of these variables may have to be changed for a new installation.
 """
 import os
 
- # General environement
+# Data Load Options
+#   Unsupported symbols that need conversion 
+# NOTE: For testing in python the symbol code, use for ex: unichr(181)
+#       Then in CVT_SYM use the chr method.
+# 
+# unichr(181)- micro sign
+CVT_SYM = {chr(181):"u"} 
+
+# General environement
 AZORANGEHOME = os.environ["AZORANGEHOME"]
 SCRATCHDIR = "/tmp"
 NFS_SCRATCHDIR = os.path.join(os.environ["HOME"],"AZO_NFS_scratchDir")
@@ -15,6 +23,7 @@ if os.path.isfile(os.path.join(AZORANGEHOME,"azorange","AZOrangeExtraConfig.py")
 # These strings will automatically be identified as the smiles attribute of the data.
 SMILESNAMES = ["SMILES", "Molecule SMILES", "SMILES_", "Compound Structure", "glf_smiles", "MolSmiles", "Smiles", "Molecule Structure", "Structure", "SMILEStoPred", "SMILES_1", "smiles"]
 AZIDNAMES = ["Compound Name", "MolName"]
+
 
 
 OPTALGDICT = {"FANN_TRAIN_INCREMENTAL":0, "FANN_TRAIN_BATCH":1, "FANN_TRAIN_RPROP":2, \
