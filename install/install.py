@@ -534,7 +534,7 @@ class installer:
         if self.installType == "developer":
             self.addLog(commands.getstatusoutput("cp -rf orange/* " + os.path.join(self.trunkDir,"orange/") ))
         else:
-            self.addLog(commands.getstatusoutput("cp -rn orange/* " + os.path.join(self.trunkDir,"orange/") ))
+            self.addLog(commands.getstatusoutput("yes n | cp -R -i orange/* " + os.path.join(self.trunkDir,"orange/") ))
 
         # Apply Patch
         self.addLog("#Applying Patch...")
