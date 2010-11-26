@@ -615,7 +615,7 @@ def concatenate(datasets,useFirstAsLeader=False,mergeDomains=True):
                 if attr not in attributesNamesD2:
                     newAttrD1.append(attr)
         for attr in commonAttr:
-            print attr
+            #print attr
             if (D1.domain[attr].varType == D2.domain[attr].varType == orange.VarTypes.String) or (D1.domain[attr].varType == D2.domain[attr].varType == orange.VarTypes.Continuous) or (D1.domain[attr]==D2.domain[attr]):
                 equalAttr.append(attr)
             else:
