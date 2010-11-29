@@ -45,6 +45,11 @@ def SeedDataSampler(data, nFolds):
         It is assured that examples are used as test exampels in only one testSet.
         In the case when nEx is not divisible by nFolds, the remaining examples will never 
           be part of a testSet, although they will always be included in the trainSets. 
+        Usage sample:
+            DataIdxs = dataUtilities.SeedDataSampler(self.data, self.nExtFolds)
+            for foldN in range(self.nExtFolds):
+                trainData = self.data.select(DataIdxs[foldN],negate=1)
+                testData = self.data.select(DataIdxs[foldN]) 
     """
     if not data or not nFolds:
         return None
