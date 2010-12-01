@@ -55,7 +55,7 @@ class AccWOptParamGetter():
     def getAcc(self):
         """ For regression problems, it returns the RMSE and the R2 
             For Classification problems, it returns CA and the ConfMat
-            The return is made in a Dict: {"RMSE":0.2,"R2":0.1,"CA":0.98,"ConfMat":[[TP, FP],[FN,TN]]}
+            The return is made in a Dict: {"RMSE":0.2,"R2":0.1,"CA":0.98,"CM":[[TP, FP],[FN,TN]]}
             For the EvalResults not supported for a specific learner/datase, the respective result will be None
             It some error occurred, the respective values in the Dict will be None
         """
