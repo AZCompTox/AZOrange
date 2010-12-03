@@ -134,18 +134,27 @@ class AccWOptParamGetter():
     def __calcConfMat(self, testData, model):
         """ Returns a confusion matrix in the form of a vector:
                 For Binary classifiers:  
-                        [[TP, FP],
-                          [FN,TN]]
+                        [[TP, FN],
+                         [FP, TN]]
                 For classifiers with class having N values:
-                    [[CV1_True,  CV2_False,..., CVN_False],
-                     [CV1_False, CV2_True, ..., CVN_False],
+                                             Predicted class
+                                        |   A       B       C
+                                     ---------------------------
+                           known     A  |  tpA     eAB     eAC
+                           class     B  |  eBA     tpB     eBC
+                                     C  |  eCA     eCB     tpC
+
+                    [[tpA, eAB, ..., eAN],
+                     [eBA, tpB, ..., eBN],
                       ...,
-                     [CV1_False, CV2_False,..., CVN_True ]]
+                     [eNA, eNB, ..., tpN ]]
+
+                 where A, B, C are the class values in the same order as testData.domain.classVar.values
         """
         res = orngTest.testOnData([model], testData)
         confMat = orngStat.confusionMatrices(res)[0]
         if len(testData.domain.classVar.values) == 2:
-            cm = [[confMat.TP, confMat.FP],[confMat.FN, confMat.TN]]
+            cm = [[confMat.TP, confMat.FN],[confMat.FP, confMat.TN]]
         else:
             cm = confMat
         return cm
