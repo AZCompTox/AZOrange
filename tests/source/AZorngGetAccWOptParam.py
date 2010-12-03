@@ -34,7 +34,7 @@ class GetAccWOptParam(AZorngTestUtil.AZorngTestUtil):
         evaluator = getAccWOptParam.AccWOptParamGetter(data = self.iris2Data, learner = learner, paramList = paramList, nExtFolds = 3, nInnerFolds = 3)
         res = evaluator.getAcc()
         self.assertEqual(round(res["CA"],5),round(0.96666666666666667,5))
-        self.assertEqual(res["CM"],  [[47.0, 2.0], [3.0, 98.0]])
+        self.assertEqual(res["CM"],  [[47.0, 3.0], [2.0, 98.0]])
         
 
     def test_Regression(self):
