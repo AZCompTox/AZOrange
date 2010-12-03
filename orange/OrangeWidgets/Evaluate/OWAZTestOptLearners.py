@@ -13,6 +13,7 @@ import OWGUI
 from AZutilities import  getAccWOptParam
 import time
 import warnings
+import AZLearnersParamsConfig
 warnings.filterwarnings("ignore", "'id' is not a builtin attribute",
                         orange.AttributeWarning)
 
@@ -98,16 +99,19 @@ class OWAZTestOptLearners(OWWidget):
     def __init__(self,parent=None, signalManager = None):
         OWWidget.__init__(self, parent, signalManager, "TestOptLearners")
 
-        self.inputs = [("Data", ExampleTable, self.setData, Default), ("Learner", orange.Learner, self.setLearner, Multiple)]
+        self.inputs = [("Data", ExampleTable, self.setData, Default), ("Learner", orange.Learner, self.setLearner, Default)]
         #Output the conf. Matrix if exists
         #self.outputs = [("Evaluation Results", orngTest.ExperimentResults)]
 
         # Settings
+        self.learnerType = None
         self.nInnerFolds = 5            # Inner folds
         self.nOuterFolds = 5            # Outer folds
         self.precision = 4
-        self.applyOnAnyChange = True
+        self.applyOnAnyChange = False
         self.selectedCScores = [i for (i,s) in enumerate(self.cStatistics) if s.show]
+        self.SelectedParams = []
+        self.paramsLabels = []
         self.selectedRScores = [i for (i,s) in enumerate(self.rStatistics) if s.show]
         self.targetClass = 0
         self.loadSettings()
@@ -124,7 +128,13 @@ class OWAZTestOptLearners(OWWidget):
         OWGUI.spin(box, self, 'nOuterFolds', 2, 100, step=1, label='Number of outer folds:',
                    callback=lambda p=0: self.conditionalRecompute(p))
 
+        self.OptParam = OWGUI.listBox(self.controlArea, self, 'SelectedParams',
+                                     'paramsLabels', box = "Parameters optimization",
+                                     selectionMode = QListWidget.MultiSelection,
+                                     callback=self.newParamSelection)
+
         #OWGUI.separator(self.sBtns, height = 3)
+        
         
         boxA= OWGUI.widgetBox(box, orientation='vertical', addSpace=False)
         OWGUI.separator(boxA)
@@ -172,12 +182,27 @@ class OWAZTestOptLearners(OWWidget):
 
         # score table
         # table with results
-        self.g = OWGUI.widgetBox(self.mainArea, 'Evaluation Results')
-        self.tab = OWGUI.table(self.g, selectionMode = QTableWidget.NoSelection)
+        #self.g = OWGUI.widgetBox(self.mainArea, 'Evaluation Results')
+        self.tab = OWGUI.table(self.mainArea, selectionMode = QTableWidget.NoSelection)
 
-        #self.lab = QLabel(self.g)
+        # Confusion Matrix Table
+        #self.CM = OWGUI.widgetBox(self.mainArea, 'Confusion Matrix')
+        self.CMtab = OWGUI.table(self.mainArea, selectionMode = QTableWidget.NoSelection)
 
-        self.resize(680,470)
+
+        import sip   # (row, col)
+        sip.delete(self.mainArea.layout())
+        self.layout = QGridLayout(self.mainArea)
+        self.layout.addWidget(OWGUI.widgetLabel(self.mainArea, "Evaluation Results"), 0, 0, Qt.AlignLeft)        
+        self.layout.addWidget(self.tab, 1, 1)
+        self.layout.addWidget(OWGUI.widgetLabel(self.mainArea, "Confusion Matrix"), 2, 0, Qt.AlignLeft)        
+        self.layout.addWidget(OWGUI.widgetLabel(self.mainArea, "Prediction"), 3, 1, Qt.AlignCenter)
+        self.layout.addWidget(OWGUI.widgetLabel(self.mainArea, "Correct <br>Class  "), 4, 0, Qt.AlignRight)
+        self.layout.addWidget(self.CMtab, 4, 1)
+        #self.layout.setColumnStretch(1, 100)
+        #self.layout.setRowStretch(2, 100)
+
+        #self.resize(680,470)
 
     ##scPA
     def browseFile(self):
@@ -211,6 +236,20 @@ class OWAZTestOptLearners(OWWidget):
                                 for nCol in range(self.tab.columnCount()):
                                     line += str(self.tab.item(nRow, nCol).text()) + "\t"
                                 f.write(line[0:-1]+"\r\n")
+                            #Save the Confusion Matrix
+                            if self.isclassification():
+                                f.write("\r\nConfusion Matrix\r\n")
+                                # Write the Header of the table 
+                                line = "\t"
+                                for nCol in range(self.CMtab.columnCount()):
+                                    line += str(self.CMtab.horizontalHeaderItem(nCol).text()) + "\t"
+                                f.write(line[0:-1]+"\r\n")
+                                # Write all lines of the table
+                                for nRow in range(self.CMtab.rowCount()):
+                                    line = str(self.CMtab.verticalHeaderItem(nRow).text()) + "\t"
+                                    for nCol in range(self.CMtab.columnCount()):
+                                        line += str(self.CMtab.item(nRow, nCol).text()) + "\t"
+                                    f.write(line[0:-1]+"\r\n")
                             # Close the File
                             f.close()
                             print "Results saved to: " + self.filePath
@@ -225,7 +264,7 @@ class OWAZTestOptLearners(OWWidget):
                 print "There are no results yet to save!"
                 self.error("There are no results yet to save!")
 
-##ecPA
+
 
     # scoring and painting of score table
     def isclassification(self):
@@ -263,10 +302,53 @@ class OWAZTestOptLearners(OWWidget):
         # adjust the width of the score table cloumns
         self.tab.resizeColumnsToContents()
         self.tab.resizeRowsToContents()
+
+        #Call the method for painting the Confusion Matrix
+        self.paintConfMat()
+
         usestat = [self.selectedRScores, self.selectedCScores][self.isclassification()]
         for i in range(len(self.stat)):
             if i not in usestat:
                 self.tab.hideColumn(i+1)
+
+    def paintConfMat(self):
+        if not self.learners or not self.data or not self.data.domain.classVar or not self.isclassification():
+            self.CMtab.setColumnCount(0)
+            self.CMtab.setRowCount(0)
+            return
+        #Use only Confusion M;Atrix CM from the first and unique learner 
+        learners = [(l.time, l) for l in self.learners.values()]
+        learners.sort()
+        learners = [lt[1] for lt in learners]
+        CM = learners[0].results["CM"]
+        nClasses = len(self.data.domain.classVar.values)
+
+        #Create CM Vertical and Horizontal Headers
+        self.CMtab.setColumnCount(nClasses + 1)
+        self.CMtab.setHorizontalHeaderLabels([str(x) for x in self.data.domain.classVar.values]+[" "])
+        self.CMtab.setRowCount(nClasses + 1)
+        self.CMtab.setVerticalHeaderLabels([str(x) for x in self.data.domain.classVar.values]+[" "])
+
+        #Fill CM data and last Col Sums
+        for (r, row) in enumerate(CM):
+            for (c, val) in enumerate(row):
+                OWGUI.tableItem(self.CMtab, r, c, val) 
+            OWGUI.tableItem(self.CMtab, r, c+1, sum(row))
+        #last row with sums
+        for idx in range(nClasses): 
+            OWGUI.tableItem(self.CMtab, r+1, idx, sum([x[idx] for x in CM ]))
+        # Sum od Sums
+        OWGUI.tableItem(self.CMtab, r+1, idx+1, sum([sum(x) for x in CM]))
+
+        boldf = self.CMtab.item(0, nClasses).font()
+        boldf.setBold(True)
+        for ri in range(nClasses+1):
+            self.CMtab.item(ri, nClasses).setFont(boldf)
+            self.CMtab.item(nClasses, ri).setFont(boldf)
+
+
+        self.CMtab.resizeColumnsToContents()
+        self.CMtab.resizeRowsToContents()
 
 
     def sendReport(self):
@@ -290,6 +372,23 @@ class OWAZTestOptLearners(OWWidget):
             res += "</tr>"
         res += "</table>"
         self.reportRaw(res)
+
+        if self.learners and self.data and self.data.domain.classVar and self.isclassification():
+            self.reportSection("Confusion Matrix")
+            classVals = [str(x) for x in self.data.domain.classVar.values]
+            nClassVals = len(classVals)
+            res = "<table>\n<tr><td></td>" + "".join('<td align="center"><b>&nbsp;&nbsp;%s&nbsp;&nbsp;</b></td>' % cv for cv in classVals) + "</tr>\n"
+            for i, cv in enumerate(classVals):
+                res += '<tr><th align="right"><b>%s</b></th>' % cv + \
+                   "".join('<td align="center">%s</td>' % self.CMtab.item(i, j).text() for j in range(nClassVals)) + \
+                   '<th align="right"><b>%s</b></th>' % self.CMtab.item(i, nClassVals).text() + \
+                   "</tr>\n"
+            res += '<tr><th></th>' + \
+               "".join('<td align="center"><b>%s</b></td>' % self.CMtab.item(nClassVals, j).text() for j in range(nClassVals+1)) + \
+               "</tr>\n"
+            res += "</table>\n<p><b>Note:</b> columns represent predictions, row represent true classes</p>"
+            self.reportRaw(res)
+
             
     def score(self, ids):
         """compute scores for the list of learners"""
@@ -326,7 +425,13 @@ class OWAZTestOptLearners(OWWidget):
 
         # computation of results (res, and cm if classification)
         for l in learners:
-            paramList = ["nActVars"]
+            #Set the selected parameters to optimize
+            paramList = []
+            for paramIdx in self.SelectedParams:
+                paramList.append(self.paramsLabels[paramIdx])
+            #print "getAccWOptParam command: "
+            #for x in (self.data,l.learner, paramList, self.nOuterFolds,self.nInnerFolds):
+            #    print x
             l.evaluator = getAccWOptParam.AccWOptParamGetter(data = self.data, learner = l.learner, paramList = paramList, nExtFolds = self.nOuterFolds, nInnerFolds = self.nInnerFolds)
             l.results = l.evaluator.getAcc()
             pb.advance()
@@ -397,6 +502,40 @@ class OWAZTestOptLearners(OWWidget):
         self.openContext("", data)
         self.paintscores()
 
+
+    def fillOptParams(self):
+        self.error(0)
+        paramsLabels = []
+        #Get the Learner Name: Use only Confusion M;Atrix CM from the first and unique learner 
+        learners = [(l.time, l) for l in self.learners.values()]
+        learners.sort()
+        learner = [lt[1] for lt in learners][0].learner
+       
+        # check if learner is defined in AZLearnersParamsConfig
+        self.learnerType = str(learner).split()[0]
+        if self.learnerType[0] == "<":
+            self.learnerType = self.learnerType[1:]
+        if self.learnerType.rfind('.') >=0:
+            self.learnerType = self.learnerType[self.learnerType.rfind('.')+1:]
+
+        if not hasattr(AZLearnersParamsConfig, self.learnerType):
+            self.error("No configuration for specified learner " + str(self.learnerType) +" in AZLearnersParamsConfig")
+            self.learnerType = None
+            self.paramsLabels = []
+            return
+        else:
+            optAPI = AZLearnersParamsConfig.API(self.learnerType)
+            paramsLabels = optAPI.getParameterNames() 
+
+        self.paramsLabels = paramsLabels
+        #Select the params optimized by default
+        SelectedParams = []
+        for idx,param in enumerate(paramsLabels):
+            if optAPI.getParameter(param,"optimize"):
+                SelectedParams.append(idx)
+        self.SelectedParams = SelectedParams    
+
+
     def fillClassCombo(self):
         """upon arrival of new data appropriately set the target class combo"""
         self.targetCombo.clear()
@@ -425,6 +564,7 @@ class OWAZTestOptLearners(OWWidget):
                 self.recompute(True)
             else:
                 self.score([id])
+            self.fillOptParams()
         else: # remove a learner and corresponding results
             if id in self.learners:
                 res = self.learners[id].results
@@ -480,6 +620,12 @@ class OWAZTestOptLearners(OWWidget):
         else:
             if self.learners:
                 self.recompute()
+
+    def newParamSelection(self):
+        """handle change in set of Parameters to optimize"""
+        print "Selected: ", self.SelectedParams
+        print "Labels: ", self.paramsLabels
+        self.recompute()
 
     def newscoreselection(self):
         """handle change in set of scores to be displayed"""
