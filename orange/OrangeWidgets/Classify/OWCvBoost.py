@@ -1,6 +1,6 @@
 """
 <name>Cv-Boost</name>
-<description>OpenCV Boost learner/classifier.</description>
+<description>OpenCV Boost learner/classifier. Boosted Tree implementation in OpenCV. Please observe that this learner can only be used for binary classification.</description>
 <icon>icons/Boost.png</icon>
 <contact>Pedro Almeida</contact>
 <priority>5</priority>
@@ -53,13 +53,13 @@ class OWCvBoost(OWWidget):
 
         pars = OWGUI.widgetBox(self.controlArea, "Parameters")
         OWGUI.comboBox(pars, self, "bType", items = [x[0] for x in self.boostType], label = "Boost Type", orientation="horizontal", valueType = str)
-        OWGUI.comboBox(pars, self, "splitC", items = [x[0] for x in self.splitCrit], label = "Split Criteria", orientation="horizontal", valueType = str)
+        OWGUI.comboBox(pars, self, "splitC", items = [x[0] for x in self.splitCrit], label = "Split Criteria", orientation="horizontal", valueType = str, tooltip = "Node splitting criteria.")
 
-        OWGUI.spin(pars, self, "weak_count", 0, 1000, 1, None,     "Weak Count         ", orientation="horizontal")
-        wtrBox = OWGUI.doubleSpin(pars, self, "weight_trim_rate", 0.0, 1.0, 0.01, label="Weight Trim Rate",  orientation="horizontal")
+        OWGUI.spin(pars, self, "weak_count", 0, 1000, 1, None,     "Weak Count         ", orientation="horizontal", tooltip = "The number of trees used.")
+        wtrBox = OWGUI.doubleSpin(pars, self, "weight_trim_rate", 0.0, 1.0, 0.01, label="Weight Trim Rate",  orientation="horizontal", tooltip = "Removal of well classified examples. Used only for computational efficiency. The greater the number, the fewer the number of examples removed.")
         wtrBox.control.setDecimals(2)
-        OWGUI.spin(pars, self, "max_depth", 1, 1000, 1, None,      "Max Depth          ", orientation="horizontal")
-        OWGUI.checkBox(pars, self, "use_surrogates", "Use Surrogates")
+        OWGUI.spin(pars, self, "max_depth", 1, 1000, 1, None,      "Max Depth          ", orientation="horizontal", tooltip = "Maximal branching depth")
+        OWGUI.checkBox(pars, self, "use_surrogates", "Use Surrogates", tooltip = "Use surrogate nodes for missing values")
         
 
         OWGUI.separator(self.controlArea)
