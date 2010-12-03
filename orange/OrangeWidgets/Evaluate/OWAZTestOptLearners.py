@@ -17,20 +17,43 @@ warnings.filterwarnings("ignore", "'id' is not a builtin attribute",
                         orange.AttributeWarning)
 
 ##############################################################################
-#          Exp
-#       [[TP, FP],
-#  pred  [FN,TN]]
+#         Return s a confusion matrix in the form of a vector:
+#                For Binary classifiers:  
+#                        [[TP, FN],
+#                         [FP, TN]]
+#                For classifiers with class having N values:
+#                                             Predicted class
+#                                        |   A       B       C
+#                                     ---------------------------
+#                           known     A  |  tpA     eAB     eAC
+#                           class     B  |  eBA     tpB     eBC
+#                                     C  |  eCA     eCB     tpC
 #
-#       [[10,1,1],
-#  pred  [1,10,1],
-#        [1,1,10]]
+#                    [[tpA, eAB, ..., eAN],
+#                     [eBA, tpB, ..., eBN],
+#                      ...,
+#                     [eNA, eNB, ..., tpN ]]
+#
+#                 where A, B, C are the class values in the same order as testData.domain.classVar.values
+#
+#  from http://www.compumine.com/web/public/newsletter/20071/precision-recall
+#       Sensitivity = tp/(tp+fn)
+#       SensitivityA = tpA/(tpA+eAB+eAC)
+#
+#       Specificity = tn/(tn+fp)
+#       SpecificityA = tnA/(tnA+eBA+eCA), where tnA = tpB + eBC + eCB + tpC 
+
 def sens(cm,idx):
     TP = float(cm[idx][idx])
-    FN = float(sum([x[idx] for (i,x) in enumerate(cm) if i != idx]))
+    FN = float(sum(cm[idx]) - TP)
     return TP/(TP+FN)
 def spec(cm,idx):
-    TN = float(sum([x[i] for (i,x) in enumerate(cm) if i != idx]))
-    FP = float(sum([x for (i,x) in enumerate(cm[idx]) if i != idx]))
+    TN = 0
+    FP = 0
+    for row in [x for (i,x) in enumerate(cm) if i != idx]:
+            FP += row[idx] 
+            TN += sum(row)-row[idx]
+
     return TN/(TN+FP)
 
 class Learner:
@@ -73,7 +96,7 @@ class OWAZTestOptLearners(OWWidget):
 
 
     def __init__(self,parent=None, signalManager = None):
-        OWWidget.__init__(self, parent, signalManager, "TestLearners")
+        OWWidget.__init__(self, parent, signalManager, "TestOptLearners")
 
         self.inputs = [("Data", ExampleTable, self.setData, Default), ("Learner", orange.Learner, self.setLearner, Multiple)]
         #Output the conf. Matrix if exists
@@ -172,7 +195,7 @@ class OWAZTestOptLearners(OWWidget):
             self.filePath = str(filename)
 
     def saveRes(self):
-        if self.results!=None and self.tab.horizontalHeader().count() and self.tab.rowCount()>0 and self.tab.columnCount()>0:
+        if self.tab.horizontalHeader().count() and self.tab.rowCount()>0 and self.tab.columnCount()>0:
                 if os.path.isdir(os.path.split(self.filePath)[0]) and self.filePath!="" and self.filePath!=None:
                         try:
                             line=""
@@ -247,17 +270,7 @@ class OWAZTestOptLearners(OWWidget):
 
 
     def sendReport(self):
-        exset = []
-        if self.resampling == 0:
-            exset = [("Folds", self.nFolds)]
-        elif self.resampling == 2:
-            exset = [("Repetitions", self.pRepeat), ("Proportion of training instances", "%i%%" % self.pLearning)]
-        else:
-            exset = []
-        self.reportSettings("Validation method",
-                            [("Method", self.resamplingMethods[self.resampling])]
-                            + exset +
-                            [("Target class", self.data.domain.classVar.values[self.targetClass])])
+        exset = [("Number of Inner Folds", self.nInnerFolds), ("Number of Outer Folds",self.nOuterFolds)]
         
         self.reportData(self.data)
         
@@ -337,11 +350,6 @@ class OWAZTestOptLearners(OWWidget):
                     self.error(ii, "An error occurred while evaluating " + s.res + " on %s due to %s" % \
                               (l.name, ex.message))
                     scores.append(None)
-
-            print self.learners[l.id]
-            print self.learners[l.id].name
-            print self.learners[l.id].scores
-            print scores
             self.learners[l.id].scores = [s if s else None for s in scores]
         pb.finish()    
         self.sendResults()
@@ -371,7 +379,7 @@ class OWAZTestOptLearners(OWWidget):
             for l in self.learners.values():
                 l.scores = []
                 l.results = None
-            self.send("Evaluation Results", None)
+            #self.send("Evaluation Results", None)
         else:
             # new data has arrived
             self.data = orange.Filter_hasClassValue(self.data)
@@ -435,7 +443,7 @@ class OWAZTestOptLearners(OWWidget):
         # for each learner, we first find a list where a result is stored
         # and remember the corresponding index
 
-        return # DEBUG
+        return # Cannot send anything
 
         valid = [(l.results, [x.id for x in l.results.learners].index(l.id))
                  for l in self.learners.values() if l.scores and l.results]
@@ -495,8 +503,7 @@ class OWAZTestOptLearners(OWWidget):
 
     def conditionalRecompute(self, option):
         """calls recompute only if specific sampling option enabled"""
-        if self.resampling == option:
-            self.recompute(False)
+        self.recompute(False)
 
     def applyChange(self):
         if self.applyOnAnyChange:
