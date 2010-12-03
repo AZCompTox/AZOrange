@@ -76,8 +76,8 @@ AZOrangeConfig.CVBOOSTDEFAULTDICT = {"boost_type":"DISCRETE","weak_count":100,"s
 """
 CvBoostLearner = {
              'max_depth':["types.IntType", "values", "[int(round(x)) or 1 for x in miscUtilities.Range(1.0/50.0*N_ATTR,4.0/5.0*N_ATTR,1.0/50.0*N_ATTR)]",[],AZOrangeConfig.CVBOOSTDEFAULTDICT["max_depth"],True,True,"Integer from (1/50)N_ATTR to (4/5)N_ATTR with increments of (1/50)N_ATTR.\nMinimum is 1"],\
-             'weak_count':["types.IntType", "values", "miscUtilities.Range(0,1000)",[],AZOrangeConfig.CVBOOSTDEFAULTDICT["max_depth"],True,True,"Integer from 1 to 1000"],\
-             'weight_trim_rate':["types.FloatType", "interval", "[0 , 1]",[],AZOrangeConfig.CVBOOSTDEFAULTDICT["max_depth"],False,True,"Integer from 1 to 1000"],\
+             'weak_count':["types.IntType", "values", "miscUtilities.Range(10,1000)",[],AZOrangeConfig.CVBOOSTDEFAULTDICT["weak_count"],False,True,"Integer from 10 to 1000"],\
+             'weight_trim_rate':["types.FloatType", "interval", "[0 , 1]",[],AZOrangeConfig.CVBOOSTDEFAULTDICT["weight_trim_rate"],False,True,"Continious between"],\
              'boost_type':["types.StringType", "values", "['DISCRETE' , 'REAL' , 'LOGIT' , 'GENTLE']",['DISCRETE','REAL','LOGIT','GENTLE'],AZOrangeConfig.CVBOOSTDEFAULTDICT["boost_type"],False,False,"DISCRETE\nREAL\nLOGIT\nGENTLE"],\
              'split_criteria':["types.StringType", "values", "['DEFAULT' , 'GINI' , 'MISCLASS' , 'SQERR']",['DEFAULT' , 'GINI' , 'MISCLASS' , 'SQERR'],AZOrangeConfig.CVBOOSTDEFAULTDICT["split_criteria"],False,False,"DEFAULT\nGINI\nMISCLASS\nSQERR"],\
              #'priors':["types.StringType", "values", "[None]",[],str(AZOrangeConfig.CVBOOSTDEFAULTDICT["priors"]),False,False,"Do not use for optimization, just to change the default values of priors"],\
