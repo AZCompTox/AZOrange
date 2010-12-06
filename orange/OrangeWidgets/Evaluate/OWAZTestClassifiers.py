@@ -1,6 +1,6 @@
 """
 <name>Test Classifiers</name>
-<description>Tests the accuracy of Classifiers on a separate test data set.</description>
+<description>Tests the accuracy of Classifiers(trained models) on a separate (temporal/external) test data set.</description>
 <icon>icons/TestClassifiers.png</icon>
 <contact>Pedro Almeida (Based on OWTestLearners)</contact>
 <priority>200</priority>
