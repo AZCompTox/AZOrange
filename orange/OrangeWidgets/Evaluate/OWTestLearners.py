@@ -1,6 +1,6 @@
 """
 <name>Test Learners</name>
-<description>Tests the accuracy of Learners on a data set. Several data sampling techniques available.</description>
+<description>Tests the accuracy of Learners(untrained model architectures). Uses default values of the model parameters. Several data sampling techniques available.</description>
 <icon>icons/TestLearners.png</icon>
 <contact>Blaz Zupan (blaz.zupan(@at@)fri.uni-lj.si)</contact>
 <priority>200</priority>
