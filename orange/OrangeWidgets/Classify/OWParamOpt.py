@@ -589,7 +589,7 @@ class OWParamOpt(OWWidget):
             return
 
         if not hasattr(AZLearnersParamsConfig, self.learnerType):
-            self.setErrors("No configuration for specified learner " + str(self.learnerType) +" in AZLearnersParamsConfig")
+            self.setErrors("The learner " + str(self.learnerType) +" is not compatible with the Optimizer!")
             self.learnerType = None
             self.parameters = None
             return
