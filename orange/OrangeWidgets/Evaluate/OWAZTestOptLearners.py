@@ -1,6 +1,6 @@
 """
 <name>Test Optimized Learners</name>
-<description>Tests the accuracy of optimized Learners on a data set.</description>
+<description>Assesses the generalization accuracy with a double cross validation loop for Learners((untrained model architectures) with automatically optimized parameters. Please observe that this widget is time consuming!</description>
 <icon>icons/TestOptLearners.png</icon>
 <contact>Pedro Almeida</contact>
 <priority>200</priority>
@@ -124,9 +124,9 @@ class OWAZTestOptLearners(OWWidget):
         # GUI
         box = OWGUI.widgetBox(self.controlArea, "Sampling", orientation='vertical', addSpace=False)
         OWGUI.spin(box, self, 'nInnerFolds', 2, 100, step=1, label='Number of inner folds:',
-                   callback=lambda p=0: self.conditionalRecompute(p))
+                   callback=lambda p=0: self.conditionalRecompute(p), tooltip = "The number of folds used to optimize the model parameters.")
         OWGUI.spin(box, self, 'nOuterFolds', 2, 100, step=1, label='Number of outer folds:',
-                   callback=lambda p=0: self.conditionalRecompute(p))
+                   callback=lambda p=0: self.conditionalRecompute(p), tooltip = "The number of folds used by the external loop to assess the generalization accuracy.")
 
         self.OptParam = OWGUI.listBox(self.controlArea, self, 'SelectedParams',
                                      'paramsLabels', box = "Parameters optimization",
