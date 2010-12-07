@@ -241,14 +241,14 @@ class CvBoostClassifierTest(AZorngTestUtil.AZorngTestUtil):
     
         Acc = evalUtilities.getClassificationAccuracy(self.missingTest, Boost)
 
-        self.assertEqual(round(0.72423999999999999,5),round(Acc,5)) #opencv1.1: 0.95191999999999999
+        self.assertEqual(round(0.74241999999999997,5),round(Acc,5)) 
 
 
     def test_PredictionWithDiffVarType(self):
         """Test prediction with diff. VarType
         Test the prediction of examples with different varType
         """
-        expectedAcc = 0.74074099999999998 
+        expectedAcc = 0.703704 
         # Create a Boost model
         CvBoostlearner = AZorngCvBoost.CvBoostLearner()
         Boost = CvBoostlearner(self.noBadDataTrain)
@@ -265,7 +265,7 @@ class CvBoostClassifierTest(AZorngTestUtil.AZorngTestUtil):
         """Test Prediction with diff. VarOrder
         Test the prediction  examples with different varOrder
         """
-        expectedAcc = 0.76666666699999997
+        expectedAcc = 0.73333333300000003 
         # Create a Boost model
         CvBoostlearner = AZorngCvBoost.CvBoostLearner()
         Boost = CvBoostlearner(self.noBadDataTrain)
@@ -283,7 +283,7 @@ class CvBoostClassifierTest(AZorngTestUtil.AZorngTestUtil):
         """Test prediction with uncompatible domain
         Test the non-prediction of examples with an incompatible domain  
         """
-        expectedAcc1 =  0.76666666699999997 
+        expectedAcc1 =  0.73333333300000003 
         # Create a Boost model
         CvBoostlearner = AZorngCvBoost.CvBoostLearner()
         Boost = CvBoostlearner(self.noBadDataTrain)
@@ -376,7 +376,7 @@ class CvBoostClassifierTest(AZorngTestUtil.AZorngTestUtil):
     def test_MetaDataHandle(self):
         """Test the handling of Data with Meta Atributes
         """
-        expectedAcc = 0.76666666699999997
+        expectedAcc = 0.73333333300000003
         # Create an Boost model
         CvBoostlearner = AZorngCvBoost.CvBoostLearner()
         Boost = CvBoostlearner(self.NoMetaTrain)
@@ -391,7 +391,7 @@ class CvBoostClassifierTest(AZorngTestUtil.AZorngTestUtil):
         """Test the handling of SaveModel for Data with Meta Atributes
         """
         expectedAccWMeta = 1.0 # Ver 0.3 
-        expectedAccNoMeta = 0.53636363600000003 
+        expectedAccNoMeta = 0.55757575800000003 
         #Test the save of a model created from a train data with meta attributes
         self.assert_(len(self.WMetaTest.domain.getmetas())>=1,"The dataset WMetaTest should have Meta Attributes")
         CvBoostlearner = AZorngCvBoost.CvBoostLearner()
@@ -434,7 +434,7 @@ class CvBoostClassifierTest(AZorngTestUtil.AZorngTestUtil):
         # Calculate classification accuracy for the classifier trained in one step
         oneStepAcc = evalUtilities.getClassificationAccuracy(self.test_data, Boost)
         # Check that the accuracy is what it used to be
-        self.assertEqual(round(0.98094999999999999,5),round(oneStepAcc,5)) 
+        self.assertEqual(round(0.97143000000000002,5),round(oneStepAcc,5)) 
 
 
 

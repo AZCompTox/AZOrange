@@ -1,4 +1,4 @@
-import orange
+import string,orange
 import AZBaseClasses
 from AZutilities import dataUtilities
 import AZOrangeConfig as AZOC
@@ -68,6 +68,29 @@ class CvBoostLearner(AZBaseClasses.AZLearner):
         missingDataMask = CvMatrices["missing_data_mask"]
 
         #Configure Boost params
+        #First, Correct any wrong parameters Combination:
+        #   CVBOOSTTYPE = { "DISCRETE":0, "REAL":1, "LOGIT":2, "GENTLE":3 }
+        #   CVBOOSTSPLITCRIT = { "DEFAULT":0, "GINI":1, "MISCLASS":3, "SQERR":4 }
+        if self.boost_type not in AZOC.CVBOOSTTYPE:
+            print "ERROR: Bad value for parameter boost_type. Possible values: " + string.join([x for x in AZOC.CVBOOSTTYPE],", ")
+            return None
+        if self.split_criteria not in AZOC.CVBOOSTSPLITCRIT:
+            print "ERROR: Bad value for parameter split_criteria. Possible values: " + string.join([x for x in AZOC.AZOC.CVBOOSTSPLITCRIT],", ")  
+            return None
+
+        if self.boost_type == "DISCRETE":
+            if self.split_criteria not in ["MISCLASS", "GINI"]:
+                print "WARNING: For Discrete type, the split Criteria must be MISCLASS or GINI. MISCLASS was used by default."
+                self.split_criteria = "MISCLASS"
+        if self.boost_type == "REAL":
+            if self.split_criteria not in ["MISCLASS", "GINI"]:
+                print "WARNING: For REAL type, the split Criteria must be MISCLASS or GINI. GINI was used by default."
+                self.split_criteria = "GINI"
+        if self.boost_type in ["LOGIT","GENTLE"]:
+            if self.split_criteria != "SQERR":
+                print "WARNING: For LOGIT and GENTLE types, the split Criteria must be SQERR. SQERR was used by default."
+                self.split_criteria = "SQERR"
+
         params = ml.CvBoostParams()
         params.boost_type = AZOC.CVBOOSTTYPE[self.boost_type]
         params.split_criteria = AZOC.CVBOOSTSPLITCRIT[self.split_criteria]
