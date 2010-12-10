@@ -10,8 +10,8 @@ import AZOrangeConfig as AZOC
 
 
 #toolkitsEnabled = ["cdk","rdk","obabel","webel"]        # NOT so stable!!
-toolkitsEnabled = ["rdk","obabel","webel"]        # Testing Stability!!
-#toolkitsEnabled = ["rdk","webel"]                      # Stable
+#toolkitsEnabled = ["rdk","obabel","webel"]        # Testing Stability!!
+toolkitsEnabled = ["rdk","webel"]                      # Stable
 
 if "cdk" in toolkitsEnabled:
     try: 

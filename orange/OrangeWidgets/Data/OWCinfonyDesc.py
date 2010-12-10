@@ -68,8 +68,11 @@ class OWCinfonyDesc(OWWidget):
                 resultsData = getCinfonyDesc.getCinfonyDescResults(self.data , descList)
                 progress1.setValue(3)
             except:
+                typeEx, val, traceback = sys.exc_info()
                 progress1.close()
                 self.error("Error calculating the descriptors with Cinfony.\n")
+                print typeEx
+                print "\t",val
                 self.send("Examples",None)
                 return
             time.sleep(0.1)
@@ -99,9 +102,12 @@ class OWCinfonyDesc(OWWidget):
         try: 
             availableDescriptors = getCinfonyDesc.getAvailableDescs() 
         except:
+            typeEx, val, traceback = sys.exc_info()
             progress1.close()
             #self.updateInfo()
             self.error("Error retrieving descriptors from Cinfony.\n")
+            print typeEx
+            print "\t",val
             return
         progress1.setValue(3)
         progress1.close()

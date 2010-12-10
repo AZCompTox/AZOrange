@@ -36,7 +36,7 @@ CVBAYESDEFAULTDICT = {"scale":False}
 #CvBoost parameters
 CVBOOSTTYPE = { "DISCRETE":0, "REAL":1, "LOGIT":2, "GENTLE":3 }
 CVBOOSTSPLITCRIT = { "DEFAULT":0, "GINI":1, "MISCLASS":3, "SQERR":4 }
-CVBOOSTDEFAULTDICT = {"boost_type":"GENTLE","weak_count":100,"split_criteria":"DEFAULT","weight_trim_rate":0.95, "max_depth":1, "use_surrogates":False, "priors":None}
+CVBOOSTDEFAULTDICT = {"boost_type":"GENTLE","weak_count":100,"split_criteria":"SQERR","weight_trim_rate":0.95, "max_depth":1, "use_surrogates":False, "priors":None}
 
 # CvANN specific parameters
 # Backprop does not seem to work very well, in general no use trying

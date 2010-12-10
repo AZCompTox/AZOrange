@@ -31,6 +31,7 @@ class OWCvBoost(OWWidget):
                        ("Squared Error","SQERR")
                             ]
 
+        self.currentSplitCrits = []
         # Settings
         self.name = 'CvBoost'
         self.classifier = None
@@ -42,18 +43,21 @@ class OWCvBoost(OWWidget):
         for par in ("boost_type","weak_count","split_criteria","weight_trim_rate", "max_depth", "use_surrogates","priors"):
             setattr(self, par, AZOC.CVBOOSTDEFAULTDICT[par])
 
-
         self.data = None                    # input data set
-        self.bType = 0
-        self.splitC = 0
         OWGUI.lineEdit(self.controlArea, self, 'name', box='Learner/Classifier Name', \
                  tooltip='Name to be used by other widgets to identify the learner/classifier.')
 
         OWGUI.separator(self.controlArea)
 
         pars = OWGUI.widgetBox(self.controlArea, "Parameters")
-        OWGUI.comboBox(pars, self, "bType", items = [x[0] for x in self.boostType], label = "Boost Type", orientation="horizontal", valueType = str)
-        OWGUI.comboBox(pars, self, "splitC", items = [x[0] for x in self.splitCrit], label = "Split Criteria", orientation="horizontal", valueType = str, tooltip = "Node splitting criteria.")
+        self.bType = [x[1] for x in self.boostType].index(self.boost_type)
+        self.splitC = 0
+        OWGUI.comboBox(pars, self, "bType", items = [x[0] for x in self.boostType], label = "Boost Type", orientation="horizontal", valueType = str,callback= self.updateSplitCritCombo)
+        self.splitCombo = OWGUI.comboBox(pars, self, "splitC", items = [x[0] for x in self.splitCrit], label = "Split Criteria", orientation="horizontal", valueType = str, tooltip = "Node splitting criteria.")
+        self.updateSplitCritCombo()
+        if self.split_criteria not in [x[1] for x in self.currentSplitCrits]:
+            print "ERROR: Invalid CvBoost default parameters in the AZOrangeConfig.py file"
+        self.splitC = [x[1] for x in self.currentSplitCrits].index(self.split_criteria)
 
         OWGUI.spin(pars, self, "weak_count", 0, 1000, 1, None,     "Weak Count         ", orientation="horizontal", tooltip = "The number of trees used.")
         wtrBox = OWGUI.doubleSpin(pars, self, "weight_trim_rate", 0.0, 1.0, 0.01, label="Weight Trim Rate",  orientation="horizontal", tooltip = "Removal of well classified examples. Used only for computational efficiency. The greater the number, the fewer the number of examples removed.")
@@ -154,28 +158,54 @@ file name here and clicking the save button.")
         if self.learner:
             for par in ("boost_type","weak_count","split_criteria","weight_trim_rate", "max_depth", "use_surrogates","priors"):
                 setattr(self, par, getattr(self.learner,par))
+
         #Convert some parameters to be used in GUI
         self.bType = [x[1] for x in self.boostType].index(self.boost_type)
-        self.plitC= [x[1] for x in self.splitCrit].index(self.split_criteria)
-        #self.printLearnerPars()
+        self.updateSplitCritCombo()
+        if self.split_criteria not in [x[1] for x in self.currentSplitCrits]:
+            self.error("Invalid configuration from Learner?!?!")
+            raise(Exception("Invalid configuration from Learner?!?!"))
+        self.splitC= [x[1] for x in self.currentSplitCrits].index(self.split_criteria)
+        print "Parameters received from the Learner:"
+        self.printLearnerPars()
 
     def printLearnerPars(self):
         for par in ("boost_type","weak_count","split_criteria","weight_trim_rate", "max_depth", "use_surrogates","priors"):
             print par,":",getattr(self, par)
+        print "="*40
+
+    def updateSplitCritCombo(self):
+        #Refresh from boost type Combo
+        self.boost_type = self.boostType[self.bType][1]
+        #Fill the split combo acordingly
+        self.splitCombo.clear()
+        if self.boost_type == "DISCRETE":
+            self.currentSplitCrits = [x for x in self.splitCrit if x[1] in ["MISCLASS", "GINI"]]
+            self.splitCombo.insertItems(0,[x[0] for x in self.currentSplitCrits])
+            self.splitC = [x[1] for x in self.currentSplitCrits].index("MISCLASS")
+        elif self.boost_type == "REAL":
+            self.currentSplitCrits = [x for x in self.splitCrit if x[1] in  ["GINI", "MISCLASS"]]
+            self.splitCombo.insertItems(0,[x[0] for x in self.currentSplitCrits])
+            self.splitC = [x[1] for x in self.currentSplitCrits].index("GINI")
+        elif self.boost_type in ["LOGIT","GENTLE"]:
+            self.currentSplitCrits = [x for x in self.splitCrit if x[1] in  ["SQERR"]]
+            self.splitCombo.insertItems(0,[x[0] for x in self.currentSplitCrits])
+            self.splitC = 0
+        else:
+            self.error("Invalid boostType?!?!")
+            raise(Exception("Invalid boostType?!?!"))
 
 
     def setLearner(self):
         self.error(0)
         self.warning(0)
-        #Convert some GUI parameters
         self.boost_type = self.boostType[self.bType][1]
-        self.split_criteria = self.splitCrit[self.splitC][1]
-        #self.printLearnerPars()
+        self.split_criteria = self.currentSplitCrits[self.splitC][1] 
+        print "Parameters sent to Learner:"
+        self.printLearnerPars()
         self.learner = AZorngCvBoost.CvBoostLearner(boost_type = self.boost_type, weak_count = self.weak_count, split_criteria = self.split_criteria, weight_trim_rate = self.weight_trim_rate, max_depth = self.max_depth, use_surrogates = self.use_surrogates)
         self.learner.name = self.name
-
         self.send("Learner", self.learner)
-
         self.learn()
 
 
