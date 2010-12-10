@@ -10,7 +10,8 @@ import os
 #       Then in CVT_SYM use the chr method.
 # 
 # unichr(181)- micro sign
-CVT_SYM = {chr(181):"u"} 
+#   Sometimes the \xc2 is preceding the synmbol. We just remove it!
+CVT_SYM = {"\xc2":"", chr(181):"u"} 
 
 # General environement
 AZORANGEHOME = os.environ["AZORANGEHOME"]
