@@ -223,7 +223,11 @@ def getCinfonyDescResults(data,descList):
     return dataUtilities.horizontalMerge(data, resData, smilesName, smilesName)
       
 
-def getAvailableDescs():
+def getAvailableDescs(descSet = "all"):
+    """
+    descSet : all, rdk, cdk, webel, obabel
+    """
+    
     #Get descs from obabel
     if "obabel" in toolkitsEnabled:
         obabelDescs = [obabelTag+desc for desc in obabel.descs]
@@ -251,7 +255,19 @@ def getAvailableDescs():
         if "webel" in toolkitsEnabled: toolkitsEnabled.remove("webel")
         webelDescs = []
 
-    cinfonyDesc = obabelDescs + rdkDescs + cdkDescs + webelDescs
+    if descSet == "all":
+        cinfonyDesc = obabelDescs + rdkDescs + cdkDescs + webelDescs
+    elif descSet == "rdk":
+        cinfonyDesc = rdkDescs 
+    elif descSet == "cdk":
+        cinfonyDesc = cdkDescs
+    elif descSet == "webel":
+        cinfonyDesc = webelDescs
+    elif descSet == "obabel":
+        cinfonyDesc = obabelDescs
+    else:
+        print descSet+" Is not an allowed descriptor set specification"
+        cinfonyDesc = None
 
     return cinfonyDesc
 
