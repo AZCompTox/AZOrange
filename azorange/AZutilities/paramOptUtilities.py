@@ -1170,7 +1170,7 @@ def optimize(learner, learnerName, trainDataFile, responseType, verbose = 0, que
     Possible values:
     responseType: Classification or other
     learnerNames: RFLearner, CvSVMLearner, CvANNLearner, PLSLearner
-    queueType: 'batch.q' or 'quick.q' (jobs start immediatly but are terminated after 30 min) or 'NoSGE'
+    queueType: 'batch.q' or 'quick.q' (jobs start immediatly but are terminated after 30 min) or 'NoSGE' (without access to the distributed environment)
     runPath: If directory not provided, will run in NFS_SCRATCHDIR
     """
 
