@@ -515,3 +515,23 @@ diff -crBN orange2.0/source/orange/tabdelim.hpp orange2.0_PatchedOK/source/orang
   
   # Adding each doc/* directory by itself
   for root, dirs, files in os.walk(os.path.join("doc")):
+*** orange2.0/source/makefile.defs	2010-12-14 09:27:09.305699779 +0000
+--- orange2.0_PatchedOK/source/makefile.defs	2011-01-05 11:36:03.985729333 +0000
+***************
+*** 59,65 ****
+  	$(COMPILER) $(COMPILEOPTIONS) -c $< -o $@
+  
+  
+! export CPATH=ppp:px:../include:../orange:$(PYTHONINCLUDE):/usr/local/include:/usr/include:$(PYTHONSITEPKGS)/numpy/core/include
+  
+  makefile.deps:
+  	python ../pyxtract/makedep.py -n $(MODULENAME)
+--- 59,66 ----
+  	$(COMPILER) $(COMPILEOPTIONS) -c $< -o $@
+  
+  
+! #export CPATH=ppp:px:../include:../orange:$(PYTHONINCLUDE):/usr/local/include:/usr/include:$(PYTHONSITEPKGS)/numpy/core/include
+! export CPATH=ppp:px:../include:../orange:$(PYTHONINCLUDE):/usr/local/include:/usr/include:$(NUMPY_INCLUDE)
+  
+  makefile.deps:
+  	python ../pyxtract/makedep.py -n $(MODULENAME)
