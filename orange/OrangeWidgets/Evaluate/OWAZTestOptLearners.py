@@ -560,15 +560,15 @@ class OWAZTestOptLearners(OWWidget):
                 self.learners[id].time = time
             else: # new learner
                 self.learners[id] = Learner(learner, id)
+            self.fillOptParams()
             if self.applyBtn.isEnabled():
                 self.recompute(True)
             else:
                 self.score([id])
-            self.fillOptParams()
         else: # remove a learner and corresponding results
             if id in self.learners:
                 res = self.learners[id].results
-                if res and res.numberOfLearners > 1:
+                if res and hasattr(res,"numberOfLearners") and res.numberOfLearners > 1:
                     indx = [l.id for l in res.learners].index(id)
                     res.remove(indx)
                     del res.learners[indx]
@@ -623,8 +623,8 @@ class OWAZTestOptLearners(OWWidget):
 
     def newParamSelection(self):
         """handle change in set of Parameters to optimize"""
-        print "Selected: ", self.SelectedParams
-        print "Labels: ", self.paramsLabels
+        #print "Selected: ", self.SelectedParams
+        #print "Labels: ", self.paramsLabels
         self.recompute()
 
     def newscoreselection(self):
