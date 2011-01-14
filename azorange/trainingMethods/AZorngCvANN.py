@@ -5,6 +5,7 @@ from AZutilities import dataUtilities
 import AZOrangeConfig as AZOC
 import os
 from opencv import ml,cv
+from AZutilities import evalUtilities
 
 class CvANNLearner(AZBaseClasses.AZLearner):
     """
@@ -34,9 +35,31 @@ class CvANNLearner(AZBaseClasses.AZLearner):
         self.__dict__.update(kwds)
 
     def __call__(self, data, weight = None):
+        bestRepeat = -1
+        indices = orange.MakeRandomIndices2(p0=0.2, stratified = orange.MakeRandomIndices.StratifiedIfPossible)
+        ind = indices(data)
+        trainSet = data.select(ind,1)
+        validationSet = data.select(ind,0)
+        if self.verbose: print "=========== Training 10 times with different initial weights =============="
+        model = self.__train__(trainSet, weight = None, repeat = 10, validationSet = validationSet)
+        for idx,res in enumerate(model.intAcc):  #res = (nIter, Acc)
+            #Update if it has better Acc or same accuracy, but less iterations
+            if bestRepeat < 0 or (res[1] > model.intAcc[bestRepeat][1]) or ( res[1] == model.intAcc[bestRepeat][1] and res[0] < model.intAcc[bestRepeat][0]):
+                 bestRepeat =idx 
+
+        if self.verbose: print "========== Training n times corresponding to the best result ================"
+        model = self.__train__(trainSet, weight = None, repeat = bestRepeat+1, validationSet = validationSet)
+        if self.verbose: print "========== Returnned model ================"
+        if self.verbose: print "Train n.:",bestRepeat,"    nIter:",model.nIter,"      BestAcc:",model.intAcc[bestRepeat][1]
+        return model
+
+    def __train__(self, data, weight = None, repeat = 1, validationSet = None):
         if not AZBaseClasses.AZLearner.__call__(self, data, weight):
             return None
         """Creates an ANN model from the data in origTrainingData. """
+        #Fix repeat if set to 0 to make at least one train
+        if not repeat or repeat <= 0: repeat = 1         
+
         #Remove from the domain any unused values of discrete attributes including class
         data = dataUtilities.getDataWithoutUnusedValues(data,True)
 
@@ -121,8 +144,21 @@ class CvANNLearner(AZBaseClasses.AZLearner):
         else:
             CV_sample_weights = None
         #Train the model
-        nIter = classifier.train(mat, responses, CV_sample_weights, None, params, scaleFlag)
-        return CvANNClassifier(classifier = classifier, classVar = self.trainData.domain.classVar, imputeData=impData, verbose = self.verbose, varNames = CvMatices["varNames"], nIter = nIter, basicStat = self.basicStat, NTrainEx = len(trainingData))
+        intAcc = []
+        for n in range(repeat):
+            nIter = classifier.train(mat, responses, CV_sample_weights, None, params, scaleFlag)
+            model = CvANNClassifier(intAcc = intAcc,classifier = classifier, classVar = self.trainData.domain.classVar,
+                                imputeData=impData, verbose = self.verbose, varNames = CvMatices["varNames"],
+                                nIter = nIter, basicStat = self.basicStat, NTrainEx = len(trainingData))
+
+            if repeat > 1 and data.domain.classVar.varType == orange.VarTypes.Discrete:
+                Acc = evalUtilities.getClassificationAccuracy(validationSet, model)
+            else:
+                Acc = -evalUtilities.getRMSE(validationSet, model)
+            intAcc.append((nIter,Acc))
+            if self.verbose:  print "nIter ",nIter," : ",Acc
+        return model
+
 
 class CvANNClassifier(AZBaseClasses.AZClassifier):
     def __new__(cls, name = "CvANN classifier", **kwds):
@@ -166,7 +202,7 @@ class CvANNClassifier(AZBaseClasses.AZClassifier):
         else:
             examples = dataUtilities.getCopyWithoutMeta(origExamples)
         #Check if the examples are compatible with the classifier (attributes order and varType compatibility)
-        dataUtilities.verbose = self.verbose
+        if self.verbose > 1: dataUtilities.verbose = self.verbose
         if not self.ExFix.ready:
                 self.ExFix.set_domain(self.imputer.defaults.domain)
                 self.ExFix.set_examplesFixedLog(self.examplesFixedLog) 
