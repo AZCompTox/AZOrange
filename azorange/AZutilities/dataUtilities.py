@@ -1477,12 +1477,15 @@ def horizontalMerge(dataAin, dataBin, varAin, varBin):
 
 
 def attributeDeselectionData(data, attributeList):
-
+    """Deselects the attributes passed in attributeList from data"""
     newDomainList = []
     for idx in range(len(data.domain.attributes)):
         if string.strip(data.domain.attributes[idx].name) not in attributeList:
             newDomainList.append(data.domain[idx])
     newDomain = orange.Domain(newDomainList, data.domain.classVar)
+    for attrID in data.domain.getmetas():
+        if string.strip(data.domain[attrID].name) not in attributeList:
+                newDomain.addmeta(attrID,data.domain[attrID])
     scaledData = data.select(newDomain)
     return scaledData
 
