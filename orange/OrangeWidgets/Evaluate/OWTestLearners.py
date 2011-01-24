@@ -12,6 +12,7 @@ from OWWidget import *
 import orngTest, orngStat, OWGUI
 import time
 import warnings
+from AZutilities import evalUtilities
 warnings.filterwarnings("ignore", "'id' is not a builtin attribute",
                         orange.AttributeWarning)
 
@@ -27,13 +28,16 @@ class Learner:
         self.results = None
         self.time = time.time() # used to order the learners in the table
 
+##scPA  Changed Score class. Added evalModule parameter
 class Score:
-    def __init__(self, name, label, f, show=True, cmBased=False):
+    def __init__(self, name, label, f, show=True, cmBased=False, evalModule="orngStat"):
         self.name = name
         self.label = label
         self.f = f
         self.show = show
-        self.cmBased = cmBased
+        self.cmBased = cmBased   #This means that there are different set of results for each class value
+        self.evalModule = evalModule
+##ecPA
 
 class OWTestLearners(OWWidget):
     settingsList = ["nFolds", "pLearning", "pRepeat", "precision",
@@ -45,6 +49,7 @@ class OWTestLearners(OWWidget):
 
     cStatistics = [Score(*s) for s in [\
         ('Classification accuracy', 'CA', 'CA(res)', True),
+        ('Kappa', 'Kappa', 'Kappa(res)', True, False,"evalUtilities"),
         ('Sensitivity', 'Sens', 'sens(cm)', True, True),
         ('Specificity', 'Spec', 'spec(cm)', True, True),
         ('Area under ROC curve', 'AUC', 'AUC(res)', True),
@@ -376,10 +381,12 @@ class OWTestLearners(OWWidget):
         scores = []
         for i, s in enumerate(self.stat):
             try:
-                scores.append(eval("orngStat." + s.f))
+                ##scPA
+                scores.append(eval(s.evalModule+"." + s.f))
             except Exception, ex:
-                self.error(i, "An error occurred while evaluating orngStat." + s.f + "on %s due to %s" % \
+                self.error(i, "An error occurred while evaluating orngStat." + s.evalModule + "." + s.f + "on %s due to %s" % \
                            (" ".join([l.name for l in learners]), ex.message))
+                ##ecPA
                 scores.append([None] * len(self.learners))
                 
         for (i, l) in enumerate(learners):
@@ -391,8 +398,10 @@ class OWTestLearners(OWWidget):
         if not self.results:
             return
         cm = orngStat.computeConfusionMatrices(self.results, classIndex = self.targetClass)
-        scores = [(indx, eval("orngStat." + s.f))
+        ##scPA
+        scores = [(indx, eval(s.evalModule+"." + s.f))
                   for (indx, s) in enumerate(self.stat) if s.cmBased]
+        ##ecPA
         for (indx, score) in scores:
             for (i, l) in enumerate([l for l in self.learners.values() if l.scores]):
                 l.scores[indx] = score[i]

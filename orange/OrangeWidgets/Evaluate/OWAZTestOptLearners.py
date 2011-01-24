@@ -11,6 +11,7 @@
 from OWWidget import *
 import OWGUI
 from AZutilities import  getAccWOptParam
+from AZutilities import  evalUtilities
 import time
 import warnings
 import AZLearnersParamsConfig
@@ -57,6 +58,8 @@ def spec(cm,idx):
 
     return TN/(TN+FP)
 
+
+
 class Learner:
     def __init__(self, learner, id):
         learner.id = id
@@ -70,12 +73,13 @@ class Learner:
 
 #return:  {"RMSE":0.2,"R2":0.1,"CA":0.98,"CM":[[TP, FP],[FN,TN]]}
 class Score:
-    def __init__(self, name, label, res, show=True, cmBased=False):
+    def __init__(self, name, label, res, show=True, cmBased=False, evalModule=None):
         self.name = name
         self.label = label
         self.res = res        # if is cmBased, then res represent a function to be applyed to the CM
         self.show = show
         self.cmBased = cmBased
+        self.evalModule = evalModule
 
 class OWAZTestOptLearners(OWWidget):
     settingsList = ["nInnerFolds", "nOuterFolds", "precision",
@@ -86,6 +90,7 @@ class OWAZTestOptLearners(OWWidget):
 
     cStatistics = [Score(*s) for s in [\
         ('Classification accuracy', 'CA', "CA", True),
+        ('Kappa', 'Kappa', 'calcKappa(CM)', True, True,"evalUtilities"),
         ('Sensitivity', 'Sens', 'sens(CM,classIndex)', True, True),
         ('Specificity', 'Spec', 'spec(CM,classIndex)', True, True),
         ]]
@@ -448,7 +453,10 @@ class OWAZTestOptLearners(OWWidget):
                     if s.cmBased:
                         classIndex = self.targetClass
                         CM = l.results["CM"]
-                        scores.append(eval(s.res))
+                        if not s.evalModule:
+                            scores.append(eval(s.res))
+                        else:
+                            scores.append(eval(s.evalModule+"."+s.res))
                     else:
                         scores.append(l.results[s.res])
                 except Exception, ex:
@@ -462,8 +470,13 @@ class OWAZTestOptLearners(OWWidget):
     def recomputeCM(self):
         if not self.learners or not self.stat:
             return
-        scores = [(indx, s.res)
-                  for (indx, s) in enumerate(self.stat) if s.cmBased]
+        scores = []
+        for  (indx, s) in enumerate(self.stat):
+            if s.cmBased:
+                if not s.evalModule:
+                    scores.append((indx, s.res))
+                else:
+                    scores.append((indx, s.evalModule+"."+s.res))
         for (indx, score) in scores:
             for (i, l) in enumerate([l for l in self.learners.values() if l.scores]):
                 classIndex = self.targetClass

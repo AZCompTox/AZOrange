@@ -36,7 +36,7 @@ class Score:
         self.label = label
         self.f = f
         self.show = show
-        self.cmBased = cmBased
+        self.cmBased = cmBased   #This means that there are different set of results for each class value
         self.evalModule = evalModule
 
 class OWAZTestClassifiers(OWWidget):
@@ -48,6 +48,7 @@ class OWAZTestClassifiers(OWWidget):
 
     cStatistics = [Score(*s) for s in [\
         ('Classification accuracy', 'CA', 'CA(res)', True),
+        ('Kappa', 'Kappa', 'Kappa(res)', True, False,"evalUtilities"),
         ('Sensitivity', 'Sens', 'sens(cm)', True, True),
         ('Specificity', 'Spec', 'spec(cm)', True, True),
         ('Area under ROC curve', 'AUC', 'AUC(res)', True),

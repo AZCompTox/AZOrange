@@ -6,12 +6,69 @@ import orngStat
 import copy
 import orngTest
 import orange
+import numpy
 from statlib import stats
 version = 2
 verbose = 0
 
 CLASSIFICATION = 1  # 0b00000001
 REGRESSION = 2      # 0b00000010
+
+
+def ConfMat(res = None):
+        """ Returns a confusion matrix in the form of a vector:
+                For Binary classifiers:  
+                        [[TP, FN],
+                         [FP, TN]]
+                For classifiers with class having N values:
+                                             Predicted class
+                                        |   A       B       C
+                                     ---------------------------
+                           known     A  |  tpA     eAB     eAC
+                           class     B  |  eBA     tpB     eBC
+                                     C  |  eCA     eCB     tpC
+
+                    [[tpA, eAB, ..., eAN],
+                     [eBA, tpB, ..., eBN],
+                      ...,
+                     [eNA, eNB, ..., tpN ]]
+
+                 where A, B, C are the class values in the same order as testData.domain.classVar.values
+        """
+        if res == None:
+            return {"type":CLASSIFICATION}
+
+        confMat = orngStat.confusionMatrices(res)[0]
+        if len(res.classValues) == 2:
+            cm = [[confMat.TP, confMat.FN],[confMat.FP, confMat.TN]]
+        else:
+            cm = confMat
+        return cm
+
+def getConfMat(testData, model):
+        return ConfMat(orngTest.testOnData([model], testData))
+
+def calcKappa(_CM):
+    """Returns the Kappa statistical coefficient for the agreement between measured and predicted classes"""
+    def calcClassAccuracy(CMx):
+        """Returns the proportion correctly classified"""
+        correctClass = 0
+        for i in range(len(CMx)) : correctClass = correctClass + CMx[i][i]
+        total = sum(sum(CMx))
+        return correctClass / float(total)
+    CM = numpy.array(_CM)
+    p_correctlyClassed = calcClassAccuracy(CM)
+    measured = sum(CM)
+    p_measured = numpy.array(map(lambda x : x/sum(measured), measured))
+    predicted = sum(CM.T)
+    p_predicted = numpy.array(map(lambda x : x/sum(predicted), predicted))
+    prob_chance = sum(p_measured * p_predicted)
+    return (p_correctlyClassed - prob_chance ) / (1 - prob_chance)
+
+def Kappa(res=None):
+    if res == None:
+        return {"type":CLASSIFICATION}
+    return [calcKappa(ConfMat(res))]
 
 def generalCVconfMat(data, learners, nFolds = 5):
     """
@@ -77,6 +134,7 @@ def getRsqrt(testData, predictor):
 
     Rsqrt = 1 - errSum/meanSum
     return Rsqrt
+
 
 def getQ2(testData, predictor):
     """Calculate the predictive squared correlation coefficient Q2, which uses the Training Set Activity Mean.. 

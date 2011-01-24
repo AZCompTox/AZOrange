@@ -99,7 +99,7 @@ class AccWOptParamGetter():
             model = self.learner(trainData)
             #Test teh model
             if responseType == "Classification":
-                results.append((evalUtilities.getClassificationAccuracy(testData, model), self.__calcConfMat(testData, model) ) )
+                results.append((evalUtilities.getClassificationAccuracy(testData, model), evalUtilities.getConfMat(testData, model) ) )
             else:
                 results.append((evalUtilities.getRMSE(testData, model), evalUtilities.getRsqrt(testData, model) ) )
 
@@ -128,35 +128,5 @@ class AccWOptParamGetter():
 
         if self.verbose > 0: print "AccWOptParamGetter!Results: ",results, "\n res = ",res
         return res
-
-
-
-    def __calcConfMat(self, testData, model):
-        """ Returns a confusion matrix in the form of a vector:
-                For Binary classifiers:  
-                        [[TP, FN],
-                         [FP, TN]]
-                For classifiers with class having N values:
-                                             Predicted class
-                                        |   A       B       C
-                                     ---------------------------
-                           known     A  |  tpA     eAB     eAC
-                           class     B  |  eBA     tpB     eBC
-                                     C  |  eCA     eCB     tpC
-
-                    [[tpA, eAB, ..., eAN],
-                     [eBA, tpB, ..., eBN],
-                      ...,
-                     [eNA, eNB, ..., tpN ]]
-
-                 where A, B, C are the class values in the same order as testData.domain.classVar.values
-        """
-        res = orngTest.testOnData([model], testData)
-        confMat = orngStat.confusionMatrices(res)[0]
-        if len(testData.domain.classVar.values) == 2:
-            cm = [[confMat.TP, confMat.FN],[confMat.FP, confMat.TN]]
-        else:
-            cm = confMat
-        return cm
 
 
