@@ -1483,6 +1483,7 @@ def attributeDeselectionData(data, attributeList):
         if string.strip(data.domain.attributes[idx].name) not in attributeList:
             newDomainList.append(data.domain[idx])
     newDomain = orange.Domain(newDomainList, data.domain.classVar)
+    #Handle the Meta Attributes
     for attrID in data.domain.getmetas():
         if string.strip(data.domain[attrID].name) not in attributeList:
                 newDomain.addmeta(attrID,data.domain[attrID])
@@ -1493,11 +1494,15 @@ def attributeSelectionData(data, attributeList):
     """The returned data set will have the attributes in the same order as attribute list."""
 
     newDomainList = []
-    for listIdx in range(len(attributeList)):
-        for idx in range(len(data.domain.attributes)):
-            if string.strip(data.domain.attributes[idx].name) == attributeList[listIdx]:
+    for idx in range(len(data.domain.attributes)):
+        if string.strip(data.domain.attributes[idx].name) in attributeList:
                 newDomainList.append(data.domain[idx])
     newDomain = orange.Domain(newDomainList, data.domain.classVar)
+    #Handle the Meta Attributes
+    for attrID in data.domain.getmetas():
+        if string.strip(data.domain[attrID].name) in attributeList:
+            newDomain.addmeta(attrID,data.domain[attrID])
+
     scaledData = data.select(newDomain)
     return scaledData
 
