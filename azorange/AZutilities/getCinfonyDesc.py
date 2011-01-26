@@ -163,7 +163,7 @@ def getCdkDescResult(data,descList):
     return resData
   
  
-def getRdkDescResult(data,descList):
+def getRdkDescResult(data,descList, radius = 1):
     """ Calculates the descriptors for the descList using RDK
         It expects an attribute containing smiles with a name defined in AZOrangeConfig.SMILESNAMES
         It returns a dataset with the same smiles input variable, and as many variables as the descriptors 
@@ -171,20 +171,55 @@ def getRdkDescResult(data,descList):
     """
     if "rdk" not in toolkitsEnabled:
         return None
+    FingerPrints = False
     smilesName = getSMILESAttr(data) 
     if not smilesName: return None
     
     myDescList = [desc.replace(rdkTag,"") for desc in descList if rdkTag in desc]
     if not myDescList: return None
 
-    resData = orange.ExampleTable(orange.Domain([data.domain[smilesName]] + [orange.FloatVariable(name) for name in myDescList],0))     
+    if "FingerPrints" in myDescList:
+        FingerPrints = True
+        myDescList.remove("FingerPrints")
+         
+    #Get fingerprints in advance
+    fingerPrintsAttrs = []
+    fingerPrintsRes = {}
+    if FingerPrints:
+        for ex in data:
+            mol = str(ex[smilesName].value)
+            try:
+                chemMol = rdk.Chem.MolFromSmiles(mol)
+                fingerPrint = rdk.AllChem.GetMorganFingerprint(chemMol,radius)
+                resDict = fingerPrint.GetNonzeroElements()
+            except:
+                print "Nothing to ",mol
+                continue
+            fingerPrintsRes[mol] = {}
+            for ID in resDict:
+                count = resDict[ID]
+                name = "FP_"+str(ID)
+                if name not in [x.name for x in fingerPrintsAttrs]:
+                    fingerPrintsAttrs.append(orange.FloatVariable(name))
+                fingerPrintsRes[mol][name]=int(count)
+
+    resData = orange.ExampleTable(orange.Domain([data.domain[smilesName]] + [orange.FloatVariable(name) for name in myDescList] + fingerPrintsAttrs,0))     
     for ex in data:
         newEx = orange.Example(resData.domain)
         newEx[smilesName] = ex[smilesName]
-        mol = rdk.readstring("smi", str(newEx[smilesName].value))
+        molStr = str(newEx[smilesName].value)
+        mol = rdk.readstring("smi", molStr)
         moldesc = mol.calcdesc(myDescList)
         for desc in myDescList:
             newEx[desc] = moldesc[desc]
+
+        #Process fingerprints
+        if FingerPrints:
+            for desc in fingerPrintsAttrs:
+                if desc.name in fingerPrintsRes[molStr]:
+                    newEx[desc.name] = fingerPrintsRes[molStr][desc.name]
+                else:
+                    newEx[desc.name] = 0
         resData.append(newEx)
     return resData
  
@@ -235,7 +270,7 @@ def getAvailableDescs(descSet = "all"):
         obabelDescs = []
     #Get descs from RDKit
     if "rdk" in toolkitsEnabled:
-        rdkDescs = [rdkTag+desc for desc in rdk.descs]
+        rdkDescs = [rdkTag+desc for desc in rdk.descs] + ["FingerPrints"]
     else:
         rdkDescs = [] 
     #Get cdk from CDK
