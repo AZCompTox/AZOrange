@@ -193,7 +193,6 @@ def getRdkDescResult(data,descList, radius = 1):
                 fingerPrint = rdk.AllChem.GetMorganFingerprint(chemMol,radius)
                 resDict = fingerPrint.GetNonzeroElements()
             except:
-                print "Nothing to ",mol
                 continue
             fingerPrintsRes[mol] = {}
             for ID in resDict:
@@ -223,7 +222,7 @@ def getRdkDescResult(data,descList, radius = 1):
         resData.append(newEx)
     return resData
  
-def getCinfonyDescResults(data,descList):
+def getCinfonyDescResults(data,descList,radius=1):
     if not data or not descList: return None
     smilesName = getSMILESAttr(data)
     if not smilesName: return None
@@ -233,7 +232,7 @@ def getCinfonyDescResults(data,descList):
     res = getObabelDescResult(data,descList)
     if res: results.append(res)
 
-    res = getRdkDescResult(data,descList)
+    res = getRdkDescResult(data,descList,radius)
     if res: results.append(res)
 
     res = getWebelDescResult(data,descList)
@@ -270,7 +269,7 @@ def getAvailableDescs(descSet = "all"):
         obabelDescs = []
     #Get descs from RDKit
     if "rdk" in toolkitsEnabled:
-        rdkDescs = [rdkTag+desc for desc in rdk.descs] + ["FingerPrints"]
+        rdkDescs = [rdkTag+desc for desc in rdk.descs] + [rdkTag+"FingerPrints"]
     else:
         rdkDescs = [] 
     #Get cdk from CDK
