@@ -67,7 +67,9 @@ CVANNDEFAULTDICT = {
                                         #     cv.CV_TERMCRIT_ITER = 1
         'priors'                : None ,
         'maxIter'               : 1000 ,  
-        'eps'                   : 0.001}
+        'eps'                   : 0.001,
+        "nDiffIniWeights"       : 0,    #default 10
+        "stopUPs"               : 0}    #default 5
 
 
 
