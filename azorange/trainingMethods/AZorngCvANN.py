@@ -30,50 +30,88 @@ class CvANNLearner(AZBaseClasses.AZLearner):
         for par in ("activationFunction","sigmoidAlpha","sigmoidBeta","nHidden", "scaleData",
                     "scaleClass", "optAlg", "bp_dw_scale", 
                     "bp_moment_scale", "rp_dw0", "rp_dw_plus",
-                    "rp_dw_minus", "rp_dw_max",'stopCrit', 'maxIter','eps','priors'): 
+                    "rp_dw_minus", "rp_dw_max",'stopCrit', 'maxIter','eps','priors',
+                    "nDiffIniWeights","stopUPs"): 
             setattr(self, par, AZOC.CVANNDEFAULTDICT[par])
         self.__dict__.update(kwds)
 
     def __call__(self, data, weight = None):
-        bestRepeat = -1
-        indices = orange.MakeRandomIndices2(p0=0.2, stratified = orange.MakeRandomIndices.StratifiedIfPossible)
-        ind = indices(data)
-        trainSet = data.select(ind,1)
-        validationSet = data.select(ind,0)
-        if self.verbose: print "=========== Training 10 times with different initial weights =============="
-        model = self.__train__(trainSet, weight = None, repeat = 10, validationSet = validationSet)
-        for idx,res in enumerate(model.intAcc):  #res = (nIter, Acc)
-            #Update if it has better Acc or same accuracy, but less iterations
-            if bestRepeat < 0 or (res[1] > model.intAcc[bestRepeat][1]) or ( res[1] == model.intAcc[bestRepeat][1] and res[0] < model.intAcc[bestRepeat][0]):
-                 bestRepeat =idx 
-
-        if self.verbose: print "========== Training n times corresponding to the best result ================"
-        model = self.__train__(trainSet, weight = None, repeat = bestRepeat+1, validationSet = validationSet)
-        if self.verbose: print "========== Returnned model ================"
-        if self.verbose: print "Train n.:",bestRepeat,"    nIter:",model.nIter,"      BestAcc:",model.intAcc[bestRepeat][1]
-        return model
-
-    def __train__(self, data, weight = None, repeat = 1, validationSet = None):
-        if not AZBaseClasses.AZLearner.__call__(self, data, weight):
-            return None
-        """Creates an ANN model from the data in origTrainingData. """
-        #Fix repeat if set to 0 to make at least one train
-        if not repeat or repeat <= 0: repeat = 1         
+        bestSeed = None
+        bestAcc = None
+        bestNiter = None
+        bestModel = None
+        #fix self.nDiffIniWeights for the disabled mode
+        if self.nDiffIniWeights <= 1:
+            self.nDiffIniWeights = 1 #loop over n different initial weights Disabled
+        #Fix self.stopUPs for the disabled mode
+        if self.stopUPs <=0:
+            self.stopUPs = 0  # Optimization of nIter will be disabled
 
         #Remove from the domain any unused values of discrete attributes including class
         data = dataUtilities.getDataWithoutUnusedValues(data,True)
-
         #dataUtilities.rmAllMeta(data) 
         if len(data.domain.getmetas()) == 0:
-            trainingData = data
+            cleanedData = data
         else:
-            trainingData = dataUtilities.getCopyWithoutMeta(data)
+            cleanedData = dataUtilities.getCopyWithoutMeta(data)
         # Create the imputer
-        self.imputer = orange.ImputerConstructor_average(trainingData)
+        self.imputer = orange.ImputerConstructor_average(cleanedData)
         # Impute the data 
-        self.trainData = self.imputer(trainingData)
+        self.trainData = self.imputer(cleanedData)
+         # If we are not seetin neither weights init optimization or nEphocs optimization (opencvLayer), the do nto split the data
+        if self.stopUPs != 0 or self.nDiffIniWeights > 1:
+            #Define train-80% and validation set-20% of the input data
+            indices = orange.MakeRandomIndices2(p0=0.2, stratified = orange.MakeRandomIndices.StratifiedIfPossible)
+            ind = indices(cleanedData)
+            self.trainData = cleanedData.select(ind,1)
+            validationSet = cleanedData.select(ind,0)
+        else:
+            validationSet = None
 
-        impData=self.imputer.defaults
+        if self.verbose and self.nDiffIniWeights>1: print "=========== Training ",self.nDiffIniWeights," times with different initial weights =============="
+        for n in range(self.nDiffIniWeights):
+            if self.nDiffIniWeights <=1:
+                seed=0  #in opencv  mmlann seed=0 means the seed is disabled, and original seed will be used
+            else:
+                seed = len(cleanedData) * len(cleanedData.domain) * (n+1)  #seed can be any integer
+            #Create a model with a specific seed for training opencv ANN. 
+            #Also passing the step for the nIter optimization (self.stopUPs=0 - disable nIter optimization)
+            #Also passing the validation set to be used in internal opencv implemented nEphocs optimization.
+            model = self.__train__(weight = None, seed = seed, validationSet = validationSet)
+            #Skip evaluation if the weights loop is disabled
+            if self.nDiffIniWeights <=1:
+                return model
+                break
+            if cleanedData.domain.classVar.varType == orange.VarTypes.Discrete:
+                Acc = evalUtilities.getClassificationAccuracy(validationSet, model)
+            else:
+                Acc = -evalUtilities.getRMSE(validationSet, model)
+            if bestModel == None or (Acc > bestAcc) or (Acc == bestAcc and model.nIter < bestNiter):
+                bestSeed = seed
+                bestAcc = Acc
+                bestNiter = model.nIter
+                bestModel = model
+            if self.verbose:  print "nIter:%-7s  Acc:%-20s  seed: %s" % (model.nIter,Acc,seed)
+
+        if self.verbose: print "================ Best model Found: ==================="
+        if self.verbose: print "nIter:%-7s  Acc:%-20s  seed: %s" % (bestNiter,bestAcc,bestSeed)
+
+        # DEBUG for check if the returned model is indeed the best model, and not the last trainted
+        #if cleanedData.domain.classVar.varType == orange.VarTypes.Discrete:
+        #    Acc = evalUtilities.getClassificationAccuracy(validationSet, bestModel)
+        #else:
+        #    Acc = -evalUtilities.getRMSE(validationSet, bestModel)
+        #if self.verbose: print "================ Best model returned: ==================="
+        #if self.verbose:  print "nIter:%-7s  Acc:%-20s  seed: %s" % (bestModel.nIter,Acc,bestModel.seed)
+
+        return bestModel
+
+    def __train__(self, weight = None, seed=0, validationSet=None):
+        if not AZBaseClasses.AZLearner.__call__(self, self.trainData, weight):
+            return None
+        """Creates an ANN model from the data in origTrainingData. """
+
+
         #Convert the ExampleTable to CvMat
         CvMatices = dataUtilities.ExampleTable2CvMat(self.trainData, True)
         mat = CvMatices["matrix"]
@@ -99,15 +137,15 @@ class CvANNLearner(AZBaseClasses.AZLearner):
 
         #Create the model it MUST be created with the NON DEFAULT constructor or must call create
         classifier = ml.CvANN_MLP()
-        if data.domain.classVar.varType == orange.VarTypes.Discrete:
-            Nout = len(data.domain.classVar.values)
+        if self.trainData.domain.classVar.varType == orange.VarTypes.Discrete:
+            Nout = len(self.trainData.domain.classVar.values)
         else:
             Nout = 1
         if type(self.nHidden) != list: 
             nHidden = [self.nHidden]
         else:
             nHidden = self.nHidden
-        layers = [len(data.domain.attributes)] + nHidden + [Nout]
+        layers = [len(self.trainData.domain.attributes)] + nHidden + [Nout]
         layerSizes = dataUtilities.List2CvMat(layers,"CV_32SC1")
         classifier.create(layerSizes, self.activationFunction, self.sigmoidAlpha, self.sigmoidBeta)
         #Train the model
@@ -144,19 +182,18 @@ class CvANNLearner(AZBaseClasses.AZLearner):
         else:
             CV_sample_weights = None
         #Train the model
-        intAcc = []
-        for n in range(repeat):
-            nIter = classifier.train(mat, responses, CV_sample_weights, None, params, scaleFlag)
-            model = CvANNClassifier(intAcc = intAcc,classifier = classifier, classVar = self.trainData.domain.classVar,
-                                imputeData=impData, verbose = self.verbose, varNames = CvMatices["varNames"],
-                                nIter = nIter, basicStat = self.basicStat, NTrainEx = len(trainingData))
-
-            if repeat > 1 and data.domain.classVar.varType == orange.VarTypes.Discrete:
-                Acc = evalUtilities.getClassificationAccuracy(validationSet, model)
-            else:
-                Acc = -evalUtilities.getRMSE(validationSet, model)
-            intAcc.append((nIter,Acc))
-            if self.verbose:  print "nIter ",nIter," : ",Acc
+        if self.stopUPs > 0:
+            #Convert the ExampleTable to CvMat
+            CvMatices = dataUtilities.ExampleTable2CvMat(validationSet, True)
+            valMat = CvMatices["matrix"]
+            valResponses = CvMatices["responses"]
+        else:
+            valMat = None
+            valResponses = None
+        nIter = classifier.train(mat, responses, CV_sample_weights, None, params, scaleFlag, seed,self.stopUPs,valMat,valResponses)
+        model = CvANNClassifier(seed = seed, classifier = classifier, classVar = self.trainData.domain.classVar,
+                        imputeData=self.imputer.defaults, verbose = self.verbose, varNames = CvMatices["varNames"],
+                        nIter = nIter, basicStat = self.basicStat, NTrainEx = len(self.trainData))
         return model
 
 

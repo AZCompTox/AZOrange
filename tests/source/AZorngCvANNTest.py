@@ -203,7 +203,7 @@ class CvANNClassifierTest(AZorngTestUtil.AZorngTestUtil):
     def test_Probabilities(self):
         """Test if the returned probabilities are not fake"""
 
-        CvANN = AZorngCvANN.CvANNLearner(self.LdataTrain, nTrees = 200, nActVars = 155, maxDepth = 100)
+        CvANN = AZorngCvANN.CvANNLearner(self.LdataTrain)
         res = []
         for idx,ex in enumerate(self.LdataTest):
             res.append(CvANN(ex,resultType = orange.GetProbabilities))
@@ -227,7 +227,7 @@ class CvANNClassifierTest(AZorngTestUtil.AZorngTestUtil):
         """
 
         # One step ann creation
-        ann = AZorngCvANN.CvANNLearner(self.train_data, randomWeights = False)
+        ann = AZorngCvANN.CvANNLearner(self.train_data)
 
         # Calculate classification accuracy for the classifier trained in one step
         oneStepAcc = evalUtilities.getClassificationAccuracy(self.test_data, ann)
@@ -512,7 +512,7 @@ class CvANNClassifierTest(AZorngTestUtil.AZorngTestUtil):
         Assure that the accuracy is perserved for models trained in the same way. 
         """
         # One step ann creation
-        ann = AZorngCvANN.CvANNLearner(self.train_data, randomWeights = False, nHidden = [3], nEpochs = 100)
+        ann = AZorngCvANN.CvANNLearner(self.train_data,nHidden = [3])
         # Calculate classification accuracy for the classifier trained in one step
         oneStepAcc = evalUtilities.getClassificationAccuracy(self.test_data, ann)
         # Check that the accuracy is what it used to be
