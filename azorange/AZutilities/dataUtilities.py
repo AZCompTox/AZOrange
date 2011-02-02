@@ -355,16 +355,14 @@ def ExampleTable2CvMat(data,unfoldDescreteClasses=False):
             CvMatices["responses"]  = cv.cvCreateMat(len(data),1,cv.CV_32FC1)  # In classification use CV_32SC1, while in regression use: CV_32FC1
             CvMatices["varTypes"][0,-1] = ml.CV_VAR_NUMERICAL   # The element corresponding to the Class
         orngMatrix = numPyData[1]  # this will convert discrete classes to number being each int the order of the respecive value
-        
         if data.hasMissingValues():
             missing_res_mask = numPyData[1].mask
-
             CvMatices["missing_res_mask"] = cv.cvCreateMat(CvMatices["responses"].rows,CvMatices["responses"].cols,cv.CV_8UC1)   #rows, cols, type
             cv.cvSetZero(CvMatices["missing_res_mask"])
             if unfoldDescreteClasses and data.domain.classVar.varType == orange.VarTypes.Discrete:
                 cv.cvSet(CvMatices["responses"],0)
                 for idxEx,classV in enumerate(orngMatrix):
-                    if missing_res_mask[idxEx][idx]:
+                    if missing_res_mask[idxEx]:
                         cv.cvSet(CvMatices["missing_res_mask"][idxEx],1)
                     else:
                         #Here classV is the index of the class value of the actual class
