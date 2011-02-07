@@ -259,7 +259,7 @@ def getCinfonyDescResults(data,descList,radius=1):
 
 def getAvailableDescs(descSet = "all"):
     """
-    descSet : all, rdk, cdk, webel, obabel
+    descSet : all, rdk, rdkFP, rdkPhysChem, cdk, webel, obabel
     """
     
     #Get descs from obabel
@@ -270,6 +270,8 @@ def getAvailableDescs(descSet = "all"):
     #Get descs from RDKit
     if "rdk" in toolkitsEnabled:
         rdkDescs = [rdkTag+desc for desc in rdk.descs] + [rdkTag+"FingerPrints"]
+        rdkFP = [rdkTag+"FingerPrints"]
+        rdkPhysChem = [rdkTag+desc for desc in rdk.descs]
     else:
         rdkDescs = [] 
     #Get cdk from CDK
@@ -293,6 +295,10 @@ def getAvailableDescs(descSet = "all"):
         cinfonyDesc = obabelDescs + rdkDescs + cdkDescs + webelDescs
     elif descSet == "rdk":
         cinfonyDesc = rdkDescs 
+    elif descSet == "rdkFP":
+        cinfonyDesc = rdkFP
+    elif descSet == "rdkPhysChem":
+        cinfonyDesc = rdkPhysChem
     elif descSet == "cdk":
         cinfonyDesc = cdkDescs
     elif descSet == "webel":
