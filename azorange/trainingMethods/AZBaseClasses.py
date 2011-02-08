@@ -83,10 +83,11 @@ class AZLearner(orange.Learner):
             return False
         possibleMetas = dataUtilities.getPossibleMetas(trainingData)
         if possibleMetas:
-            print "AZBaseClasses ERROR: Detected attributes that should be considered meta-attributes:"
+            msg="\nAZBaseClasses ERROR: Detected attributes that should be considered meta-attributes:"
             for attr in possibleMetas:
-                print "    ",attr
-            return False
+                msg += "\n    "+attr
+            raise Exception(msg)
+            #return False
         #Get the Domain basic statistics and save only the desired info in self.basicStat
         basicStat = orange.DomainBasicAttrStat(trainingData)
         self.basicStat = {}
