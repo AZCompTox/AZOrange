@@ -34,7 +34,7 @@ def modelRead(modelFile=None,verbose = 0,retrunClassifier = True):
         if not retrunClassifier: return modelType
         from trainingMethods import AZorngPLS
         loadedModel = AZorngPLS.PLSread(modelFile,verbose)
-    elif os.path.isfile(os.path.join(modelFile, os.path.split(modelFile)[-1])):
+    elif os.path.isfile(os.path.join(modelFile,"model.rf")):
         modelType =  "RF"
         if not retrunClassifier: return modelType
         from trainingMethods import AZorngRF
@@ -54,6 +54,19 @@ def modelRead(modelFile=None,verbose = 0,retrunClassifier = True):
         if not retrunClassifier: return modelType
         from trainingMethods import AZorngCvBayes
         loadedModel = AZorngCvBayes.CvBayesread(modelFile,verbose)
+    else:   # Assuming an RF old format for backcompatibility
+        try:
+            if os.path.isdir(modelFile):
+                modelType =  "RF"
+                if not retrunClassifier: return modelType
+                from trainingMethods import AZorngRF
+                loadedModel = AZorngRF.RFread(modelFile,verbose)
+            else:
+                modelType = None
+                loadedModel = None
+        except:
+            modelType = None
+            loadedModel = None
 
     return loadedModel
  
@@ -216,7 +229,9 @@ class AZClassifier(object):
 
 
     def getTopImportantVars(self, inEx, nVars = 1,gradRef = None):
-        """Return the n top important variables (n = nVars) for the given example"""
+        """Return the n top important variables (n = nVars) for the given example
+            if nVars is 0, it returns all variables ordered by importance
+        """
         varGradVal = []
         varGradName = []
         ExFix = dataUtilities.ExFix()
@@ -243,6 +258,8 @@ class AZClassifier(object):
 
         def calcContVarGrad(var,ex,gradRef):
             localEx = orange.Example(ex)
+            if ex[var].isSpecial():
+                return gradRef 
             localEx[var] = ex[var] + ((self.basicStat[var]["max"]-self.basicStat[var]["min"])/self.getNTrainEx())+1
             ResUp = self(localEx,returnDFV = True)[1]
             #To only use one direction single step, uncomment next line
@@ -274,6 +291,9 @@ class AZClassifier(object):
             varGradName[j] = saveName
         #print varGradName
         #print varGradVal
-        return varGradName[0:min(int(nVars),len(self.domain.attributes))]
+        if nVars == 0:
+            return varGradName
+        else:
+            return varGradName[0:min(int(nVars),len(self.domain.attributes))]
 
 

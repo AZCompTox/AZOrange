@@ -487,16 +487,13 @@ class RFClassifier(AZBaseClasses.AZClassifier):
         """Save a RF model to disk with the data used to train the model.
            It is imparative that the model is saved with the data used for training. Only the domain is used. """
          
-        ##scPA   
         try:
                 #This removes any trailing '/'
                 dirPath = os.path.realpath(str(dirPath))
 
                 # This assures that all related files will be inside a folder
                 os.system("mkdir -p " + dirPath) 
-                filePath = os.path.join(dirPath,os.path.split(dirPath)[1])
-                ##ecPA
-                root, ext = os.path.splitext(filePath)
+                filePath = os.path.join(dirPath,"model.rf")
                 # The impute Data was previously added to the self.attributeInfo
                 # Remove the meta attributes from the imputer data. We don't need to store them along with the model
 
@@ -508,13 +505,13 @@ class RFClassifier(AZBaseClasses.AZClassifier):
                     impData.append(self.imputer.defaults)
                 # Remove the meta attributes from the imputer data. We don't need to store them along with the model
                 impData = dataUtilities.getCopyWithoutMeta(impData)
-                impData.save(root+"Saved.tab")
+                impData.save(os.path.join(dirPath,"ImputeData.tab"))
 
                 #Save the info about the train data as:
                 #    var names ordered the same way the Learner was trained
                 #    NTrainEx
                 #    basicStat 
-                varNamesFile = open(root+"varNames.txt","w")
+                varNamesFile = open(os.path.join(dirPath,"varNames.txt"),"w")
                 varNamesFile.write(str(self.varNames)+"\n") 
                 varNamesFile.write(str(self.NTrainEx)+"\n") 
                 varNamesFile.write(str(self.basicStat)+"\n") 
@@ -538,28 +535,47 @@ def RFread(dirPath,verbose = 0):
     NTrainEx = 0
     basicStat = None 
     # This assures that all related files will be inside a folder
-    # For RF models we assume that the model file has the same name as the model folder
-    filePath = os.path.join(dirPath,os.path.split(dirPath)[1])
-    ##ecPA
-    root, ext = os.path.splitext(filePath)
-
+    if os.path.isfile(os.path.join(dirPath,"model.rf")):
+        #New format
+        filePath = os.path.join(dirPath,"model.rf") 
+        impDataPath = os.path.join(dirPath,"ImputeData.tab")
+        varNamesPath = os.path.join(dirPath,"varNames.txt")
+    else:
+        #Old Format
+        # For RF models we assume that the model file has the same name as the model folder
+        #filePath = os.path.join(dirPath,os.path.split(dirPath)[1])
+        #root, ext = os.path.splitext(filePath)
+        files = os.listdir(dirPath)
+        filePath = None
+        impDataPath = None
+        varNamesPath = None
+        for file in files:
+            if len(file) >= 6 and file[-6:] == ".model":
+                filePath = os.path.join(dirPath,file)
+            elif len(file) >= 9 and file[-9:] == "Saved.tab":
+                impDataPath = os.path.join(dirPath,file)
+            elif  len(file) >= 12 and file[-12:] == "varNames.txt":
+                varNamesPath = os.path.join(dirPath,file)
+        if not filePath or not impDataPath or not varNamesPath:
+            print "Error loading RF model: Missing files. Files found:",files
+            return None
     # Load the model
     loadedRFclassifier = ml.CvRTrees()
     loadedRFclassifier.load(filePath)
 
     ##scPA 
     try:
-        impData = dataUtilities.DataTable(root+"Saved.tab",createNewOn=orange.Variable.MakeStatus.OK)
+        impData = dataUtilities.DataTable(impDataPath,createNewOn=orange.Variable.MakeStatus.OK)
         classVar = impData.domain.classVar
 
         #Load the var names oredered the way it was used when training
-        if (os.path.isfile(root+"varNames.txt")):
+        if (os.path.isfile(varNamesPath)):
             if len(impData) == 0:
                 useBuiltInMissValHandling = True
             else:
                 useBuiltInMissValHandling = False
                 impData = impData[0]
-            varNamesFile = open(root+"varNames.txt","r")
+            varNamesFile = open(varNamesPath,"r")
             lines = varNamesFile.readlines()
             varNames = eval(lines[0].strip())
             if len(lines) >= 3:
