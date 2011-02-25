@@ -529,7 +529,7 @@ class RFClassifierTest(AZorngTestUtil.AZorngTestUtil):
         self.assertEqual(Acc, savedAcc)
 
         #Check the priors saved in the model
-        file = open(os.path.join(modelPath,"model.RF"),"r")
+        file = open(os.path.join(modelPath,"model.rf"),"r")
         lines = file.readlines()
         file.close()
         priors = [round(x,2) for x in eval((lines[22].strip()).replace("data:",""))]
@@ -568,7 +568,7 @@ class RFClassifierTest(AZorngTestUtil.AZorngTestUtil):
         self.assertEqual(Acc, savedAcc)
 
         #Check the priors saved in the model
-        file = open(os.path.join(modelPath,"modelPriors.RF"),"r")
+        file = open(os.path.join(modelPath,"model.rf"),"r")
         lines = file.readlines()
         file.close()
         priors = [round(x,2) for x in eval((lines[22].strip()+lines[23].strip()).replace("data:",""))]
