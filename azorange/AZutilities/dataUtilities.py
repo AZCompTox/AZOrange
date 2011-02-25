@@ -9,7 +9,6 @@ import random
 from opencv import ml
 from opencv import cv
 import AZOrangeConfig as AZOC
-
 from AZutilities import miscUtilities
 version = 9
 verbose = 0
@@ -795,20 +794,8 @@ def loadSMI(filePath, domain = None, **args):
     file = open(filePath)
     lines = file.readlines()
 
-    # Create the list of values for each attribute
-    SMILESvalues = []
-    MOLNAMEMvalues = []
-    for idx,line in enumerate(lines):
-        sLine = line.split()
-        if len(sLine) >= 1:
-            if sLine[0] not in SMILESvalues:
-                SMILESvalues.append(sLine[0])
-            if len(sLine) > 1:
-                if sLine[1] not in MOLNAMEMvalues:
-                    MOLNAMEMvalues.append(sLine[1])
-
     # Create New Domain (classless)
-    domain = orange.Domain([orange.EnumVariable("SMILES", values = SMILESvalues) , orange.EnumVariable("MOLNAME", values = MOLNAMEMvalues)] , 0)
+    domain = orange.Domain([orange.StringVariable("SMILES") , orange.StringVariable("MOLNAME")] , 0)
     # Create an empty example table with domain "domain"
     examples = DataTable(domain)
 
@@ -2102,3 +2089,168 @@ def rmClassVar(data):
     newData = DataTable(newDomain, data)
 
     return newData
+
+def StandardizeSingleSMILES(smiles):
+        """Standerdize an individual SMILES"""
+        #Create a tmp running Dir 
+        runningDir = miscUtilities.createScratchDir("stdSingleSMILES", baseDir=AZOC.NFS_SCRATCHDIR)
+        actualDir=os.getcwd()
+        os.chdir(runningDir)
+        stdSMIFile = os.path.join(runningDir,"origData.smi")
+        cleanedSMIFile = os.path.join(runningDir,"origData_clean.smi")
+        fixed = 0
+        #Create the intermediate file with just the SMILES and the ID
+        smiFile = open(stdSMIFile,'w')
+        smiFile.write(smiles + " " + "mol" + "\n")
+        smiFile.close()
+        #Call the clean_db
+        os.system("clean_db.sh " + stdSMIFile)
+        #Load back the resultant file from CleanDB
+        smiData = loadSMI(cleanedSMIFile)
+
+        
+        #cleanup
+        os.chdir(actualDir)
+        miscUtilities.removeDir(runningDir)
+        if len(smiData) != 1 or smiData[0][1].value != "mol":
+            print "ERROR: could not standerdize smiles: ",smiles
+            return smiles
+        return str(smiData[0][0].value)
+
+        
+
+def StandardizeSMILES(data) :
+        """ Standerdize the SMILES present in data
+            It is expecting a data with 'Molecule SMILES' and 'Compound Name' attributes
+            WARNING: It changes the SMILES in the passed data object
+        """
+        print "Standerdizing SMILES in data ..."
+        # Cehck if the 'Molecule SMILES' and 'Compound Name' attributes are present
+        attrNames =  [attr.name for attr in data.domain.attributes]
+        if "Molecule SMILES" not in attrNames or "Compound Name" not in attrNames:
+            print "Data must have  'Molecule SMILES' and 'Compound Name' attributes."
+            return
+        #Create a tmp running Dir 
+        runningDir = miscUtilities.createScratchDir("stdSMILES", baseDir=AZOC.NFS_SCRATCHDIR)
+        actualDir=os.getcwd()
+        os.chdir(runningDir)
+        stdSMIFile = os.path.join(runningDir,"origData.smi")
+        cleanedSMIFile = os.path.join(runningDir,"origData_clean.smi")
+            
+        fixed = 0
+        #Create the intermediate file with just the SMILES and the ID
+        smiFile = open(stdSMIFile,'w')
+        for ex in data:
+            if ex["Molecule SMILES"] != '?' and ex["Compound Name"] != '?':
+                smiFile.write(str(ex["Molecule SMILES"].value) + " " + str(ex["Compound Name"].value) + "\n")
+        smiFile.close()
+        #Call the clean_db
+        os.system("clean_db.sh " + stdSMIFile)
+        #Load back the resultant file from CleanDB
+        smiData = loadSMI(cleanedSMIFile)
+        # For eaxch example, find the respective fixed SMILE based on the ID
+        for ex in data:
+            if ex["Molecule SMILES"] != '?' and ex["Compound Name"] != '?':
+                selectedEx = smiData.select(MOLNAME=str(ex["Compound Name"].value))
+                # Change the SMILES in the dataset if it was sugested a different one by cleanDB
+                if len(selectedEx) == 1 and str(ex["Molecule SMILES"].value) != str(selectedEx[0]["SMILES"].value):
+                    ex["Molecule SMILES"] = str(selectedEx[0]["SMILES"].value)
+                    fixed += 1
+                elif len(selectedEx) > 1:
+                    print "WARNING: Duplicated IDs: " + str(ex["Compound Name"].value)
+        print "Original number of smiles:            ",len(data)
+        print "Number of smiles accepted by cleanDB: ",len(smiData)
+        print "Number of fixed smiles:               ",fixed
+        #cleanup
+        os.chdir(actualDir)
+        miscUtilities.removeDir(runningDir)
+
+def calcFingerPrint(smiles):
+        """ Calculate the fingerPrint of an individual SMILES
+             returns the Finger Print in binary string format
+        """
+        #Create a tmp running Dir
+        runningDir = miscUtilities.createScratchDir("FingerPrint",baseDir=AZOC.NFS_SCRATCHDIR)
+        actualDir=os.getcwd()
+        os.chdir(runningDir)
+        OrigSMIFile = os.path.join(runningDir,"origData.smi")
+        outputFP = os.path.join(runningDir,"smi.fp")
+
+        #Create the intermediate file with just the SMILES and the ID
+        smiFile = open(OrigSMIFile,'w')
+        smiFile.write(smiles + " " + "mol" + "\n")
+        smiFile.close()
+        #Call the alfi
+        os.system("alfi -fo -bit -i "+OrigSMIFile+" -o " + outputFP)
+
+        #Load the fingerPrints
+        FP = loadSMI(outputFP)
+        
+        #cleanup
+        os.chdir(actualDir)
+        miscUtilities.removeDir(runningDir)
+
+        if len(FP) != 1 or FP[0][0] != "mol":
+            print "ERROR: could not calculate the fingetprint for: ",smiles
+            return None
+        return str(FP[0][1].value)
+
+
+def calcFingerPrints(data):
+        """ Calculated the FingerPrint for each SMILE in smiFile using alfi
+            Adds a new attribute to the data object for the calculated FingerPrint 
+            It is expecting a data with 'Molecule SMILES' and 'Compound Name' attributes
+            Returns a new data object
+        """
+        print "Calculating SMILES FingerPrints..."
+        binEncoder = miscUtilities.binBase64()
+        # Cehck if the 'Molecule SMILES' and 'Compound Name' attributes are present
+        attrNames =  [attr.name for attr in data.domain.attributes]
+        if "Molecule SMILES" not in attrNames or "Compound Name" not in attrNames:
+            print "Data must have  'Molecule SMILES' and 'Compound Name' attributes."
+            return
+        #Create a tmp running Dir
+        runningDir = miscUtilities.createScratchDir("FingerPrints",baseDir=AZOC.NFS_SCRATCHDIR)
+        actualDir=os.getcwd()
+        os.chdir(runningDir)
+        OrigSMIFile = os.path.join(runningDir,"origData.smi")
+        outputFP = os.path.join(runningDir,"smi.fp")
+
+        #Create the intermediate file with just the SMILES and the ID
+        smiFile = open(OrigSMIFile,'w')
+        for ex in data:
+            if ex["Molecule SMILES"] != '?' and ex["Compound Name"] != '?':
+                smiFile.write(str(ex["Molecule SMILES"].value) + " " + str(ex["Compound Name"].value) + "\n")
+        smiFile.close()
+        #Call the alfi
+        os.system("alfi -fo -bit -i "+OrigSMIFile+" -o " + outputFP)
+
+        #Load the fingerPrints
+        FP = loadSMI(outputFP)
+        #In this case, the ID is loaded as the 'SMILES' and the fingerprint as the 'MOLNAME'
+        FPAttr = orange.StringVariable("FingerPrint")
+        classVar = data.domain.classVar
+        newDomain = orange.Domain([attr for attr in data.domain if attr != classVar] + [FPAttr], classVar)
+        newData = DataTable(newDomain,data)
+        # Assign the 'value' to all examples
+        duplicatedIDs = []
+        for ex in newData:
+            if ex["Molecule SMILES"] != '?' and ex["Compound Name"] != '?':
+                ID = str(ex["Compound Name"].value)
+                selectedEx = FP.select(SMILES=ID)  # In this data, the attribute SMILES is handling the 'Compound Name'
+                if len(selectedEx) >= 1 and ID not in duplicatedIDs:
+                    #Convert the binary string to Base64.   When reading, the value can be converted back to a binary: 
+                    #   binEncoder.decode(loadedBase64Str)
+                    fp64 = binEncoder.encode(str(selectedEx[0]["MOLNAME"].value))
+                    ex[FPAttr] = fp64
+                    if len(selectedEx) > 1:
+                        duplicatedIDs.append(ID)
+                elif len(selectedEx) <= 0:
+                    print "WARNING: Missing FingetPrint for " + ID
+        if duplicatedIDs:
+            print "WARNING: Duplicated IDs:\n\t", duplicatedIDs
+        #cleanup
+        os.chdir(actualDir)
+        miscUtilities.removeDir(runningDir)
+        return newData
+

@@ -1,4 +1,4 @@
-import types
+import types, os
 import math
 import statc
 import string
@@ -8,11 +8,77 @@ import orngTest
 import orange
 import numpy
 from statlib import stats
+from AZutilities import miscUtilities
 version = 2
 verbose = 0
 
 CLASSIFICATION = 1  # 0b00000001
 REGRESSION = 2      # 0b00000010
+
+def tanimotoSimilarity(A, B):
+    """Calculates the tanimnoto similarity defined by:
+             ts = c/(a+b-c)
+        where a is the number of bits in A
+              b is the number of bits in B
+              c is the number of bits in common
+             
+        A and B are the strings containing the bits
+        This returns a value between 0 and 1:
+                0 - Nothing in common
+                1 - Identical
+        len(A) and len(A) and len(B) are expected to be the same
+    """
+    #Not validating input since this function has to called very often.
+    nAB = 0.0 + miscUtilities.countOnBits(int(A,2) & int(B,2))
+    nAnB = A.count("1") + B.count("1")
+    if not nAnB: return 0.0
+    else: return  nAB / (nAnB - nAB)
+
+def fastTanimotoSimilarity(A,nA,B):
+    """Same as tanimotoSimilarity but expecting in A a long integer representing the binary fingetprint
+       and nA the number of ONbits in A"""
+    #Not validating input since this function has to called very often.
+    AandB = A & long(B,2)
+    nAB = miscUtilities.countOnBits(AandB)      # Number of match ON Bits
+    nAnB = 0.0 + nA + B.count("1")                # nA+nB
+    if not nAnB: return 0.0
+    else: return  nAB / (nAnB - nAB)
+
+def getNearestNeighbors(query, n, NNData, resPath = None):
+    """ get the n nearest neighbors
+        query: bin string with query fingerprint
+        returns a list with the n top neighbors (each one in a tupple):
+            [ (ID, ExpValues, TanimotoSimilarity),  ... ]        
+        It also saves the images in resPath:
+             NN_1.png    #1 neighbor
+             NN_2.png    #2 neighbor
+             ...
+             NN_n.png    #n neighbor
+    """
+    if resPath and not os.path.isdir(resPath):
+        os.makedirs(resPath)
+
+    intQuery = long(query,2)
+    decoder = miscUtilities.binBase64()
+    ONbits = query.count("1")
+    # Calculate the tanimoto similarity over all the NNData and store them    
+    #   Compound Name   Date    Molecule SMILES FingerPrint     NonCleanActivity
+    FPidx = NNData.domain.index("FingerPrint")
+    TS = []
+    for idx,ex in enumerate(NNData):
+        if ex[FPidx].isSpecial():
+            continue
+        TS.append( (fastTanimotoSimilarity(intQuery, ONbits, decoder.decode(ex[FPidx].value)), idx)  )
+    TS.sort(reverse=True)
+    # in TS:
+    #    TS[n][0] - tanimoto similarity
+    #    TS[n][1] - number of the correspondent data index
+    res = []
+    for nn in TS[0:n]:
+        res.append( (NNData[nn[1]]["Compound Name"].value, NNData[nn[1]].getclass().value, nn[0], NNData[nn[1]]["Molecule SMILES"].value) )
+        # save the respective image...  TODO
+    return res
+    
 
 
 def ConfMat(res = None):
