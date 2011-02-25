@@ -300,4 +300,77 @@ def Range(first, last, step = 1):
     else:
         return list
 
+def int2bin(inInt):
+    #Function for converting an int to a binaryString (only for non-Negatives)
+    # this has a limit of maximum recursion depth allowed in lamda functions
+    bstr_nonneg = lambda n: n>0 and bstr_nonneg(n>>1).lstrip('0')+str(n&1) or '0'
+    return bstr_nonneg(inInt)
+
+def countOnBits(inInt):
+    """ Count the number of ON bits in the respective binary representation of inInt"""
+    i = long(1)
+    onBits = 0
+    while i <= inInt:
+        if (inInt & i):
+            onBits += 1
+        i = i<<1
+    return onBits    
+
+class binBase64():
+    # Compress Alphabet, must have lenght of power of base 2: ex: 2^4  2^6
+    # using self.Base64 standard
+    def __init__(self,idx6263 = "+/"):
+        self.Base64 = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
+        if (len(idx6263) !=2) or (idx6263[0] in self.Base64) or (idx6263[1] in self.Base64):
+            print "ERROR: index 62 and index64 cannot be an existing symbol in Base64."
+            return None
+        self.Base64 += idx6263
+        self.power = 6
+
+    def encode(self, inBits):
+        #fix initial tag '0b'
+        if inBits[1] in ['b','B'] :
+            bits = inBits.strip()[2:].replace(" ","")
+        else:
+            bits = inBits.strip().replace(" ","")
+        # Check string
+        for bit in bits:
+            if bit not in ['0','1']:
+                print "ERROR: Invalid bit: ",bit
+                return None
+
+        Nbits = len(bits)
+        compressed = ""
+        for n in Range(Nbits, 0, -self.power):
+            if n <= 0:
+                break
+            elif n < self.power:
+                ini = 0
+            else:
+                ini = n-self.power
+            symb = self.Base64[int(bits[ini:n],2)]
+            compressed = symb + compressed
+        return compressed
+
+
+    def decode(self, inAsc):
+        asc = inAsc.strip().replace(" ","")
+
+        decoded = ""
+        # Check string
+        for a in asc:
+            if a not in self.Base64:
+                print "ERROR: Invalid symbol: ", a
+                return None
+        #Decode
+        for n in Range(len(asc)-1,0,-1):
+            idx = self.Base64.index(asc[n])
+            binStr = int2bin(idx)
+            #place leading Zeros as needed
+            if n > 0:  #remove this line if needed the leading zeros
+                for i in range(self.power-len(binStr)):
+                    binStr = "0" + binStr
+            decoded = binStr + decoded
+        return decoded
+
 ##ecPA
