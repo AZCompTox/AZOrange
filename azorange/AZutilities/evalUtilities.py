@@ -62,8 +62,8 @@ def getNearestNeighbors(query, n, NNData, resPath = None):
     decoder = miscUtilities.binBase64()
     ONbits = query.count("1")
     # Calculate the tanimoto similarity over all the NNData and store them    
-    #   Compound Name   Date    Molecule SMILES FingerPrint     NonCleanActivity
-    FPidx = NNData.domain.index("FingerPrint")
+    #   Compound Name   Date    Molecule SMILES Fingerprint     NonCleanActivity
+    FPidx = NNData.domain.index("Fingerprint")
     TS = []
     for idx,ex in enumerate(NNData):
         if ex[FPidx].isSpecial():
