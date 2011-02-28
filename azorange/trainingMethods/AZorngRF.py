@@ -572,12 +572,14 @@ def RFread(dirPath,verbose = 0):
         filePath = None
         impDataPath = None
         varNamesPath = None
+        # Load the model when found
+        loadedRFclassifier = ml.CvRTrees()
         for file in files:
             if len(file) >= 9 and file[-9:] == "Saved.tab":
                 impDataPath = os.path.join(dirPath,file)
             elif  len(file) >= 12 and file[-12:] == "varNames.txt":
                 varNamesPath = os.path.join(dirPath,file)
-            else:
+            elif filePath is None:
                 # looking for opencv-ml-random-trees  in first 10 lines
                 fh = open(os.path.join(dirPath,file),'r')
                 for i in range(10):
@@ -585,13 +587,14 @@ def RFread(dirPath,verbose = 0):
                         filePath = os.path.join(dirPath,file)
                         break
                 fh.close()
+                if filePath:
+                    try:
+                        loadedRFclassifier.load(filePath)
+                    except:
+                        filePath = None
         if not filePath or not impDataPath or not varNamesPath:
             print "Error loading RF model: Missing files. Files found:",files
             return None
-    # Load the model
-    loadedRFclassifier = ml.CvRTrees()
-    loadedRFclassifier.load(filePath)
-
     ##scPA 
     try:
         impData = dataUtilities.DataTable(impDataPath,createNewOn=orange.Variable.MakeStatus.OK)
