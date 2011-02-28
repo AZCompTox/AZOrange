@@ -493,7 +493,15 @@ class RFClassifier(AZBaseClasses.AZClassifier):
 
                 # This assures that all related files will be inside a folder
                 os.system("mkdir -p " + dirPath) 
-                filePath = os.path.join(dirPath,"model.rf")
+                
+                ################################################################
+                #   New generalized code:
+                #filePath = os.path.join(dirPath,"model.rf")
+                #   Which will replace:
+                filePath = os.path.join(dirPath,os.path.split(dirPath)[1])
+                root, ext = os.path.splitext(filePath)
+                ################################################################
+
                 # The impute Data was previously added to the self.attributeInfo
                 # Remove the meta attributes from the imputer data. We don't need to store them along with the model
 
@@ -505,13 +513,28 @@ class RFClassifier(AZBaseClasses.AZClassifier):
                     impData.append(self.imputer.defaults)
                 # Remove the meta attributes from the imputer data. We don't need to store them along with the model
                 impData = dataUtilities.getCopyWithoutMeta(impData)
-                impData.save(os.path.join(dirPath,"ImputeData.tab"))
+
+
+                ################################################################
+                #   New generalized code:
+                #impData.save(os.path.join(dirPath,"ImputeData.tab"))
+                #   Which will replace:
+                impData.save(root+"Saved.tab")
+                ################################################################
+
 
                 #Save the info about the train data as:
                 #    var names ordered the same way the Learner was trained
                 #    NTrainEx
                 #    basicStat 
-                varNamesFile = open(os.path.join(dirPath,"varNames.txt"),"w")
+
+                ################################################################
+                #   New generalized code:
+                #varNamesFile = open(os.path.join(dirPath,"varNames.txt"),"w")
+                #   Which will replace:
+                varNamesFile = open(root+"varNames.txt","w")
+                ################################################################
+
                 varNamesFile.write(str(self.varNames)+"\n") 
                 varNamesFile.write(str(self.NTrainEx)+"\n") 
                 varNamesFile.write(str(self.basicStat)+"\n") 
@@ -550,12 +573,18 @@ def RFread(dirPath,verbose = 0):
         impDataPath = None
         varNamesPath = None
         for file in files:
-            if len(file) >= 6 and file[-6:] == ".model":
-                filePath = os.path.join(dirPath,file)
-            elif len(file) >= 9 and file[-9:] == "Saved.tab":
+            if len(file) >= 9 and file[-9:] == "Saved.tab":
                 impDataPath = os.path.join(dirPath,file)
             elif  len(file) >= 12 and file[-12:] == "varNames.txt":
                 varNamesPath = os.path.join(dirPath,file)
+            else:
+                # looking for opencv-ml-random-trees  in first 10 lines
+                fh = open(os.path.join(dirPath,file),'r')
+                for i in range(10):
+                    if "opencv-ml-random-trees" in fh.readline():
+                        filePath = os.path.join(dirPath,file)
+                        break
+                fh.close()
         if not filePath or not impDataPath or not varNamesPath:
             print "Error loading RF model: Missing files. Files found:",files
             return None
