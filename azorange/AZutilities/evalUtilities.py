@@ -47,9 +47,15 @@ def fastTanimotoSimilarity(A,nA,B):
 def getNearestNeighbors(query, n, NNData, resPath = None):
     """ get the n nearest neighbors
         query: bin string with query fingerprint
-        returns a list with the n top neighbors (each one in a tupple):
-            [ (ID, ExpValues, TanimotoSimilarity),  ... ]        
-        It also saves the images in resPath:
+        returns an ordered list with the n top neighbors (each one in a dict):
+            [ {
+                "id"          : ID, 
+                "expVal"      : ExpValues, 
+                "similarity"  : TanimotoSimilarity, 
+                "smi"         : smiles, 
+                "imgPath"     : imgPath},  ... ]        
+
+        It will saves the images in resPath:
              NN_1.png    #1 neighbor
              NN_2.png    #2 neighbor
              ...
@@ -74,9 +80,20 @@ def getNearestNeighbors(query, n, NNData, resPath = None):
     #    TS[n][0] - tanimoto similarity
     #    TS[n][1] - number of the correspondent data index
     res = []
-    for nn in TS[0:n]:
-        res.append( (NNData[nn[1]]["Compound Name"].value, NNData[nn[1]].getclass().value, nn[0], NNData[nn[1]]["Molecule SMILES"].value) )
-        # save the respective image...  TODO
+    for idx,nn in enumerate(TS[0:n]):
+        if resPath and oa.path.isdir(resPath):
+            imgPath = os.path.join(resPath,"NN_"+str(idx)+".png")
+        else:
+            imgPath = ""
+        # save the respective imhPath...  
+        # TODO
+        res.append( {
+                "id": str(NNData[nn[1]]["Compound Name"].value), 
+                "expVal": str(NNData[nn[1]].getclass().value), 
+                "similarity": nn[0], 
+                "smi": str(NNData[nn[1]]["Molecule SMILES"].value), 
+                "imgPath": imgPath} )
+        
     return res
     
 
@@ -155,7 +172,7 @@ def generalCVconfMat(data, learners, nFolds = 5):
 def getClassificationAccuracy(testData, classifier):
     correct = 0.0
     for ex in testData:
-	#print str(classifier(ex)) + "->" + str(ex.getclass())
+        #print str(classifier(ex)) + "->" + str(ex.getclass())
         if str(classifier(ex)) == str(ex.getclass()):
             correct = correct + 1.0
     ClassificationAccuracy = correct/len(testData)
@@ -247,11 +264,11 @@ def Sensitivity(confMatrixList, classes):
         # Loop over the rows of the confusion matrix
         for idx in range(len(classes)):
 ##scPA
-	    if sum(confMatrix[idx])==0:
-		sensitivityDict[classes[idx]] = "N/A"
-	    else:	
+            if sum(confMatrix[idx])==0:
+                sensitivityDict[classes[idx]] = "N/A"
+            else:        
 ##ecPA
-            	sensitivityDict[classes[idx]] = confMatrix[idx][idx]/sum(confMatrix[idx])
+                sensitivityDict[classes[idx]] = confMatrix[idx][idx]/sum(confMatrix[idx])
         sensitivityList.append(sensitivityDict)
 
     #print "End sensitivity "+str(sensitivityList)
@@ -279,11 +296,11 @@ def Predictivity(confMatrixList, classes):
             for innerIdx in range(len(classes)):
                 colSum = colSum + confMatrix[innerIdx][idx]
 ##scPA
-	    if colSum==0:
-            	PredictivityDict[classes[idx]] = "N/A"
-	    else:
+            if colSum==0:
+                PredictivityDict[classes[idx]] = "N/A"
+            else:
 ##ecPA
-            	PredictivityDict[classes[idx]] = confMatrix[idx][idx]/colSum
+               PredictivityDict[classes[idx]] = confMatrix[idx][idx]/colSum
         PredictivityList.append(PredictivityDict)
 
     #print "End Predictivity "+str(PredictivityList)
