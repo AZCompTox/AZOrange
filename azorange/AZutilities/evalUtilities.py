@@ -9,6 +9,8 @@ import orange
 import numpy
 from statlib import stats
 from AZutilities import miscUtilities
+from rdkit import Chem
+from rdkit.Chem import Draw
 version = 2
 verbose = 0
 
@@ -81,12 +83,13 @@ def getNearestNeighbors(query, n, NNData, resPath = None):
     #    TS[n][1] - number of the correspondent data index
     res = []
     for idx,nn in enumerate(TS[0:n]):
-        if resPath and oa.path.isdir(resPath):
-            imgPath = os.path.join(resPath,"NN_"+str(idx)+".png")
+        if resPath and os.path.isdir(resPath):
+            imgPath = os.path.join(resPath,"NN_"+str(idx+1)+".png")
+            mol = Chem.MolFromSmiles(str(NNData[nn[1]]["Molecule SMILES"].value))
+            # save the respective imgPath...  
+            Draw.MolToImageFile(mol,imgPath,size=(300, 300), kekulize=True, wedgeBonds=True)
         else:
             imgPath = ""
-        # save the respective imhPath...  
-        # TODO
         res.append( {
                 "id": str(NNData[nn[1]]["Compound Name"].value), 
                 "expVal": str(NNData[nn[1]].getclass().value), 
