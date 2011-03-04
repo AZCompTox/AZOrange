@@ -228,12 +228,16 @@ class AZClassifier(object):
         return self.NTrainEx
 
 
-    def getTopImportantVars(self, inEx, nVars = 1,gradRef = None):
+    def getTopImportantVars(self, inEx, nVars = 1, gradRef = None, absGradient = True):
         """Return the n top important variables (n = nVars) for the given example
             if nVars is 0, it returns all variables ordered by importance
         """
-        varGradVal = []
-        varGradName = []
+        varGradValUP = []
+        varGradValDOWN = []
+        varGradNameUP = []
+        varGradNameDOWN = []
+
+
         ExFix = dataUtilities.ExFix()
         ExFix.set_domain(self.domain)
         ex = ExFix.fixExample(inEx)
@@ -241,7 +245,11 @@ class AZClassifier(object):
             return None
         if gradRef == None:
             gradRef = self(ex,returnDFV = True)[1]
+
+        # the calcDiscVarGrad and calcContVarGrad will return 
         def calcDiscVarGrad(var,ex,gradRef):
+            if ex[var].isSpecial():
+                return gradRef
             localVarGrad = 0
             localMaxGrad = gradRef
             #Uncomment next line to skip discrete variables
@@ -270,30 +278,54 @@ class AZClassifier(object):
                 return ResUp
             else:
                 return ResDown
- 
-        for attr in self.domain.attributes:
-            varGradName.append(attr.name)
+
+        def calcVarGrad(var,ex,gradRef):
             if attr.varType == orange.VarTypes.Discrete:
-                varGradVal.append(abs(gradRef-calcDiscVarGrad(attr.name,ex,gradRef)))
+                return calcDiscVarGrad(attr.name,ex,gradRef)
             else:
-                varGradVal.append(abs(gradRef-calcContVarGrad(attr.name,ex,gradRef)))
+                return calcContVarGrad(attr.name,ex,gradRef)
+ 
+        def insSort(list, IDlist):
+            # Sorts both lists simultaniously with reference to list
+            # insertion sort algorithm descendent
+            for i in range(1, len(list)):
+              save = list[i]
+              saveName = IDlist[i]
+              j = i
+              while j > 0 and list[j - 1] < save:
+                  list[j] = list[j - 1]
+                  IDlist[j] = IDlist[j - 1]
+                  j -= 1
+              list[j] = save
+              IDlist[j] = saveName
+
+        for attr in self.domain.attributes:
+            grad = calcVarGrad(attr.name,ex,gradRef) - gradRef
+            if grad > 0:
+                varGradNameUP.append(attr.name)
+                varGradValUP.append(abs(grad))
+            else:
+                varGradNameDOWN.append(attr.name)
+                varGradValDOWN.append(abs(grad))
+
         #Order the vars in terms of importance
-        # insertion sort algorithm
-        for i in range(1, len(varGradVal)):
-            save = varGradVal[i]
-            saveName = varGradName[i]
-            j = i
-            while j > 0 and varGradVal[j - 1] < save:
-                varGradVal[j] = varGradVal[j - 1]
-                varGradName[j] = varGradName[j - 1]
-                j -= 1
-            varGradVal[j] = save
-            varGradName[j] = saveName
-        #print varGradName
-        #print varGradVal
-        if nVars == 0:
-            return varGradName
-        else:
-            return varGradName[0:min(int(nVars),len(self.domain.attributes))]
+        nRet = min(int(nVars),len(self.domain.attributes))
+        if absGradient:
+            varGradVal = varGradValUP + varGradValDOWN 
+            varGradName = varGradNameUP + varGradNameDOWN
+            insSort(varGradVal ,varGradName)
+            if nVars == 0:
+                return varGradName
+            else:
+                return varGradName[0:nRet]
+        else:   
+            insSort(varGradValUP ,varGradNameUP)
+            insSort(varGradValDOWN ,varGradNameDOWN)
+            if nVars == 0:
+                return { "UP":varGradNameUP,  "DOWN":varGradNameDOWN}
+            else:
+                return { "UP":varGradNameUP[0:nRet], "DOWN":varGradNameUP[0:nRet] }
+
+
 
 
