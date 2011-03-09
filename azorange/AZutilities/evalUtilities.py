@@ -206,11 +206,11 @@ def getRsqrt(testData, predictor):
         This uses the Test Set Activity Mean
         R^2 = 1 - sum((pred - actual)^2)/(sum((testMean - actual)^2))"""
 
-    # Calc average of the prediction variable
-    predValuesList = []
+    # Calc average of the response variable
+    actualValuesList = []
     for ex in testData:
-        predValuesList.append(ex.getclass().value)
-    testMean = statc.mean(predValuesList)
+        actualValuesList.append(ex.getclass().value)
+    testMean = statc.mean(actualValuesList)
 
     errSum = 0.0
     meanSum = 0.0
