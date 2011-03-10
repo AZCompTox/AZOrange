@@ -300,14 +300,18 @@ class AZClassifier(object):
               IDlist[j] = saveName
 
         for attr in self.domain.attributes:
-            grad = calcVarGrad(attr.name,ex,gradRef) - gradRef
+            if self.domain.classVar.varType == orange.VarTypes.Discrete:
+                # IMPORTANT: A positive gradient component means the predicted value will be "more strong"
+                #            A Nagative one means the predicted value will be weak and may lead towrds the other class value
+                grad = abs(calcVarGrad(attr.name,ex,gradRef)) - abs(gradRef)
+            else:
+                grad = calcVarGrad(attr.name,ex,gradRef) - gradRef
             if grad > 0:
                 varGradNameUP.append(attr.name)
                 varGradValUP.append(abs(grad))
             else:
                 varGradNameDOWN.append(attr.name)
                 varGradValDOWN.append(abs(grad))
-
         #Order the vars in terms of importance
         nRet = min(int(nVars),len(self.domain.attributes))
         if absGradient:
