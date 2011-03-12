@@ -46,7 +46,7 @@ def fastTanimotoSimilarity(A,nA,B):
     if not nAnB: return 0.0
     else: return  nAB / (nAnB - nAB)
 
-def getNearestNeighbors(query, n, NNData, resPath = None):
+def getNearestNeighbors(query, n, NNData, resPath = None, idx = 0):
     """ get the n nearest neighbors
         query: bin string with query fingerprint
         returns an ordered list with the n top neighbors (each one in a dict):
@@ -73,18 +73,18 @@ def getNearestNeighbors(query, n, NNData, resPath = None):
     #   Compound Name   Date    Molecule SMILES Fingerprint     NonCleanActivity
     FPidx = NNData.domain.index("Fingerprint")
     TS = []
-    for idx,ex in enumerate(NNData):
+    for fidx,ex in enumerate(NNData):
         if ex[FPidx].isSpecial():
             continue
-        TS.append( (fastTanimotoSimilarity(intQuery, ONbits, decoder.decode(ex[FPidx].value)), idx)  )
+        TS.append( (fastTanimotoSimilarity(intQuery, ONbits, decoder.decode(ex[FPidx].value)), fidx)  )
     TS.sort(reverse=True)
     # in TS:
     #    TS[n][0] - tanimoto similarity
     #    TS[n][1] - number of the correspondent data index
     res = []
-    for idx,nn in enumerate(TS[0:n]):
+    for fidx,nn in enumerate(TS[0:n]):
         if resPath and os.path.isdir(resPath):
-            imgPath = os.path.join(resPath,"NN_"+str(idx+1)+".png")
+            imgPath = os.path.join(resPath,"NN"+str(idx)+"_"+str(fidx+1)+".png")
             mol = Chem.MolFromSmiles(str(NNData[nn[1]]["Molecule SMILES"].value))
             # save the respective imgPath...  
             Draw.MolToImageFile(mol,imgPath,size=(300, 300), kekulize=True, wedgeBonds=True)
