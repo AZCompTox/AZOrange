@@ -202,7 +202,7 @@ ANNLearner = {'nHidden':["[types.IntType]", "values", "(1.0/10.0)*N_EX<3 and [2]
 
 #CvANN parameters
 CvANNLearner = {'nHidden':["[types.IntType]", "values", "(1.0/30.0)*N_EX<3 and [2] or [int(round(x)) for x in miscUtilities.Range(2,((1/30.0)*N_EX))]",[],str(AZOrangeConfig.CVANNDEFAULTDICT["nHidden"]),True,True,"2-N_EX/30"],\
-              'maxIter':["types.IntType", "values", "[int(x) for x in miscUtilities.Range(100,10000)]",[],str(AZOrangeConfig.CVANNDEFAULTDICT["maxIter"]),True,True,"100-10000"],\
+              'maxIter':["types.IntType", "values", "[int(x) for x in miscUtilities.Range(100,10000)]",[],str(AZOrangeConfig.CVANNDEFAULTDICT["maxIter"]),False,True,"100-10000"],\
               'optAlg':["types.IntType", "values", "[0 , 1]",["BACKProp","RProp"],str(AZOrangeConfig.CVANNDEFAULTDICT["optAlg"]),False,False,"Incremental\BACKProp\nRProp"],\
               'stopCrit':["types.IntType", "values", "[1 , 2]",["NIter","EPS"],str(AZOrangeConfig.CVANNDEFAULTDICT["stopCrit"]),False,False,"Number of Iterations\nEpsilon"],\
               'eps':["types.FloatType", "interval", "[0.001 , 0.1]",[],str(AZOrangeConfig.CVANNDEFAULTDICT["eps"]),False,True,"0.001-0.1"],\
@@ -211,7 +211,7 @@ CvANNLearner = {'nHidden':["[types.IntType]", "values", "(1.0/30.0)*N_EX<3 and [
               'rp_dw_plus':["types.FloatType", "interval", "[1.01, 3.0]",[],str(AZOrangeConfig.CVANNDEFAULTDICT["rp_dw_plus"]),False,True,"1.0-3.0"],\
               'rp_dw_minus':["types.FloatType", "interval", "[0.01, 0.99]",[],str(AZOrangeConfig.CVANNDEFAULTDICT["rp_dw_minus"]),False,True,"0.0-1.0"],\
               'rp_dw_max':["types.FloatType", "interval", "[1, 100]",[],str(AZOrangeConfig.CVANNDEFAULTDICT["rp_dw_max"]),False,True,"1-100"],\
-              'rp_dw0':["types.FloatType", "interval", "[0.05, 1.0]",[],str(AZOrangeConfig.CVANNDEFAULTDICT["rp_dw0"]),True,True,"0.05-1.0"],\
+              'rp_dw0':["types.FloatType", "interval", "[0.05, 1.0]",[],str(AZOrangeConfig.CVANNDEFAULTDICT["rp_dw0"]),False,True,"0.05-1.0"],\
               'scaleData':["types.BooleanType", "values", "[False , True]",[],str(AZOrangeConfig.CVANNDEFAULTDICT["scaleData"]),False,False,"No and Yes"],\
               'scaleClass':["types.BooleanType", "values", "[False , True]",[],str(AZOrangeConfig.CVANNDEFAULTDICT["scaleClass"]),False,False,"No and Yes"],\
               'priors' : ["types.StringType", "values",  "[None]",[],str(AZOrangeConfig.CVANNDEFAULTDICT["priors"]),False,False,"Do not use for optimization, just to change the default values of priors"]\
