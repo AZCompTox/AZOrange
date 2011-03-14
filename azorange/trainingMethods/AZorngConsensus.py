@@ -78,7 +78,7 @@ class ConsensusLearner(AZBaseClasses.AZLearner):
         for learner in self.learnersObj:
             classifiers.append(learner(trainingData))
 
-        return ConsensusClassifier(classifiers = classifiers, classVar = trainingData.domain.classVar,verbose = self.verbose, domain = trainingData.domain)
+        return ConsensusClassifier(classifiers = classifiers, classVar = trainingData.domain.classVar,verbose = self.verbose, domain = trainingData.domain, varNames = [attr.name for attr in trainingData.domain.attributes])
 
 
 class ConsensusClassifier(AZBaseClasses.AZClassifier):
@@ -87,6 +87,7 @@ class ConsensusClassifier(AZBaseClasses.AZClassifier):
         return self
     def __init__(self, name = "Consensus classifier", **kwds):
         self.verbose = 0
+        varNames = None
         self.domain = None
         self.classVar = None
         self.__dict__.update(kwds)
@@ -293,7 +294,7 @@ def Consensusread(dirPath,verbose = 0):
     except:
         if verbose > 0: print "ERROR: It was not possible to load the Consensus model"
         return None
-    return ConsensusClassifier(classifiers=classifiers ,classVar = domainFile.domain.classVar, verbose = verbose, domain = domainFile.domain)
+    return ConsensusClassifier(classifiers=classifiers ,varNames = [attr.name for attr in domainFile.domain.attributes],classVar = domainFile.domain.classVar, verbose = verbose, domain = domainFile.domain)
 
 
 if __name__ == "__main__":
