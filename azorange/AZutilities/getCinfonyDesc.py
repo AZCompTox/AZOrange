@@ -207,19 +207,22 @@ def getRdkDescResult(data,descList, radius = 1):
         newEx = orange.Example(resData.domain)
         newEx[smilesName] = ex[smilesName]
         molStr = str(newEx[smilesName].value)
-        mol = rdk.readstring("smi", molStr)
-        moldesc = mol.calcdesc(myDescList)
-        for desc in myDescList:
-            newEx[desc] = moldesc[desc]
+        # OBS - add something keeping count on the number of unused smiles
+        try:
+            mol = rdk.readstring("smi", molStr)
+            moldesc = mol.calcdesc(myDescList)
+            for desc in myDescList:
+                newEx[desc] = moldesc[desc]
 
-        #Process fingerprints
-        if FingerPrints:
-            for desc in fingerPrintsAttrs:
-                if desc.name in fingerPrintsRes[molStr]:
-                    newEx[desc.name] = fingerPrintsRes[molStr][desc.name]
-                else:
-                    newEx[desc.name] = 0
-        resData.append(newEx)
+            #Process fingerprints
+            if FingerPrints:
+                for desc in fingerPrintsAttrs:
+                    if desc.name in fingerPrintsRes[molStr]:
+                        newEx[desc.name] = fingerPrintsRes[molStr][desc.name]
+                    else:
+                        newEx[desc.name] = 0
+            resData.append(newEx)
+        except: pass 
     return resData
  
 def getCinfonyDescResults(data,descList,radius=1):

@@ -22,7 +22,7 @@ if os.path.isfile(os.path.join(AZORANGEHOME,"azorange","AZOrangeExtraConfig.py")
     from AZOrangeExtraConfig import *
 
 # These strings will automatically be identified as the smiles attribute of the data.
-SMILESNAMES = ["SMILES", "Molecule SMILES", "SMILES_", "Compound Structure", "glf_smiles", "MolSmiles", "Smiles", "Molecule Structure", "Structure", "SMILEStoPred", "SMILES_1", "smiles"]
+SMILESNAMES = ["SMILES", "Molecule SMILES", "SMILES_", "Compound Structure", "glf_smiles", "MolSmiles", "Smiles", "Molecule Structure", "Structure", "SMILEStoPred", "SMILES_1", "smiles", "SMILEStoPred"]
 AZIDNAMES = ["Compound Name", "MolName"]
 
 
@@ -69,7 +69,7 @@ CVANNDEFAULTDICT = {
         'maxIter'               : 1000 ,  
         'eps'                   : 0.001,
         "nDiffIniWeights"       : 0,    #default 10
-        "stopUPs"               : 0}    #default 5
+        "stopUPs"               : 5}    #default 5. If > 0, use early stopping with 5 epochs inbetween evaluations
 
 
 
