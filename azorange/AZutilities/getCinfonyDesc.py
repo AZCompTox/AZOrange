@@ -75,14 +75,14 @@ def getObabelDescResult(data,descList):
     myDescList = [desc.replace(obabelTag,"") for desc in descList if obabelTag in desc]
     if not myDescList: return None
        
-    resData = orange.ExampleTable(orange.Domain([data.domain[smilesName]] + [orange.FloatVariable(name) for name in myDescList],0))
+    resData = orange.ExampleTable(orange.Domain([data.domain[smilesName]] + [orange.FloatVariable(obabelTag+name) for name in myDescList],0))
     for ex in data:
         newEx = orange.Example(resData.domain)
         newEx[smilesName] = ex[smilesName]
         mol = obabel.readstring("smi", str(newEx[smilesName].value)) 
         moldesc = mol.calcdesc(myDescList)
         for desc in myDescList:
-            newEx[desc] = moldesc[desc]
+            newEx[obabelTag+desc] = moldesc[desc]
         resData.append(newEx)
     return resData
    
@@ -113,13 +113,13 @@ def getWebelDescResult(data,descList):
             if desc not in varNames:
                 varNames.append(desc)
     # Generate the dataset assuring the same order of examples
-    resData = orange.ExampleTable(orange.Domain([data.domain[smilesName]] + [orange.FloatVariable(name) for name in varNames],0))
+    resData = orange.ExampleTable(orange.Domain([data.domain[smilesName]] + [orange.FloatVariable(webelTag+name) for name in varNames],0))
     for ex in data:
         newEx = orange.Example(resData.domain)
         smile = str(ex[smilesName].value)
         newEx[smilesName] =smile
         for desc in results[smile]:
-            newEx[desc] = results[smile][desc]
+            newEx[webelTag+desc] = results[smile][desc]
         resData.append(newEx)
 
     return resData
@@ -151,13 +151,13 @@ def getCdkDescResult(data,descList):
             if desc not in varNames:
                 varNames.append(desc)
     # Generate the dataset assuring the same order of examples
-    resData = orange.ExampleTable(orange.Domain([data.domain[smilesName]] + [orange.FloatVariable(name) for name in varNames],0))
+    resData = orange.ExampleTable(orange.Domain([data.domain[smilesName]] + [orange.FloatVariable(cdkTag+name) for name in varNames],0))
     for ex in data:
         newEx = orange.Example(resData.domain)
         smile = str(ex[smilesName].value)
         newEx[smilesName] =smile
         for desc in results[smile]:
-            newEx[desc] = results[smile][desc]
+            newEx[cdkTag+desc] = results[smile][desc]
         resData.append(newEx)
 
     return resData
@@ -201,37 +201,54 @@ def getRdkDescResult(data,descList, radius = 1):
                 if name not in [x.name for x in fingerPrintsAttrs]:
                     fingerPrintsAttrs.append(orange.FloatVariable(name))
                 fingerPrintsRes[mol][name]=int(count)
-
-    resData = orange.ExampleTable(orange.Domain([data.domain[smilesName]] + [orange.FloatVariable(name) for name in myDescList] + fingerPrintsAttrs,0))     
+    resData = orange.ExampleTable(orange.Domain([data.domain[smilesName]] + [orange.FloatVariable(rdkTag+name) for name in myDescList] + [rdkTag+name for name in fingerPrintsAttrs],0))     
+    badCompounds = 0
     for ex in data:
         newEx = orange.Example(resData.domain)
         newEx[smilesName] = ex[smilesName]
         molStr = str(newEx[smilesName].value)
         # OBS - add something keeping count on the number of unused smiles
         try:
-            mol = rdk.readstring("smi", molStr)
-            moldesc = mol.calcdesc(myDescList)
-            for desc in myDescList:
-                newEx[desc] = moldesc[desc]
+             mol = rdk.readstring("smi", molStr)
+             moldesc = mol.calcdesc(myDescList)
+             for desc in myDescList:
+                 newEx[rdkTag+desc] = moldesc[desc]
+ 
+             #Process fingerprints
+             if FingerPrints:
+                 for desc in fingerPrintsAttrs:
+                     if desc.name in fingerPrintsRes[molStr]:
+                         newEx[rdkTag+desc.name] = fingerPrintsRes[molStr][desc.name]
+                     else:
+                         newEx[rdkTag+desc.name] = 0
+             resData.append(newEx)
+        except: 
+            badCompounds += 1
+            pass 
+    print "Compounds in original data:       ",len(data)
+    print "Compounds able to calculate descs:",len(resData)
+    print "Ignored Compounds:                ",badCompounds
 
-            #Process fingerprints
-            if FingerPrints:
-                for desc in fingerPrintsAttrs:
-                    if desc.name in fingerPrintsRes[molStr]:
-                        newEx[desc.name] = fingerPrintsRes[molStr][desc.name]
-                    else:
-                        newEx[desc.name] = 0
-            resData.append(newEx)
-        except: pass 
     return resData
  
-def getCinfonyDescResults(data,descList,radius=1):
-    if not data or not descList: return None
-    smilesName = getSMILESAttr(data)
+def getCinfonyDescResults(origData,descList,radius=1):
+    """Calculates the cinfony descriptors on origData
+       maintains the input variables and class
+       Adds the Cinfony descritors 
+            Returns a new Dataset"""
+    if not origData or not descList: return None
+    smilesName = getSMILESAttr(origData)
     if not smilesName: return None
-        
+    #Create a new domain saving original smiles and other attributes
+    newDomain = orange.Domain([attr for attr in origData.domain if attr is not origData.domain.classVar] + [orange.StringVariable("origSmiles")],origData.domain.classVar)
+    data = dataUtilities.DataTable(newDomain, origData)
+    # Standardize SMILES
+    for ex in data:
+        ex["origSmiles"] = ex[smilesName].value
+    #TODO: Call here some method to standardize the attribute smilesName in place having the attr origSmiles as ID
     results = []
 
+    # Calculate available descriptors
     res = getObabelDescResult(data,descList)
     if res: results.append(res)
 
@@ -257,8 +274,13 @@ def getCinfonyDescResults(data,descList,radius=1):
         for res in results[1:]:
             resData = dataUtilities.horizontalMerge(resData, res, smilesName, smilesName)
         
-    return dataUtilities.horizontalMerge(data, resData, smilesName, smilesName)
-      
+    data = dataUtilities.horizontalMerge(data, resData, smilesName, smilesName)
+    # Revert the SMILES back to it's original state
+    for ex in data:
+        ex[smilesName] = ex["origSmiles"]
+    #Remove the origSmiles attributes
+    data = dataUtilities.DataTable(orange.Domain([attr for attr in data.domain if attr.name != "origSmiles" and attr is not data.domain.classVar],data.domain.classVar),data)
+    return data
 
 def getAvailableDescs(descSet = "all"):
     """
