@@ -260,7 +260,18 @@ class ConsensusClassifier(AZBaseClasses.AZClassifier):
                 # This assures that all related files will be inside a folder
                 os.system("mkdir -p " + dirPath) 
                 # Save the models
-                dataUtilities.DataTable(self.domain).save(os.path.join(dirPath,"trainDomain.tab"))
+                trainDomain = dataUtilities.DataTable(self.domain)
+                #Save along with trainDomain file some dummy examples for compatibility
+                ex = orange.Example(self.domain)
+                for attr in self.domain:
+                    if attr.varType == orange.VarTypes.Discrete:
+                        ex[attr] = attr.values[0]
+                    elif attr.varType == orange.VarTypes.Continuous:
+                        ex[attr] = 0
+                    elif attr.varType == orange.VarTypes.String:
+                        ex[attr] = "NA"
+                trainDomain.append(ex)
+                trainDomain.save(os.path.join(dirPath,"trainDomain.tab"))
                 for idx,c in enumerate(self.classifiers):
                     c.write(os.path.join(dirPath,"C"+str(idx)+".model"))
         except:            
