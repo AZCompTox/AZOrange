@@ -75,10 +75,10 @@ class CvANNClassifierTest(AZorngTestUtil.AZorngTestUtil):
         """Test to assure that priors are set correcly."""
 
         # Create a CvANN model
-        CvANNlearner = AZorngCvANN.CvANNLearner(priors = {"Iris-versicolor":0.35, "Iris-virginica":0.13, "Iris-setosa":0.52})
+        CvANNlearner = AZorngCvANN.CvANNLearner(stopUPs = 0, priors = {"Iris-versicolor":0.35, "Iris-virginica":0.13, "Iris-setosa":0.52})
         CvANNmodel = CvANNlearner(self.irisData)
         #Model with No Priors
-        CvANNlearnerNoP = AZorngCvANN.CvANNLearner()
+        CvANNlearnerNoP = AZorngCvANN.CvANNLearner(stopUPs=0)
         CvANNmodelNoP = CvANNlearnerNoP(self.irisData)
 
 
@@ -112,7 +112,7 @@ class CvANNClassifierTest(AZorngTestUtil.AZorngTestUtil):
         def TopVarImportanceTest(data, expectNone = False):
             resA = []
             resB = []
-            CvANN = AZorngCvANN.CvANNLearner(data)
+            CvANN = AZorngCvANN.CvANNLearner(data, stopUPs=0)
 
             for ex in data:
                 resA.append(CvANN.getTopImportantVars(ex,1))
@@ -141,7 +141,7 @@ class CvANNClassifierTest(AZorngTestUtil.AZorngTestUtil):
 
     def test_DFV(self):
         """ Test the Decision Function Value Return"""
-        CvANN = AZorngCvANN.CvANNLearner(self.LdataTrain)
+        CvANN = AZorngCvANN.CvANNLearner(self.LdataTrain,stopUPs=0)
         #Testsing with return of DFV
         RDFV = True
         for ex in self.LdataTest:
@@ -203,7 +203,7 @@ class CvANNClassifierTest(AZorngTestUtil.AZorngTestUtil):
     def test_Probabilities(self):
         """Test if the returned probabilities are not fake"""
 
-        CvANN = AZorngCvANN.CvANNLearner(self.LdataTrain)
+        CvANN = AZorngCvANN.CvANNLearner(self.LdataTrain,stopUPs=0)
         res = []
         for idx,ex in enumerate(self.LdataTest):
             res.append(CvANN(ex,resultType = orange.GetProbabilities))
@@ -227,13 +227,13 @@ class CvANNClassifierTest(AZorngTestUtil.AZorngTestUtil):
         """
 
         # One step ann creation
-        ann = AZorngCvANN.CvANNLearner(self.train_data)
+        ann = AZorngCvANN.CvANNLearner(self.train_data,stopUPs=0)
 
         # Calculate classification accuracy for the classifier trained in one step
         oneStepAcc = evalUtilities.getClassificationAccuracy(self.test_data, ann)
 
         # Two step ann creation
-        learner = AZorngCvANN.CvANNLearner(randomWeights = False)
+        learner = AZorngCvANN.CvANNLearner(randomWeights = False ,stopUPs=0)
         ann = learner(self.train_data)
         
         # Calculate classification accuracy for the classifier trained in two steps
@@ -247,7 +247,7 @@ class CvANNClassifierTest(AZorngTestUtil.AZorngTestUtil):
         """Test to assure that a saved ann model gives the same predictions as before saving."""
 
         # Create an ann model
-        ann = AZorngCvANN.CvANNLearner(self.train_data)
+        ann = AZorngCvANN.CvANNLearner(self.train_data,stopUPs=0)
 
         # Calculate classification accuracy 
         Acc = evalUtilities.getClassificationAccuracy(self.test_data, ann)
@@ -277,7 +277,7 @@ class CvANNClassifierTest(AZorngTestUtil.AZorngTestUtil):
         Assure that imputation works for the ann models. Test on data with missing values
         This test just assures the the model is trained. The correct imputation test is made on testImpute
         """
-        annLearner = AZorngCvANN.CvANNLearner(randomWeights = False, nHidden = [3], nEpochs = 100)
+        annLearner = AZorngCvANN.CvANNLearner(randomWeights = False, nHidden = [3], nEpochs = 100,stopUPs=0)
 
         ann = annLearner(self.missingTrain)
     
@@ -292,7 +292,7 @@ class CvANNClassifierTest(AZorngTestUtil.AZorngTestUtil):
         """
         expectedAcc = 0.66666700000000001 # Ver 0.3 
         # Create a ann model
-        CvANNlearner = AZorngCvANN.CvANNLearner(randomWeights = False, nHidden = [3], nEpochs = 100)
+        CvANNlearner = AZorngCvANN.CvANNLearner(randomWeights = False, nHidden = [3], nEpochs = 100,stopUPs=0)
         ann = CvANNlearner(self.noBadDataTrain)
         #using from index 3 o the end of data, because we know that from 0 to 2 the examples are not compatible
         Acc2 = evalUtilities.getClassificationAccuracy(self.noBadDataTest[3:],ann)
@@ -309,7 +309,7 @@ class CvANNClassifierTest(AZorngTestUtil.AZorngTestUtil):
         """
         expectedAcc = 0.69999999999999996 # Ver 0.3
         # Create a ann model
-        CvANNlearner = AZorngCvANN.CvANNLearner(randomWeights = False, nHidden = [3], nEpochs = 100)
+        CvANNlearner = AZorngCvANN.CvANNLearner(randomWeights = False, nHidden = [3], nEpochs = 100,stopUPs=0)
         ann = CvANNlearner(self.noBadDataTrain)
         #using from index 3 o the end of data, because we know that from 0 to 2 the examples are not compatible
         Acc1 = evalUtilities.getClassificationAccuracy(self.noBadDataTest,ann)
@@ -327,7 +327,7 @@ class CvANNClassifierTest(AZorngTestUtil.AZorngTestUtil):
         """
         expectedAcc1 =  0.69999999999999996 # Ver 0.3 
         # Create a ann model
-        CvANNlearner = AZorngCvANN.CvANNLearner(randomWeights = False, nHidden = [3], nEpochs = 100)
+        CvANNlearner = AZorngCvANN.CvANNLearner(randomWeights = False, nHidden = [3], nEpochs = 100,stopUPs=0)
         ann = CvANNlearner(self.noBadDataTrain)
         #using from index 3 o the end of data, because we know that from 0 to 2 the examples are not compatible
         Acc1 = evalUtilities.getClassificationAccuracy(self.noBadDataTest,ann)
@@ -355,7 +355,7 @@ class CvANNClassifierTest(AZorngTestUtil.AZorngTestUtil):
 
         imputer = orange.ImputerConstructor_average(contTrain)
         
-        CvANNlearner = AZorngCvANN.CvANNLearner(randomWeights = False, nHidden = [3], nEpochs = 100)
+        CvANNlearner = AZorngCvANN.CvANNLearner(randomWeights = False, nHidden = [3], nEpochs = 100,stopUPs=0)
         ann = CvANNlearner(contTrain)        
 
         # Prediction for data as it is
@@ -420,7 +420,7 @@ class CvANNClassifierTest(AZorngTestUtil.AZorngTestUtil):
         """
         expectedAcc = 0.69999999999999996 # Ver 0.3
         # Create an ann model
-        CvANNlearner = AZorngCvANN.CvANNLearner(randomWeights = False, nHidden = [3], nEpochs = 100)
+        CvANNlearner = AZorngCvANN.CvANNLearner(randomWeights = False, nHidden = [3], nEpochs = 100,stopUPs=0)
         ann = CvANNlearner(self.NoMetaTrain)
 
         # Calculate classification accuracy (NoMetaTest and WMeta are the same appart from the meta atribute) 
@@ -436,7 +436,7 @@ class CvANNClassifierTest(AZorngTestUtil.AZorngTestUtil):
         expectedAccNoMeta = 0.63333333300000005 # Ver 0.3
         #Test the save of a model created from a train data with meta attributes
         self.assert_(len(self.WMetaTest.domain.getmetas())>=1,"The dataset WMetaTest should have Meta Attributes")
-        CvANNlearner = AZorngCvANN.CvANNLearner(randomWeights = False, nHidden = [3], nEpochs = 100)
+        CvANNlearner = AZorngCvANN.CvANNLearner(randomWeights = False, nHidden = [3], nEpochs = 100,stopUPs=0)
         annM = CvANNlearner(self.WMetaTest)
         AccNoMetaBefore = evalUtilities.getClassificationAccuracy(self.NoMetaTrain,annM) 
         AccWMetaBefore = evalUtilities.getClassificationAccuracy(self.WMetaTest,annM)
@@ -476,7 +476,7 @@ class CvANNClassifierTest(AZorngTestUtil.AZorngTestUtil):
         expectedAccNoMeta = 0.63333333300000005 # Ver 0.3
         #Test the save of a model created from a train data with meta attributes
         self.assert_(len(self.WMetaTest.domain.getmetas())>=1,"The dataset WMetaTest should have Meta Attributes")
-        CvANNlearner = AZorngCvANN.CvANNLearner(randomWeights = False, nHidden = [3], nEpochs = 100, scale = True)
+        CvANNlearner = AZorngCvANN.CvANNLearner(randomWeights = False, nHidden = [3], nEpochs = 100, scale = True,stopUPs=0)
         annM = CvANNlearner(self.WMetaTest)
         AccNoMetaBefore = evalUtilities.getClassificationAccuracy(self.NoMetaTrain,annM)
         AccWMetaBefore = evalUtilities.getClassificationAccuracy(self.WMetaTest,annM)
@@ -512,7 +512,7 @@ class CvANNClassifierTest(AZorngTestUtil.AZorngTestUtil):
         Assure that the accuracy is perserved for models trained in the same way. 
         """
         # One step ann creation
-        ann = AZorngCvANN.CvANNLearner(self.train_data,nHidden = [3])
+        ann = AZorngCvANN.CvANNLearner(self.train_data,nHidden = [3],stopUPs=0)
         # Calculate classification accuracy for the classifier trained in one step
         oneStepAcc = evalUtilities.getClassificationAccuracy(self.test_data, ann)
         # Check that the accuracy is what it used to be
@@ -530,7 +530,7 @@ class CvANNClassifierTest(AZorngTestUtil.AZorngTestUtil):
         contTest = dataUtilities.DataTable(contTestDataPath)
 
         # Create a CvANN model
-        CvANNlearner = AZorngCvANN.CvANNLearner(randomWeights = False, nHidden = [3], nEpochs = 100)
+        CvANNlearner = AZorngCvANN.CvANNLearner(randomWeights = False, nHidden = [3], nEpochs = 100,stopUPs=0)
         CvANNmodel = CvANNlearner(contTrain)
         # Calculate classification accuracy 
         Acc = evalUtilities.getRMSE(contTest, CvANNmodel)

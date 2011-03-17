@@ -527,7 +527,7 @@ class optimizerTest(AZorngTestUtil.AZorngTestUtil):
         Tests changing the default range of the optimizer.
         """             
         # Classification accuracy:
-        ExpectedCA = [0.564]  #Ver 0.3
+        ExpectedCA = [0.585]  #Ver 0.3
                         
         optimizer = paramOptUtilities.Appspack()
 
