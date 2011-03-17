@@ -268,7 +268,9 @@ def getCinfonyDescResults(origData,descList,radius=1):
                 for attr in ex.domain:
                     if ex[attr] != ex[attr]:   # Will fail if it is 'nan'
                         ex[attr] = '?'
-
+    # return None if no results at all 
+    if not results:
+        return None
     resData = results[0]
     if len(results) > 1:
         for res in results[1:]:
