@@ -241,11 +241,6 @@ class installerClass:
 
     def compileCinfony(self):
         # this is only untill the cinfony functionality is implemented at InHouse
-        if not self.OpenInstallation:
-            stat, out = commands.getstatusoutput("rm -f "+os.path.join(self.orangeInstallDir,"orange/OrangeWidgets/Data/OWCinfonyDesc.py"))
-            print "Removed the Cinfony widget from the installation"
-            return
-        #==================================================
         if ("cinfony" not in self.dependencies):
             print "Not using the local cinfony"
             return
