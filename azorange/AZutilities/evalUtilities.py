@@ -1,4 +1,5 @@
 import types, os
+import time
 import math
 import statc
 import string
@@ -82,9 +83,10 @@ def getNearestNeighbors(query, n, NNData, resPath = None, idx = 0):
     #    TS[n][0] - tanimoto similarity
     #    TS[n][1] - number of the correspondent data index
     res = []
+    timeStamp=str(time.time()).replace(".",'')
     for fidx,nn in enumerate(TS[0:n]):
         if resPath and os.path.isdir(resPath):
-            imgPath = os.path.join(resPath,"NN"+str(idx)+"_"+str(fidx+1)+".png")
+            imgPath = os.path.join(resPath,"NN"+str(idx)+"_"+str(fidx+1)+"_"+timeStamp+".png")
             mol = Chem.MolFromSmiles(str(NNData[nn[1]]["Molecule SMILES"].value))
             # save the respective imgPath...  
             Draw.MolToImageFile(mol,imgPath,size=(300, 300), kekulize=True, wedgeBonds=True)
