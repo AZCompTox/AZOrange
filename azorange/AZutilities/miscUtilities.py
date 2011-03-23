@@ -308,13 +308,12 @@ def int2bin(inInt):
 
 def countOnBits(inInt):
     """ Count the number of ON bits in the respective binary representation of inInt"""
-    i = long(1)
-    onBits = 0
-    while i <= inInt:
-        if (inInt & i):
-            onBits += 1
-        i = i<<1
-    return onBits    
+    v=long(inInt)
+    c=long(0)
+    while v:
+        v &= v - 1
+        c += 1
+    return c
 
 class binBase64():
     # Compress Alphabet, must have lenght of power of base 2: ex: 2^4  2^6
