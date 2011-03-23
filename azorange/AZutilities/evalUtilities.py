@@ -1,6 +1,6 @@
 import types, os
 import time
-import math
+import math,struct
 import statc
 import string
 import orngStat
@@ -38,16 +38,16 @@ def tanimotoSimilarity(A, B):
     else: return  nAB / (nAnB - nAB)
 
 def fastTanimotoSimilarity(A,nA,B):
-    """Same as tanimotoSimilarity but expecting in A a long integer representing the binary fingetprint
+    """Same as tanimotoSimilarity but expecting in A and B a long integer representing the binary fingetprint
        and nA the number of ONbits in A"""
     #Not validating input since this function has to called very often.
-    AandB = A & long(B,2)
+    AandB = A & B
     nAB = miscUtilities.countOnBits(AandB)      # Number of match ON Bits
-    nAnB = 0.0 + nA + B.count("1")                # nA+nB
+    nAnB = 0.0 + nA + miscUtilities.countOnBits(B)            # nA+nB
     if not nAnB: return 0.0
     else: return  nAB / (nAnB - nAB)
 
-def getNearestNeighbors(query, n, NNData, resPath = None, idx = 0):
+def getNearestNeighbors(query, n, NNData, FPPath = None, resPath = None, idx = 0):
     """ get the n nearest neighbors
         query: bin string with query fingerprint
         returns an ordered list with the n top neighbors (each one in a dict):
@@ -67,22 +67,31 @@ def getNearestNeighbors(query, n, NNData, resPath = None, idx = 0):
     if resPath and not os.path.isdir(resPath):
         os.makedirs(resPath)
 
+    Nbits = 2048
     intQuery = long(query,2)
-    decoder = miscUtilities.binBase64()
     ONbits = query.count("1")
     # Calculate the tanimoto similarity over all the NNData and store them    
     #   Compound Name   Date    Molecule SMILES Fingerprint     NonCleanActivity
-    FPidx = NNData.domain.index("Fingerprint")
     TS = []
-    for fidx,ex in enumerate(NNData):
-        if ex[FPidx].isSpecial():
+    #lap=time.time()
+    FPFile = open(FPPath,"rb")
+    for fidx in range(len(NNData)):
+        intTarget = 0
+        for idx in range(Nbits/64):
+            x=struct.unpack('Q',FPFile.read(8))
+            intTarget <<=  64
+            intTarget |= x[0]
+        if intTarget == 0 :
             continue
-        TS.append( (fastTanimotoSimilarity(intQuery, ONbits, decoder.decode(ex[FPidx].value)), fidx)  )
+        TS.append( (fastTanimotoSimilarity(intQuery, ONbits, intTarget), fidx)  )
+        #TS.append( (0, fidx)  )
+    #print "--> Calculate the tanimoto similarity over all the NNData"+str(len(NNData))+":",time.time()-lap
     TS.sort(reverse=True)
     # in TS:
     #    TS[n][0] - tanimoto similarity
     #    TS[n][1] - number of the correspondent data index
     res = []
+    #lap=time.time()
     timeStamp=str(time.time()).replace(".",'')
     for fidx,nn in enumerate(TS[0:n]):
         if resPath and os.path.isdir(resPath):
@@ -98,7 +107,7 @@ def getNearestNeighbors(query, n, NNData, resPath = None, idx = 0):
                 "similarity": nn[0], 
                 "smi": str(NNData[nn[1]]["Molecule SMILES"].value), 
                 "imgPath": imgPath} )
-        
+    #print "--> Creating NN images:",time.time()-lap 
     return res
     
 
