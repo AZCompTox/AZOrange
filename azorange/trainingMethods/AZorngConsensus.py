@@ -132,8 +132,11 @@ class ConsensusClassifier(AZBaseClasses.AZClassifier):
                         invVotes = dict(map(lambda item: (item[1],item[0]),votes.items()))
                         maxVoted = invVotes[max(invVotes.keys())]
                         predicted = self.classVar[self.classVar.values.index(maxVoted)]
-                        self._isRealProb = False
-                        probabilities = self.__generateProbabilities(predicted)
+                        # generate probabilities based on voting. We assured already this is a binary classifier
+                        self._isRealProb = True
+                        probOf1 = votes[self.classVar.values[1]]/len(self.classifiers)
+                        DFV = self.convert2DFV(probOf1)
+                        probabilities = self.__getProbabilities(probOf1)
                     else:     #Even number of Classifiers: Use the average of the N probabilities.
                               #if at least one of the Classifiers do not support true probabilities, STOP!       
                         self.status = "Using probabilities average (Even number of classifiers)"
