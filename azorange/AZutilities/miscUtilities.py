@@ -306,14 +306,34 @@ def int2bin(inInt):
     bstr_nonneg = lambda n: n>0 and bstr_nonneg(n>>1).lstrip('0')+str(n&1) or '0'
     return bstr_nonneg(inInt)
 
-def countOnBits(inInt):
-    """ Count the number of ON bits in the respective binary representation of inInt"""
-    v=long(inInt)
-    c=long(0)
-    while v:
-        v &= v - 1
-        c += 1
-    return c
+m1 = int("0x" + "5" * (2048//4), 16)
+m2 = int("0x" + "3" * (2048//4), 16)
+m3 = int("0x" + "0f" * (2048//8), 16)
+m4 = int("0x" + "00ff" * (2048//16), 16)
+m5 = int("0x" + "0000ffff" * (2048//32), 16)
+m6 = int("0x" + ("0"*8+"f"*8) * (2048//64), 16)
+m7 = int("0x" + ("0"*16+"f"*16) * (2048//128), 16)
+m8 = int("0x" + ("0"*32+"f"*32) * (2048//256), 16)
+m9 = int("0x" + ("0"*64+"f"*64) * (2048//512), 16)
+m10 = int("0x" + ("0"*128+"f"*128) * (2048//1024), 16)
+m11 = int("0x" + ("0"*256+"f"*256), 16)
+    
+
+def countOnBits(x):
+    """ Count the number of ON bits in the respective binary 2048 bits representation of x"""
+    x = (x & m1 ) + ((x >>   1) & m1 )
+    x = (x & m2 ) + ((x >>   2) & m2 )
+    x = (x & m3 ) + ((x >>   4) & m3 )
+    x = (x & m4 ) + ((x >>   8) & m4 )
+    x = (x & m5 ) + ((x >>  16) & m5 )
+    x = (x & m6 ) + ((x >>  32) & m6 )
+    x = (x & m7 ) + ((x >>  64) & m7 )
+    x = (x & m8 ) + ((x >> 128) & m8 )
+    x = (x & m9 ) + ((x >> 256) & m9 )
+    x = (x & m10) + ((x >> 512) & m10)
+    x = (x & m11) + ((x >> 1024) & m11)
+    return x
+
 
 class binBase64():
     # Compress Alphabet, must have lenght of power of base 2: ex: 2^4  2^6
