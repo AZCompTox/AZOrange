@@ -78,7 +78,7 @@ class ConsensusLearner(AZBaseClasses.AZLearner):
         for learner in self.learnersObj:
             classifiers.append(learner(trainingData))
 
-        return ConsensusClassifier(classifiers = classifiers, classVar = trainingData.domain.classVar,verbose = self.verbose, domain = trainingData.domain, varNames = [attr.name for attr in trainingData.domain.attributes])
+        return ConsensusClassifier(classifiers = classifiers, classVar = trainingData.domain.classVar,verbose = self.verbose, domain = trainingData.domain, varNames = [attr.name for attr in trainingData.domain.attributes], NTrainEx = len(trainingData), basicStat = self.basicStat)
 
 
 class ConsensusClassifier(AZBaseClasses.AZClassifier):
@@ -286,6 +286,8 @@ def Consensusread(dirPath,verbose = 0):
     # Read data from disk
     #This removes any trailing '/'
     dirPath = os.path.realpath(str(dirPath)) 
+    basicStat = None
+    NTrainEx = None
     # This assures that all related files will be inside a folder
     try:
         domainFile = dataUtilities.DataTable(os.path.join(dirPath,"trainDomain.tab"))
@@ -302,10 +304,17 @@ def Consensusread(dirPath,verbose = 0):
                     if not classifiers[-1]:
                         if self.verbose > 0: print "ERROR: Could not load the model ",mFile
                         return None
+                    elif not basicStat:
+                        #Try to load the basicStat and NTrainEx from a model that saved it!
+                        if hasattr(classifiers[-1], "basicStat") and classifiers[-1].basicStat:
+                            basicStat = classifiers[-1].basicStat
+                        if hasattr(classifiers[-1], "NTrainEx") and classifiers[-1].NTrainEx:
+                            NTrainEx = classifiers[-1].NTrainEx
+
     except:
         if verbose > 0: print "ERROR: It was not possible to load the Consensus model"
         return None
-    return ConsensusClassifier(classifiers=classifiers ,varNames = [attr.name for attr in domainFile.domain.attributes],classVar = domainFile.domain.classVar, verbose = verbose, domain = domainFile.domain)
+    return ConsensusClassifier(classifiers=classifiers ,varNames = [attr.name for attr in domainFile.domain.attributes],classVar = domainFile.domain.classVar, verbose = verbose, domain = domainFile.domain, basicStat = basicStat, NTrainEx = NTrainEx)
 
 
 if __name__ == "__main__":
