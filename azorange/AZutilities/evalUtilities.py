@@ -8,6 +8,7 @@ import copy
 import orngTest
 import orange
 import numpy
+import commands
 from statlib import stats
 from AZutilities import miscUtilities
 from rdkit import Chem
@@ -47,7 +48,9 @@ def fastTanimotoSimilarity(A,nA,B):
     if not nAnB: return 0.0
     else: return  nAB / (nAnB - nAB)
 
-def getNearestNeighbors(query, n, NNData, FPPath = None, resPath = None, idx = 0):
+
+
+def getNearestNeighbors__(query, n, NNData, FPPath = None, resPath = None, idx = 0):
     """ get the n nearest neighbors
         query: bin string with query fingerprint
         returns an ordered list with the n top neighbors (each one in a dict):
@@ -64,10 +67,14 @@ def getNearestNeighbors(query, n, NNData, FPPath = None, resPath = None, idx = 0
              ...
              NN_n.png    #n neighbor
     """
+    if not FPPath or not n or not query or not NNData:
+        return []
+
     if resPath and not os.path.isdir(resPath):
         os.makedirs(resPath)
 
     Nbits = 2048
+    lap=time.time()
     intQuery = long(query,2)
     ONbits = query.count("1")
     # Calculate the tanimoto similarity over all the NNData and store them    
@@ -81,17 +88,19 @@ def getNearestNeighbors(query, n, NNData, FPPath = None, resPath = None, idx = 0
             x=struct.unpack('Q',FPFile.read(8))
             intTarget <<=  64
             intTarget |= x[0]
+        FPFile.read(16)
         if intTarget == 0 :
             continue
         TS.append( (fastTanimotoSimilarity(intQuery, ONbits, intTarget), fidx)  )
         #TS.append( (0, fidx)  )
-    #print "--> Calculate the tanimoto similarity over all the NNData"+str(len(NNData))+":",time.time()-lap
+
+    print "--> Calculate the tanimoto similarity over all the NNData"+str(len(NNData))+":",time.time()-lap
     TS.sort(reverse=True)
     # in TS:
     #    TS[n][0] - tanimoto similarity
     #    TS[n][1] - number of the correspondent data index
     res = []
-    #lap=time.time()
+    lap=time.time()
     timeStamp=str(time.time()).replace(".",'')
     for fidx,nn in enumerate(TS[0:n]):
         if resPath and os.path.isdir(resPath):
@@ -102,12 +111,80 @@ def getNearestNeighbors(query, n, NNData, FPPath = None, resPath = None, idx = 0
         else:
             imgPath = ""
         res.append( {
-                "id": str(NNData[nn[1]]["Compound Name"].value), 
-                "expVal": str(NNData[nn[1]].getclass().value), 
+                "id": str(NNData[nn[1]]["Compound Name"].value),
+                "expVal": str(NNData[nn[1]].getclass().value),
+                "similarity": nn[0],
+                "smi": str(NNData[nn[1]]["Molecule SMILES"].value),
+                "imgPath": imgPath} )
+    print "--> Creating NN images:",time.time()-lap
+    return res
+
+
+
+def getNearestNeighbors(query, n, NNDataPath, FPPath = None, resPath = None, idx = 0):
+    """ get the n nearest neighbors
+        query: bin string with query fingerprint
+        returns an ordered list with the n top neighbors (each one in a dict):
+            [ {
+                "id"          : ID, 
+                "expVal"      : ExpValues, 
+                "similarity"  : TanimotoSimilarity, 
+                "smi"         : smiles, 
+                "imgPath"     : imgPath},  ... ]        
+
+        It will saves the images in resPath:
+             NN_1.png    #1 neighbor
+             NN_2.png    #2 neighbor
+             ...
+             NN_n.png    #n neighbor
+    """
+    if not query or not n or not  NNDataPath or not  FPPath:
+        return []
+    if resPath and not os.path.isdir(resPath):
+        os.makedirs(resPath)
+
+    Nbits = 2048
+    #lap = time.time()
+    status,output = commands.getstatusoutput('echo "' + query + '" | fp2k ' + FPPath + ' 0.0 3')
+    if status:
+        print status
+        print output
+        raise Exception(str(output))
+    TS=[]
+    for ts in output.split("\n")[0:n]:
+        sTS = ts.strip().split('\t')
+        TS.append( [ float(sTS[1]), int(sTS[0]) ] )
+    #print "--> Calculate the tanimoto similarity over all the NNData"+str(len(NNData))+":",time.time()-lap
+    TS.sort(reverse=True)
+    # in TS:
+    #    TS[n][0] - tanimoto similarity
+    #    TS[n][1] - number of the correspondent data offset
+    res = []
+    #lap=time.time()
+    timeStamp=str(time.time()).replace(".",'')
+    fpData = open(NNDataPath, 'r')
+    varNames = fpData.readline().strip().split('\t')
+    for fidx,nn in enumerate(TS):
+        fpData.seek(nn[1])
+        fEx = fpData.readline().strip().split('\t')
+        ID=fEx[varNames.index("Compound Name")]
+        expVal = fEx[-1]
+        SMILES = fEx[varNames.index("Molecule SMILES")]
+        if resPath and os.path.isdir(resPath):
+            imgPath = os.path.join(resPath,"NN"+str(idx)+"_"+str(fidx+1)+"_"+timeStamp+".png")
+            mol = Chem.MolFromSmiles(SMILES)
+            # save the respective imgPath...  
+            Draw.MolToImageFile(mol,imgPath,size=(300, 300), kekulize=True, wedgeBonds=True)
+        else:
+            imgPath = ""
+        res.append( {
+                "id": ID, 
+                "expVal": expVal, 
                 "similarity": nn[0], 
-                "smi": str(NNData[nn[1]]["Molecule SMILES"].value), 
+                "smi": SMILES, 
                 "imgPath": imgPath} )
     #print "--> Creating NN images:",time.time()-lap 
+    fpData.close()
     return res
     
 
