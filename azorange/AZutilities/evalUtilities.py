@@ -140,36 +140,34 @@ def getNearestNeighbors(query, n, NNDataPath, FPPath = None, resPath = None, idx
     """
     if not query or not n or not  NNDataPath or not  FPPath:
         return []
-    if resPath and not os.path.isdir(resPath):
-        os.makedirs(resPath)
+    #if resPath and not os.path.isdir(resPath):
+    #    os.makedirs(resPath)
 
     Nbits = 2048
     #lap = time.time()
-    status,output = commands.getstatusoutput('echo "' + query + '" | fp2k ' + FPPath + ' 0.0 3')
+    status,output = commands.getstatusoutput('echo "' + query + '" | fpin ' + FPPath + " "  +NNDataPath + ' 0.0 '+str(n))
     if status:
         print status
         print output
         raise Exception(str(output))
+    #             TS              SMILES                    AZID         DATE       expRes
+    # output = "0.7117   CCCC(C)C1(C(=O)NC(=O)NC1=O)CC   AZ10046012   2009-12-02   3.480007"
     TS=[]
-    for ts in output.split("\n")[0:n]:
-        sTS = ts.strip().split('\t')
-        TS.append( [ float(sTS[1]), int(sTS[0]) ] )
+    for ts in output.split("\n"):
+        TS.append(ts.strip().split('\t'))
     #print "--> Calculate the tanimoto similarity over all the NNData"+str(len(NNData))+":",time.time()-lap
-    TS.sort(reverse=True)
     # in TS:
     #    TS[n][0] - tanimoto similarity
-    #    TS[n][1] - number of the correspondent data offset
+    #    TS[n][1] - SMILES
+    #    TS[n][2] - AZID
+    #    TS[n][-1]- expRes
     res = []
     #lap=time.time()
     timeStamp=str(time.time()).replace(".",'')
-    fpData = open(NNDataPath, 'r')
-    varNames = fpData.readline().strip().split('\t')
     for fidx,nn in enumerate(TS):
-        fpData.seek(nn[1])
-        fEx = fpData.readline().strip().split('\t')
-        ID=fEx[varNames.index("Compound Name")]
-        expVal = fEx[-1]
-        SMILES = fEx[varNames.index("Molecule SMILES")]
+        ID= nn[2]
+        expVal = nn[-1]
+        SMILES = nn[1]
         if resPath and os.path.isdir(resPath):
             imgPath = os.path.join(resPath,"NN"+str(idx)+"_"+str(fidx+1)+"_"+timeStamp+".png")
             mol = Chem.MolFromSmiles(SMILES)
@@ -184,7 +182,6 @@ def getNearestNeighbors(query, n, NNDataPath, FPPath = None, resPath = None, idx
                 "smi": SMILES, 
                 "imgPath": imgPath} )
     #print "--> Creating NN images:",time.time()-lap 
-    fpData.close()
     return res
     
 
