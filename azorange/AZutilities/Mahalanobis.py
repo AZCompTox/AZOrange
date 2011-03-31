@@ -1,8 +1,8 @@
 # Do Mahalanobis calculations
 # The sole modification is to replace the import ot PyDroneConstants
 
-import sys
-
+import os,sys,time
+import numpy
 # Global variables needed to avoid importing PyDroneConstants
 TRAIN = "_train"
 NEAREST_DIST = "_dist_near"
@@ -10,13 +10,33 @@ NEAREST_ID = "_id_near"
 NEAREST_SMI = "_SMI_near"
 NEAREST_MEASURED = "_exp_near"
 
+def createInvCovMat(data, fileToSave=None):
+    #import numpy   # put here to reduce initial import time
+    from AZutilities import similarityMetrics
+    import orange
+
+    if data.hasMissingValues():
+        averageImputer = orange.ImputerConstructor_average(data)
+        data = averageImputer(data)
+    training_set = similarityMetrics.getTrainingSet(data)
+
+    # Calculate the Inv Cov Matrix
+    covarMat = numpy.cov(numpy.asarray(training_set.data_table), rowvar=0)
+    inverse_covarMat = numpy.linalg.pinv(covarMat, rcond=1e-10)
+    if fileToSave:
+        numpy.save(fileToSave,inverse_covarMat)
+    return inverse_covarMat
+
 
 class MahalanobisDistanceCalculator:
-    def __init__(self, training_set):
+    def __init__(self, training_set, invCovMatFile = None):
         assert training_set is not None, "Mahalanobis distance calculator needs a training set in order to do anything useful. Was passed None."
         self.training_set  = training_set
         self.norm = None
         self.centre = None
+        if (invCovMatFile is not None and not os.path.isfile(invCovMatFile)):
+            raise Exception("Cannot locate the Inv. Cov. Matrix file: "+str(invCovMatFile))
+        self.invCovMatFile = invCovMatFile
         
     def get_norm(self):
         if self.norm is None:
@@ -24,9 +44,18 @@ class MahalanobisDistanceCalculator:
         return self.norm
         
     def _lazy_init(self):
-        self.norm = create_inverse_covariance_norm(self.training_set.data_table)
+        print "Calculating inv Cov Matrix..."
+        start = time.time()
+
+        if self.invCovMatFile and os.path.isfile(self.invCovMatFile):
+            self.norm = numpy.load(self.invCovMatFile)
+        else:    
+            self.norm = create_inverse_covariance_norm(self.training_set.data_table)
         self.center = average_vector(self.training_set.data_table)
-        
+
+        print "  ",time.time()-start
+
+
     def calculateDistances(self, descriptor_values, count):
         if self.norm is None:
             self._lazy_init()
@@ -115,7 +144,7 @@ def mean(data):
     
     
 def average_vector(vectors):
-    import numpy
+    #import numpy
     return numpy.average(vectors, 0)
 
 
@@ -125,7 +154,7 @@ def compute_distance(v1, v2, norm):
 def compute_distances(v, vectors, norm):
     # This will return a list of distances for each vector in the list,
     # in the same order as the input
-    import numpy
+    #import numpy
     if None in v:
         raise TypeError("'None' found in the compound vector - can't convert to a float" % v) 
     try:
@@ -142,7 +171,7 @@ def compute_distances(v, vectors, norm):
     return distances
 
 def create_inverse_covariance_norm(training_vectors):
-    import numpy   # put here to reduce initial import time
+    #import numpy   # put here to reduce initial import time
     from numpy import linalg
     covarMat = numpy.cov(numpy.asarray(training_vectors), rowvar=0)
     inverse_covarMat = linalg.pinv(covarMat, rcond=1e-10)

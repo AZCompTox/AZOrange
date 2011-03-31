@@ -77,7 +77,7 @@ def addDummyClass(data):
     return data
 
 
-def calcMahalanobis(data, testData):
+def calcMahalanobis(data, testData, invCovMatFile = None):
     """
     Calculates Mahalanobis distances.
     The data should only contain attributes that are relevant for similarity. OBS data is assumed to have a response variable.
@@ -88,14 +88,19 @@ def calcMahalanobis(data, testData):
     an average of the 3 nearest neighbors (_train_av3nearest). 
     """
 
-    # Impute any missing values
+    # Impute any missing valuesi
+    print "Imputing..."
+    start=time.time()
     averageImputer = orange.ImputerConstructor_average(data)
     data = averageImputer(data)
     averageImputer = orange.ImputerConstructor_average(testData)
     testData = averageImputer(testData)
+    print "   ",time.time()-start
 
 
     #Test if there is any non-numeric value within the dataset
+    start=time.time()
+    print "testing Data..."
     for ex in testData:
         #It is much faster to address the ex elements by their position instead of the correpondent name
         for idx in range(len(ex.domain.attributes)):
@@ -103,13 +108,16 @@ def calcMahalanobis(data, testData):
                 raise Exception("Cannot calculate Mahalanobis distances. The attribute '" + \
                       ex.domain.attributes[idx].name + "' has non-numeric values. Ex: " + \
                       str(ex[idx].value))
-
-    # Create a trainingSet object. 
+    print "   ",time.time()-start
+    start=time.time()
+    print  "Create a trainingSet object.  ..."
     trainingSet = getTrainingSet(data)
     trainingset_descriptor_names = trainingSet.descr_names
-    mahalanobisCalculator = Mahalanobis.MahalanobisDistanceCalculator(trainingSet)
-    
+    mahalanobisCalculator = Mahalanobis.MahalanobisDistanceCalculator(trainingSet,invCovMatFile)
+    print "   ",time.time()-start
     MDlist = []
+    start=time.time()
+    print "CALCULATING DISTANCES..."
     for ex in testData:
         # Create a numeric vector from the example and assure the same order as in trainingset_descriptor_names
         descriptor_values = []
@@ -122,6 +130,7 @@ def calcMahalanobis(data, testData):
         #descriptor_values = [1.5] * len(trainingset_descriptor_names)
         MD = mahalanobisCalculator.calculateDistances(descriptor_values, NO_OF_NEIGHBORS)
         MDlist.append(MD)
+    print "   ",time.time()-start
     return MDlist
 
 
@@ -145,10 +154,15 @@ def calcMahalanobisDistanceQuantiles(MD):
     return quantileList
 
 
-def getMahalanobisResults(predictor):
+def getMahalanobisResults(predictor, invCovMatFile = None):
 
         if predictor.highConf == None and predictor.lowConf == None:
             return None, None
+        if not hasattr(predictor,"trainDataPath") or not predictor.trainDataPath:
+            print "The predictor does not have a trainDataPath specifyed. We need it for calculating Mahalanobis results!"
+            return None, None
+        print "Loading Data..."
+        start=time.time()
         testData = dataUtilities.attributeDeselectionData(predictor.exToPred,["SMILEStoPred"])
         trainData = dataUtilities.DataTable(predictor.trainDataPath)
         ExampleFix = dataUtilities.ExFix(trainData.domain,None,False)
@@ -161,8 +175,9 @@ def getMahalanobisResults(predictor):
 
         tab = dataUtilities.DataTable(trainData.domain)
         tab.append(dat)
+        print "   ",time.time()-start
 
-        MD = calcMahalanobis(trainData, tab)
+        MD = calcMahalanobis(trainData, tab, invCovMatFile)
         near3neighbours = [ (MD[0]["_train_id_near1"], MD[0]["_train_SMI_near1"]), (MD[0]["_train_id_near2"], MD[0]["_train_SMI_near2"]), (MD[0]["_train_id_near3" ], MD[0]["_train_SMI_near3"]) ]
         avg3nearest = MD[0]["_train_av3nearest"]
         if avg3nearest < predictor.highConf:
