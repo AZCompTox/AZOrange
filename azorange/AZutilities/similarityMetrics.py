@@ -77,7 +77,7 @@ def addDummyClass(data):
     return data
 
 
-def calcMahalanobis(data, testData, invCovMatFile = None):
+def calcMahalanobis(data, testData, invCovMatFile = None, centerFile = None, dataTableFile = None, domain = None):
     """
     Calculates Mahalanobis distances.
     The data should only contain attributes that are relevant for similarity. OBS data is assumed to have a response variable.
@@ -91,8 +91,9 @@ def calcMahalanobis(data, testData, invCovMatFile = None):
     # Impute any missing valuesi
     print "Imputing..."
     start=time.time()
-    averageImputer = orange.ImputerConstructor_average(data)
-    data = averageImputer(data)
+    if data:
+        averageImputer = orange.ImputerConstructor_average(data)
+        data = averageImputer(data)
     #If Class is continuous and all class values are unknown (and they usually are in ex to predict), the imputer cannot be created.
     # Since we are only using attributes, not the class, we will assign 0 to the class values in order to impute the testData
     if testData.domain.classVar.varType == orange.VarTypes.Continuous:
@@ -117,9 +118,13 @@ def calcMahalanobis(data, testData, invCovMatFile = None):
     print "   ",time.time()-start
     start=time.time()
     print  "Create a trainingSet object.  ..."
-    trainingSet = getTrainingSet(data)
-    trainingset_descriptor_names = trainingSet.descr_names
-    mahalanobisCalculator = Mahalanobis.MahalanobisDistanceCalculator(trainingSet,invCovMatFile)
+    if data:
+        trainingSet = getTrainingSet(data)
+        trainingset_descriptor_names = trainingSet.descr_names
+    else:
+        trainingSet = None
+        trainingset_descriptor_names = [attr.name for attr in domain.attributes] 
+    mahalanobisCalculator = Mahalanobis.MahalanobisDistanceCalculator(trainingSet,invCovMatFile,centerFile,dataTableFile)
     print "   ",time.time()-start
     MDlist = []
     start=time.time()
@@ -160,8 +165,8 @@ def calcMahalanobisDistanceQuantiles(MD):
     return quantileList
 
 
-def getMahalanobisResults(predictor, invCovMatFile = None):
-
+def getMahalanobisResults(predictor, invCovMatFile = None, centerFile = None, dataTableFile = None):
+        domain = None
         if predictor.highConf == None and predictor.lowConf == None:
             return None, None
         if not hasattr(predictor,"trainDataPath") or not predictor.trainDataPath:
@@ -170,20 +175,29 @@ def getMahalanobisResults(predictor, invCovMatFile = None):
         print "Loading Data..."
         start=time.time()
         testData = dataUtilities.attributeDeselectionData(predictor.exToPred,["SMILEStoPred"])
-        trainData = dataUtilities.DataTable(predictor.trainDataPath)
-        ExampleFix = dataUtilities.ExFix(trainData.domain,None,False)
+        if not dataTableFile:
+            trainData = dataUtilities.DataTable(predictor.trainDataPath)
+            domain = trainData.domain
+        else:
+            trainData = None
+            domain = predictor.model.domain
+        ExampleFix = dataUtilities.ExFix(domain,None,False)
         exFixed1 = ExampleFix.fixExample(testData[0])
         if testData.hasMissingValues():
-            averageImputer = orange.ImputerConstructor_average(trainData)
+            if not trainData:
+                averageImputer = orange.Imputer_defaults(predictor.model.imputeData) 
+            else:
+                averageImputer = orange.ImputerConstructor_average(trainData)
             dat = averageImputer(exFixed1)
         else:
             dat = exFixed1
 
-        tab = dataUtilities.DataTable(trainData.domain)
+        tab = dataUtilities.DataTable(domain)
         tab.append(dat)
         print "   ",time.time()-start
 
-        MD = calcMahalanobis(trainData, tab, invCovMatFile)
+        MD = calcMahalanobis(trainData, tab, invCovMatFile, centerFile, dataTableFile, domain)
+        print "Returned MD: ",MD
         near3neighbours = [ (MD[0]["_train_id_near1"], MD[0]["_train_SMI_near1"]), (MD[0]["_train_id_near2"], MD[0]["_train_SMI_near2"]), (MD[0]["_train_id_near3" ], MD[0]["_train_SMI_near3"]) ]
         avg3nearest = MD[0]["_train_av3nearest"]
         if avg3nearest < predictor.highConf:
