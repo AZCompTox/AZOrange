@@ -329,6 +329,7 @@ def Consensusread(dirPath,verbose = 0):
                             NTrainEx = classifiers[-1].NTrainEx
                         if hasattr(classifiers[-1], "imputeData") and classifiers[-1].imputeData and not imputeData:
                             imputeData = classifiers[-1].imputeData
+                            domainFile = imputeData #This is needed for domain compatibilitu betwene imputer and domain var
 
     except:
         if verbose > 0: print "ERROR: It was not possible to load the Consensus model"
