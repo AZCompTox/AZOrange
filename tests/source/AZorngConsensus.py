@@ -30,6 +30,13 @@ class ConsensusClassifierTest(AZorngTestUtil.AZorngTestUtil):
 
         learner = AZorngConsensus.ConsensusLearner(learnersNames = learnersNames)
         classifier = learner(self.irisData)
+
+        self.assertEqual(len(classifier.domain),len(self.irisData.domain))
+        self.assertEqual(len(classifier.imputeData) , len(classifier.domain))
+        self.assertEqual(len(classifier.basicStat), len(classifier.domain))
+        self.assertEqual(classifier.NTrainEx, len(self.irisData))
+        
+
         predictions = []
         for ex in self.irisData:
             predictions.append(classifier(ex))
@@ -39,6 +46,10 @@ class ConsensusClassifierTest(AZorngTestUtil.AZorngTestUtil):
 
         predictionsL = []
         Loaded = AZorngConsensus.Consensusread(os.path.join(scratchdir,"./CM.model"))
+        self.assertEqual(len(Loaded.domain),len(self.irisData.domain))
+        self.assertEqual(len(Loaded.imputeData) , len(Loaded.domain))
+        self.assertEqual(len(Loaded.basicStat), len(Loaded.domain)) 
+        self.assertEqual(Loaded.NTrainEx, len(self.irisData))
         for ex in self.irisData:
             predictionsL.append(Loaded(ex))
 
@@ -49,7 +60,7 @@ class ConsensusClassifierTest(AZorngTestUtil.AZorngTestUtil):
 
     def test_saveloadClass2(self):
         """Test the save/load for a classification model - Using probabilities average"""
-        learnersNames = ["CvANN","RF"]
+        learnersNames = ["RF","CvANN"]
 
         learner = AZorngConsensus.ConsensusLearner(learnersNames = learnersNames)
         classifier = learner(self.irisData)
@@ -66,6 +77,10 @@ class ConsensusClassifierTest(AZorngTestUtil.AZorngTestUtil):
             predictionsL.append(Loaded(ex))
 
         self.assertEqual(predictions,predictionsL)
+        self.assertEqual(len(Loaded.domain),len(self.irisData.domain))
+        self.assertEqual(len(Loaded.imputeData) , len(Loaded.domain))
+        self.assertEqual(len(Loaded.basicStat), len(Loaded.domain))
+        self.assertEqual(Loaded.NTrainEx, len(self.irisData))
 
         miscUtilities.removeDir(scratchdir)
 
@@ -89,6 +104,11 @@ class ConsensusClassifierTest(AZorngTestUtil.AZorngTestUtil):
             predictionsL.append(Loaded(ex))
 
         self.assertEqual([round(pred.value,4) for pred in predictions],[round(pred.value,4) for pred in predictionsL],"Loaded model predictions differ: Pred. 1 (saved/loaded):"+str(predictions[0])+" / "+str(predictionsL[0]))
+
+        self.assertEqual(len(Loaded.domain),len(self.DataReg.domain))
+        self.assertEqual(len(Loaded.imputeData) , len(Loaded.domain))
+        self.assertEqual(len(Loaded.basicStat), len(Loaded.domain))
+        self.assertEqual(Loaded.NTrainEx, len(self.DataReg))
 
         miscUtilities.removeDir(scratchdir)
  
@@ -115,6 +135,11 @@ class ConsensusClassifierTest(AZorngTestUtil.AZorngTestUtil):
 
         self.assertEqual([round(pred.value,4) for pred in predictions],[round(pred.value,4) for pred in predictionsL],"Loaded model predictions differ: Pred. 1 (saved/loaded):"+str(predictions[0])+" / "+str(predictionsL[0]))
 
+        self.assertEqual(len(Loaded.domain),len(self.DataReg.domain))
+        self.assertEqual(len(Loaded.imputeData) , len(Loaded.domain))
+        self.assertEqual(len(Loaded.basicStat), len(Loaded.domain))
+        self.assertEqual(Loaded.NTrainEx, len(self.DataReg))
+
         miscUtilities.removeDir(scratchdir)
 
 
@@ -139,6 +164,11 @@ class ConsensusClassifierTest(AZorngTestUtil.AZorngTestUtil):
             predictionsL.append(Loaded(ex))
 
         self.assertEqual(predictions,predictionsL)
+
+        self.assertEqual(len(Loaded.domain),len(self.irisData.domain))
+        self.assertEqual(len(Loaded.imputeData) , len(Loaded.domain))
+        self.assertEqual(len(Loaded.basicStat), len(Loaded.domain))
+        self.assertEqual(Loaded.NTrainEx, len(self.irisData))
 
         miscUtilities.removeDir(scratchdir)
 
@@ -165,6 +195,11 @@ class ConsensusClassifierTest(AZorngTestUtil.AZorngTestUtil):
             predictionsL.append(Loaded(ex))
         self.assertEqual([round(pred.value,4) for pred in predictions],[round(pred.value,4) for pred in predictionsL],"Loaded model predictions differ: Pred. 1 (saved/loaded):"+str(predictions[0])+" / "+str(predictionsL[0]))
 
+        self.assertEqual(len(Loaded.domain),len(DataSet.domain))
+        self.assertEqual(len(Loaded.imputeData) , len(Loaded.domain))
+        self.assertEqual(len(Loaded.basicStat), len(Loaded.domain))
+        self.assertEqual(Loaded.NTrainEx, len(DataSet))
+
         miscUtilities.removeDir(scratchdir)
 
 
@@ -189,6 +224,11 @@ class ConsensusClassifierTest(AZorngTestUtil.AZorngTestUtil):
             predictionsL.append(Loaded(ex))
 
         self.assertEqual(predictions,predictionsL)
+
+        self.assertEqual(len(Loaded.domain),len(self.irisData.domain))
+        self.assertEqual(len(Loaded.imputeData) , len(Loaded.domain))
+        self.assertEqual(len(Loaded.basicStat), len(Loaded.domain))
+        self.assertEqual(Loaded.NTrainEx, len(self.irisData))
 
         miscUtilities.removeDir(scratchdir)
 

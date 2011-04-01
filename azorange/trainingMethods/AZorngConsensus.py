@@ -38,6 +38,9 @@ class ConsensusLearner(AZBaseClasses.AZLearner):
         self.rejectedLearners = []      # Learners that, for some reason, could not be used/trained
         self.name = name
         self.verbose = 0 
+        self.imputeData = None
+        self.NTrainEx = 0
+        self.basicStat  = None
         # Append arguments to the __dict__ member variable
         self.__dict__.update(kwds)
 
@@ -77,8 +80,18 @@ class ConsensusLearner(AZBaseClasses.AZLearner):
         classifiers = []
         for learner in self.learnersObj:
             classifiers.append(learner(trainingData))
+            if not classifiers[-1]:
+                if self.verbose > 0: print "ERROR: Could not create the model ",str(learner)
+                return None
+            else:
+                #Try to get the imputeData, basicStat from a model that have it!
+                if hasattr(classifiers[-1], "basicStat") and classifiers[-1].basicStat and not self.basicStat:
+                    self.basicStat = classifiers[-1].basicStat
+                if hasattr(classifiers[-1], "imputeData") and classifiers[-1].imputeData and not self.imputeData:
+                    self.imputeData = classifiers[-1].imputeData
+        self.NTrainEx = len(trainingData)
 
-        return ConsensusClassifier(classifiers = classifiers, classVar = trainingData.domain.classVar,verbose = self.verbose, domain = trainingData.domain, varNames = [attr.name for attr in trainingData.domain.attributes], NTrainEx = len(trainingData), basicStat = self.basicStat)
+        return ConsensusClassifier(classifiers = classifiers, classVar = trainingData.domain.classVar,verbose = self.verbose, domain = trainingData.domain, varNames = [attr.name for attr in trainingData.domain.attributes], NTrainEx = self.NTrainEx, basicStat = self.basicStat, imputeData = self.imputeData)
 
 
 class ConsensusClassifier(AZBaseClasses.AZClassifier):
@@ -291,6 +304,7 @@ def Consensusread(dirPath,verbose = 0):
     dirPath = os.path.realpath(str(dirPath)) 
     basicStat = None
     NTrainEx = None
+    imputeData = None
     # This assures that all related files will be inside a folder
     try:
         domainFile = dataUtilities.DataTable(os.path.join(dirPath,"trainDomain.tab"))
@@ -298,26 +312,28 @@ def Consensusread(dirPath,verbose = 0):
         #Load the models
         modelFiles = glob.glob(os.path.join(dirPath,'C*.model'))
         if len(modelFiles) < 2:
-                if self.verbose > 0: print "ERROR: Missing model files in ",dirPath    
+                if verbose > 0: print "ERROR: Missing model files in ",dirPath    
                 return None
         else:
                 classifiers = []
                 for mFile in modelFiles:
                     classifiers.append(AZBaseClasses.modelRead(mFile))
                     if not classifiers[-1]:
-                        if self.verbose > 0: print "ERROR: Could not load the model ",mFile
+                        if verbose > 0: print "ERROR: Could not load the model ",mFile
                         return None
-                    elif not basicStat:
-                        #Try to load the basicStat and NTrainEx from a model that saved it!
-                        if hasattr(classifiers[-1], "basicStat") and classifiers[-1].basicStat:
+                    else:
+                        #Try to load the imputeData, basicStat and NTrainEx from a model that saved it!
+                        if hasattr(classifiers[-1], "basicStat") and classifiers[-1].basicStat and not basicStat:
                             basicStat = classifiers[-1].basicStat
-                        if hasattr(classifiers[-1], "NTrainEx") and classifiers[-1].NTrainEx:
+                        if hasattr(classifiers[-1], "NTrainEx") and classifiers[-1].NTrainEx and not NTrainEx:
                             NTrainEx = classifiers[-1].NTrainEx
+                        if hasattr(classifiers[-1], "imputeData") and classifiers[-1].imputeData and not imputeData:
+                            imputeData = classifiers[-1].imputeData
 
     except:
         if verbose > 0: print "ERROR: It was not possible to load the Consensus model"
         return None
-    return ConsensusClassifier(classifiers=classifiers ,varNames = [attr.name for attr in domainFile.domain.attributes],classVar = domainFile.domain.classVar, verbose = verbose, domain = domainFile.domain, basicStat = basicStat, NTrainEx = NTrainEx)
+    return ConsensusClassifier(classifiers=classifiers ,varNames = [attr.name for attr in domainFile.domain.attributes],classVar = domainFile.domain.classVar, verbose = verbose, domain = domainFile.domain, basicStat = basicStat, NTrainEx = NTrainEx, imputeData = imputeData)
 
 
 if __name__ == "__main__":
