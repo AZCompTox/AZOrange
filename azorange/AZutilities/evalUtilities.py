@@ -120,7 +120,6 @@ def getNearestNeighbors__(query, n, NNData, FPPath = None, resPath = None, idx =
     return res
 
 
-
 def getNearestNeighbors(query, n, NNDataPath, FPPath = None, resPath = None, idx = 0):
     """ get the n nearest neighbors
         query: bin string with query fingerprint
@@ -142,6 +141,21 @@ def getNearestNeighbors(query, n, NNDataPath, FPPath = None, resPath = None, idx
         return []
     #if resPath and not os.path.isdir(resPath):
     #    os.makedirs(resPath)
+
+    # get the correct header
+    file = open(NNDataPath,"r")
+    header = file.readline().strip().split('\t')
+    file.close()
+
+    if "Molecule SMILES" not in header or "Compound Name" not in header:
+        print "NN dataset ",NNDataPath, " have not the correct header. It must contain 'Molecule SMILES' and 'Compound Name' attributes."
+        return [] 
+    # Index will have to be sum 1 because the TS will be prepended
+    idxID = header.index("Compound Name") + 1
+    idxExpVal = len(header) 
+    idxSMILES = header.index("Molecule SMILES") + 1
+    idxSimilarity = 0
+
 
     Nbits = 2048
     #lap = time.time()
@@ -165,9 +179,9 @@ def getNearestNeighbors(query, n, NNDataPath, FPPath = None, resPath = None, idx
     #lap=time.time()
     timeStamp=str(time.time()).replace(".",'')
     for fidx,nn in enumerate(TS):
-        ID= nn[2]
-        expVal = nn[-1]
-        SMILES = nn[1]
+        ID= nn[idxID]
+        expVal = nn[idxExpVal]
+        SMILES = nn[idxSMILES]
         if resPath and os.path.isdir(resPath):
             imgPath = os.path.join(resPath,"NN"+str(idx)+"_"+str(fidx+1)+"_"+timeStamp+".png")
             mol = Chem.MolFromSmiles(SMILES)
@@ -178,7 +192,7 @@ def getNearestNeighbors(query, n, NNDataPath, FPPath = None, resPath = None, idx
         res.append( {
                 "id": ID, 
                 "expVal": expVal, 
-                "similarity": nn[0], 
+                "similarity": nn[idxSimilarity], 
                 "smi": SMILES, 
                 "imgPath": imgPath} )
     #print "--> Creating NN images:",time.time()-lap 
