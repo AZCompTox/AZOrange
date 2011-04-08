@@ -272,7 +272,7 @@ class AZClassifier(object):
             localEx[var] = ex[var] + step
             localPred = self(localEx,returnDFV = True)[1]
             ResUp = (localPred, step)
-            #print "%6s%6s" % (round(step,2),round(localPred,2)),
+            #print "%6s%6s" % ( round(step,2),round(localPred,2)),
             #single direction step:
             return ResUp
             # double direction steps: 
@@ -306,19 +306,22 @@ class AZClassifier(object):
         for attr in self.domain.attributes:
             res,step = calcVarGrad(attr.name,ex,gradRef)
 
-            if self.domain.classVar.varType == orange.VarTypes.Discrete:
+            #if self.domain.classVar.varType == orange.VarTypes.Discrete:
                 # IMPORTANT: A positive gradient component means the predicted value will be "more strong"
                 #            A Nagative one means the predicted value will be weak and may lead towrds the other class value
-                grad = (abs(res) - abs(gradRef))/step
-            else:
-                grad = (res-gradRef)/step
+            #    grad = (abs(res) - abs(gradRef))/step
+            #else:
+            grad = (res-gradRef)/step
             #print  "%6s" % (round(grad,2)),
-            if grad >= 0:
+            if grad == 0:
+                continue
+            if grad > 0:
                 varGradNameUP.append(attr.name)
                 varGradValUP.append(abs(grad))
             else:
                 varGradNameDOWN.append(attr.name)
                 varGradValDOWN.append(abs(grad))
+        #print "%6s" % (round(gradRef,2)),
         #Order the vars in terms of importance
         nRet = min(int(nVars),len(self.domain.attributes))
         if absGradient:
