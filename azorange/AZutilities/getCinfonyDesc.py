@@ -5,13 +5,13 @@ import random
 import string
 
 import orange
-from AZutilities import dataUtilities
+from AZutilities import InHouseUtilities as dataUtilities
 import AZOrangeConfig as AZOC
 
 
 #toolkitsEnabled = ["cdk","rdk","obabel","webel"]        # NOT so stable!!
 #toolkitsEnabled = ["rdk","obabel","webel"]        # Testing Stability!!
-toolkitsEnabled = ["rdk","webel"]                      # Stable
+toolkitsEnabled = ["rdk"]                               # Stable
 
 if "cdk" in toolkitsEnabled:
     try: 
@@ -197,11 +197,12 @@ def getRdkDescResult(data,descList, radius = 1):
             fingerPrintsRes[mol] = {}
             for ID in resDict:
                 count = resDict[ID]
-                name = "FP_"+str(ID)
+                name = "rdk.FP_"+str(ID)
                 if name not in [x.name for x in fingerPrintsAttrs]:
                     fingerPrintsAttrs.append(orange.FloatVariable(name))
                 fingerPrintsRes[mol][name]=int(count)
-    resData = orange.ExampleTable(orange.Domain([data.domain[smilesName]] + [orange.FloatVariable(rdkTag+name) for name in myDescList] + [rdkTag+name for name in fingerPrintsAttrs],0))     
+
+    resData = orange.ExampleTable(orange.Domain([data.domain[smilesName]] + [orange.FloatVariable(rdkTag+name) for name in myDescList] + fingerPrintsAttrs,0))     
     badCompounds = 0
     for ex in data:
         newEx = orange.Example(resData.domain)
@@ -212,15 +213,15 @@ def getRdkDescResult(data,descList, radius = 1):
              mol = rdk.readstring("smi", molStr)
              moldesc = mol.calcdesc(myDescList)
              for desc in myDescList:
-                 newEx[rdkTag+desc] = moldesc[desc]
+                 newEx[desc] = moldesc[desc]
  
              #Process fingerprints
              if FingerPrints:
                  for desc in fingerPrintsAttrs:
                      if desc.name in fingerPrintsRes[molStr]:
-                         newEx[rdkTag+desc.name] = fingerPrintsRes[molStr][desc.name]
+                         newEx[desc.name] = fingerPrintsRes[molStr][desc.name]
                      else:
-                         newEx[rdkTag+desc.name] = 0
+                         newEx[desc.name] = 0
              resData.append(newEx)
         except: 
             badCompounds += 1
@@ -245,7 +246,7 @@ def getCinfonyDescResults(origData,descList,radius=1):
     # Standardize SMILES
     for ex in data:
         ex["origSmiles"] = ex[smilesName].value
-    #TODO: Call here some method to standardize the attribute smilesName in place having the attr origSmiles as ID
+    dataUtilities.StandardizeSMILES(data,smiAttr = smilesName, cName="origSmiles")
     results = []
 
     # Calculate available descriptors
