@@ -50,76 +50,6 @@ def fastTanimotoSimilarity(A,nA,B):
 
 
 
-def getNearestNeighbors__(query, n, NNData, FPPath = None, resPath = None, idx = 0):
-    """ get the n nearest neighbors
-        query: bin string with query fingerprint
-        returns an ordered list with the n top neighbors (each one in a dict):
-            [ {
-                "id"          : ID, 
-                "expVal"      : ExpValues, 
-                "similarity"  : TanimotoSimilarity, 
-                "smi"         : smiles, 
-                "imgPath"     : imgPath},  ... ]        
-
-        It will saves the images in resPath:
-             NN_1.png    #1 neighbor
-             NN_2.png    #2 neighbor
-             ...
-             NN_n.png    #n neighbor
-    """
-    if not FPPath or not n or not query or not NNData:
-        return []
-
-    if resPath and not os.path.isdir(resPath):
-        os.makedirs(resPath)
-
-    Nbits = 2048
-    lap=time.time()
-    intQuery = long(query,2)
-    ONbits = query.count("1")
-    # Calculate the tanimoto similarity over all the NNData and store them    
-    #   Compound Name   Date    Molecule SMILES Fingerprint     NonCleanActivity
-    TS = []
-    #lap=time.time()
-    FPFile = open(FPPath,"rb")
-    for fidx in range(len(NNData)):
-        intTarget = 0
-        for idx in range(Nbits/64):
-            x=struct.unpack('Q',FPFile.read(8))
-            intTarget <<=  64
-            intTarget |= x[0]
-        FPFile.read(16)
-        if intTarget == 0 :
-            continue
-        TS.append( (fastTanimotoSimilarity(intQuery, ONbits, intTarget), fidx)  )
-        #TS.append( (0, fidx)  )
-
-    print "--> Calculate the tanimoto similarity over all the NNData"+str(len(NNData))+":",time.time()-lap
-    TS.sort(reverse=True)
-    # in TS:
-    #    TS[n][0] - tanimoto similarity
-    #    TS[n][1] - number of the correspondent data index
-    res = []
-    lap=time.time()
-    timeStamp=str(time.time()).replace(".",'')
-    for fidx,nn in enumerate(TS[0:n]):
-        if resPath and os.path.isdir(resPath):
-            imgPath = os.path.join(resPath,"NN"+str(idx)+"_"+str(fidx+1)+"_"+timeStamp+".png")
-            mol = Chem.MolFromSmiles(str(NNData[nn[1]]["Molecule SMILES"].value))
-            # save the respective imgPath...  
-            Draw.MolToImageFile(mol,imgPath,size=(300, 300), kekulize=True, wedgeBonds=True)
-        else:
-            imgPath = ""
-        res.append( {
-                "id": str(NNData[nn[1]]["Compound Name"].value),
-                "expVal": str(NNData[nn[1]].getclass().value),
-                "similarity": nn[0],
-                "smi": str(NNData[nn[1]]["Molecule SMILES"].value),
-                "imgPath": imgPath} )
-    print "--> Creating NN images:",time.time()-lap
-    return res
-
-
 def getNearestNeighbors(query, n, NNDataPath, FPPath = None, resPath = None, idx = 0):
     """ get the n nearest neighbors
         query: bin string with query fingerprint
@@ -158,7 +88,6 @@ def getNearestNeighbors(query, n, NNDataPath, FPPath = None, resPath = None, idx
 
 
     Nbits = 2048
-    #lap = time.time()
     status,output = commands.getstatusoutput('echo "' + query + '" | fpin ' + FPPath + " "  +NNDataPath + ' 0.0 '+str(n))
     if status:
         print status
@@ -169,14 +98,12 @@ def getNearestNeighbors(query, n, NNDataPath, FPPath = None, resPath = None, idx
     TS=[]
     for ts in output.split("\n"):
         TS.append(ts.strip().split('\t'))
-    #print "--> Calculate the tanimoto similarity over all the NNData"+str(len(NNData))+":",time.time()-lap
     # in TS:
     #    TS[n][0] - tanimoto similarity
     #    TS[n][1] - SMILES
     #    TS[n][2] - AZID
     #    TS[n][-1]- expRes
     res = []
-    #lap=time.time()
     timeStamp=str(time.time()).replace(".",'')
     for fidx,nn in enumerate(TS):
         ID= nn[idxID]
@@ -195,7 +122,6 @@ def getNearestNeighbors(query, n, NNDataPath, FPPath = None, resPath = None, idx
                 "similarity": nn[idxSimilarity], 
                 "smi": SMILES, 
                 "imgPath": imgPath} )
-    #print "--> Creating NN images:",time.time()-lap 
     return res
     
 
