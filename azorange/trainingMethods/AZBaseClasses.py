@@ -224,7 +224,7 @@ class AZClassifier(object):
         self.nPredictions = 0
 
     def getNTrainEx(self):
-        """Return the number of examples used at Trin time"""
+        """Return the number of examples used at Train time"""
         return self.NTrainEx
 
 
@@ -245,11 +245,11 @@ class AZClassifier(object):
             return None
         if gradRef == None:
             gradRef = self(ex,returnDFV = True)[1]
-
         # the calcDiscVarGrad and calcContVarGrad will return 
         def calcDiscVarGrad(var,ex,gradRef):
+            step = 1
             if ex[var].isSpecial():
-                return gradRef
+                return (gradRef,step)
             localVarGrad = 0
             localMaxGrad = gradRef
             #Uncomment next line to skip discrete variables
@@ -261,23 +261,27 @@ class AZClassifier(object):
                 if abs(gradRef-pred) > localVarGrad:
                     localVarGrad = abs(gradRef-pred)
                     localMaxGrad = pred
-            return localMaxGrad
+            return (localMaxGrad, step)
 
 
         def calcContVarGrad(var,ex,gradRef):
             localEx = orange.Example(ex)
+            step = 1 #((self.basicStat[var]["max"]-self.basicStat[var]["min"])/(self.getNTrainEx()+1))
             if ex[var].isSpecial():
-                return gradRef 
-            localEx[var] = ex[var] + ((self.basicStat[var]["max"]-self.basicStat[var]["min"])/self.getNTrainEx())+1
-            ResUp = self(localEx,returnDFV = True)[1]
-            #To only use one direction single step, uncomment next line
+                return (gradRef, step)
+            localEx[var] = ex[var] + step
+            localPred = self(localEx,returnDFV = True)[1]
+            ResUp = (localPred, step)
+            #print "%6s%6s" % ( round(step,2),round(localPred,2)),
+            #single direction step:
             return ResUp
-            localEx[var] = ex[var] - ((self.basicStat[var]["max"]-self.basicStat[var]["min"])/self.getNTrainEx())+1
-            ResDown = self(localEx,returnDFV = True)[1]
-            if abs(ResUp-gradRef) > abs(ResDown-gradRef):
-                return ResUp
-            else:
-                return ResDown
+            # double direction steps: 
+            #localEx[var] = ex[var] - step 
+            #ResDown = (self(localEx,returnDFV = True)[1], step)
+            #if abs(ResUp[0]-gradRef) > abs(ResDown[0]-gradRef):
+            #    return ResUp
+            #else:
+            #    return ResDown
 
         def calcVarGrad(var,ex,gradRef):
             if attr.varType == orange.VarTypes.Discrete:
@@ -300,18 +304,24 @@ class AZClassifier(object):
               IDlist[j] = saveName
 
         for attr in self.domain.attributes:
-            if self.domain.classVar.varType == orange.VarTypes.Discrete:
+            res,step = calcVarGrad(attr.name,ex,gradRef)
+
+            #if self.domain.classVar.varType == orange.VarTypes.Discrete:
                 # IMPORTANT: A positive gradient component means the predicted value will be "more strong"
                 #            A Nagative one means the predicted value will be weak and may lead towrds the other class value
-                grad = abs(calcVarGrad(attr.name,ex,gradRef)) - abs(gradRef)
-            else:
-                grad = calcVarGrad(attr.name,ex,gradRef) - gradRef
+            #    grad = (abs(res) - abs(gradRef))/step
+            #else:
+            grad = (res-gradRef)/step
+            #print  "%6s" % (round(grad,2)),
+            if grad == 0:
+                continue
             if grad > 0:
                 varGradNameUP.append(attr.name)
                 varGradValUP.append(abs(grad))
             else:
                 varGradNameDOWN.append(attr.name)
                 varGradValDOWN.append(abs(grad))
+        #print "%6s" % (round(gradRef,2)),
         #Order the vars in terms of importance
         nRet = min(int(nVars),len(self.domain.attributes))
         if absGradient:
@@ -322,7 +332,7 @@ class AZClassifier(object):
                 return varGradName
             else:
                 return varGradName[0:nRet]
-        else:   
+        else:  
             insSort(varGradValUP ,varGradNameUP)
             insSort(varGradValDOWN ,varGradNameDOWN)
             if nVars == 0:
