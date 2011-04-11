@@ -1,7 +1,7 @@
 # Do Mahalanobis calculations
 # The sole modification is to replace the import ot PyDroneConstants
 
-import os,sys,time
+import os
 import numpy
 # Global variables needed to avoid importing PyDroneConstants
 TRAIN = "_train"
@@ -72,9 +72,6 @@ class MahalanobisDistanceCalculator:
         return self.norm
         
     def _lazy_init(self):
-        print "Calculating inv Cov Matrix..."
-        start = time.time()
-
         if self.invCovMatFile:
             self.norm = numpy.load(self.invCovMatFile)
         else:    
@@ -84,8 +81,6 @@ class MahalanobisDistanceCalculator:
             self.center = numpy.load(self.centerFile)
         else:
             self.center = average_vector(self.training_set.data_table)
-
-        print "  ",time.time()-start
 
 
     def calculateDistances(self, descriptor_values, count):
@@ -185,8 +180,6 @@ def compute_distances(v, vectors, norm):
     # This will return a list of distances for each vector in the list,
     # in the same order as the input
     #import numpy
-    print "---> compute_distances..."
-    start = time.time()
     if None in v:
         raise TypeError("'None' found in the compound vector - can't convert to a float" % v) 
     try:
@@ -200,14 +193,11 @@ def compute_distances(v, vectors, norm):
     diff_v = numpy.subtract(vectors, v)
     transformed_v = numpy.dot(diff_v, norm)
     distances = numpy.sum(transformed_v * diff_v, 1)**0.5
-    print time.time()-start
     return distances
 
 def create_inverse_covariance_norm(training_vectors):
-    #import numpy   # put here to reduce initial import time
-    from numpy import linalg
     covarMat = numpy.cov(numpy.asarray(training_vectors), rowvar=0)
-    inverse_covarMat = linalg.pinv(covarMat, rcond=1e-10)
+    inverse_covarMat = numpy.linalg.pinv(covarMat, rcond=1e-10)
     return inverse_covarMat
 
 
