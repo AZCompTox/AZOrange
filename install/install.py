@@ -804,7 +804,7 @@ class installer:
     def runAfterInstallScripts(self):	
         # This runs  once the .../azorange/bin/archive.sh in order to create the AZO_NFZ_scratchDir if it does not exists
         self.addLog("#Running after-install scripts")
-        self.addLog(commands.getstatusoutput(os.path.join(self.AZOrangeInstallDir,'azorange/bin/archive.sh')))
+        self.addLog(commands.getstatusoutput(os.path.join(self.AZOrangeInstallDir,'azorange/bin/clean.sh')))
 
     def createProfileExample(self):
         # In addition to the place defined in setup.ini for the template profile, a file called templateProfile will always be
@@ -898,7 +898,7 @@ class installer:
 
         #Scripts to run upon setting the envitonment or loading the respective module
         strFile += "\n# Startup scripts\n"
-        strFile += os.path.join(self.AZOrangeInstallDir, "azorange/bin/archive.sh\n")
+        strFile += os.path.join(self.AZOrangeInstallDir, "azorange/bin/clean.sh\n")
         #strFile += os.path.join(self.AZOrangeInstallDir, "azorange/bin/ssh_testcfg.sh")  # This will be uncommented when using local mpi for the optimizer
         
 
