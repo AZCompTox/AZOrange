@@ -202,8 +202,12 @@ def getRdkDescResult(data,descList, radius = 1):
                     fingerPrintsAttrs.append(orange.FloatVariable(name))
                 fingerPrintsRes[mol][name]=int(count)
 
-    resData = orange.ExampleTable(orange.Domain([data.domain[smilesName]] + [orange.FloatVariable(rdkTag+name) for name in myDescList] + fingerPrintsAttrs,0))     
+    if FingerPrints:
+        resData = orange.ExampleTable(orange.Domain([data.domain[smilesName]] + [orange.FloatVariable(rdkTag+name) for name in myDescList] + fingerPrintsAttrs,0))     
+    else:
+        resData = orange.ExampleTable(orange.Domain([data.domain[smilesName]] + [orange.FloatVariable(rdkTag+name) for name in myDescList],0))     
     badCompounds = 0
+
     for ex in data:
         newEx = orange.Example(resData.domain)
         newEx[smilesName] = ex[smilesName]
@@ -213,7 +217,7 @@ def getRdkDescResult(data,descList, radius = 1):
              mol = rdk.readstring("smi", molStr)
              moldesc = mol.calcdesc(myDescList)
              for desc in myDescList:
-                 newEx[desc] = moldesc[desc]
+                 newEx["rdk."+desc] = moldesc[desc]
  
              #Process fingerprints
              if FingerPrints:
