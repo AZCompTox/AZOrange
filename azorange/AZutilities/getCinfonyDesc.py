@@ -197,11 +197,11 @@ def getRdkDescResult(data,descList, radius = 1):
             fingerPrintsRes[mol] = {}
             for ID in resDict:
                 count = resDict[ID]
-                name = "FP_"+str(ID)
+                name = rdkTag+"FP_"+str(ID)
                 if name not in [x.name for x in fingerPrintsAttrs]:
                     fingerPrintsAttrs.append(orange.FloatVariable(name))
                 fingerPrintsRes[mol][name]=int(count)
-    resData = orange.ExampleTable(orange.Domain([data.domain[smilesName]] + [orange.FloatVariable(rdkTag+name) for name in myDescList] + [rdkTag+name for name in fingerPrintsAttrs],0))     
+    resData = orange.ExampleTable(orange.Domain([data.domain[smilesName]] + [orange.FloatVariable(rdkTag+name) for name in myDescList] + [name for name in fingerPrintsAttrs],0))     
     badCompounds = 0
     for ex in data:
         newEx = orange.Example(resData.domain)
@@ -218,13 +218,12 @@ def getRdkDescResult(data,descList, radius = 1):
              if FingerPrints:
                  for desc in fingerPrintsAttrs:
                      if desc.name in fingerPrintsRes[molStr]:
-                         newEx[rdkTag+desc.name] = fingerPrintsRes[molStr][desc.name]
+                         newEx[desc.name] = fingerPrintsRes[molStr][desc.name]
                      else:
-                         newEx[rdkTag+desc.name] = 0
+                         newEx[desc.name] = 0
              resData.append(newEx)
         except: 
             badCompounds += 1
-            pass 
     print "Compounds in original data:       ",len(data)
     print "Compounds able to calculate descs:",len(resData)
     print "Ignored Compounds:                ",badCompounds
