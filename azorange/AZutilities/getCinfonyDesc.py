@@ -189,7 +189,9 @@ def getRdkDescResult(data,descList, radius = 1):
         for ex in data:
             mol = str(ex[smilesName].value)
             try:
-                chemMol = rdk.Chem.MolFromSmiles(mol)
+                chemMol = rdk.Chem.MolFromSmiles(mol,True)
+                if not chemMol:
+                    chemMol = rdk.Chem.MolFromSmiles(mol,False)
                 fingerPrint = rdk.AllChem.GetMorganFingerprint(chemMol,radius)
                 resDict = fingerPrint.GetNonzeroElements()
             except:
@@ -209,7 +211,11 @@ def getRdkDescResult(data,descList, radius = 1):
         molStr = str(newEx[smilesName].value)
         # OBS - add something keeping count on the number of unused smiles
         try:
-             mol = rdk.readstring("smi", molStr)
+             chemMol = rdk.Chem.MolFromSmiles(molStr,True)
+             if not chemMol:
+                chemMol = rdk.Chem.MolFromSmiles(molStr,False) 
+             mol = rdk.readstring("mol", rdk.Chem.MolToMolBlock(chemMol))
+             #mol = rdk.readstring("smi", molStr)
              moldesc = mol.calcdesc(myDescList)
              for desc in myDescList:
                  newEx[rdkTag+desc] = moldesc[desc]
