@@ -189,6 +189,21 @@ def createScratchDir(desc = "", rmFirst = True, baseDir = SCRATCHDIR):
             print "ERROR: Could not create the directory: ",scratchdir
             return None
 
+def generateUniqueFile(desc = "", baseDir = SCRATCHDIR, ext = ""):
+    """Generates a unique file Path
+       If baseDir is None or "", it generates a unique file name
+    """
+    while True:
+        randNr = random.randint(0,10000)
+        file = "scratchFile_"+str(desc)+"_"+str(time.time()).replace(".","")+"-"+str(randNr)
+        if ext:
+            file += "." + ext
+        if not baseDir:
+            return file
+        filePath = os.path.realpath(os.path.join(baseDir, file))
+        if not os.path.isfile(filePath):
+            return file
+
 def removeDir(dirToRem):
     """Securely remove a directory (maily for use with scraatch dirs)
        If the dir exists, remove it with -rf options, if not, do not rise any error
