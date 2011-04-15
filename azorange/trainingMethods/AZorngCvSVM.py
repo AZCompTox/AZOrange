@@ -232,19 +232,21 @@ class CvSVMClassifier(AZBaseClasses.AZClassifier):
         DFV = None
         if examplesImp: 
             if self.scalizer:
-                res = self.classifier.predict(dataUtilities.Example2CvMat(self.scalizer.scaleEx(examplesImp),self.varNames))
+                exToPredict = dataUtilities.Example2CvMat(self.scalizer.scaleEx(examplesImp,True), self.varNames)
+                res = self.classifier.predict(exToPredict)
                 res = self.scalizer.convertClass(res)
                 if self.classVar.varType != orange.VarTypes.Continuous and len(self.classVar.values) == 2 and returnDFV:
-                    DFV = self.classifier.predict(dataUtilities.Example2CvMat(self.scalizer.scaleEx(examplesImp),self.varNames), True)
+                    DFV = self.classifier.predict(exToPredict, True)
                 else:
                     #On Regression models assume the DVF as the value predicted
                     DFV = res 
                 self._updateDFVExtremes(DFV)
                 res = dataUtilities.CvMat2orangeResponse(res,self.classVar)
             else:
-                res = self.classifier.predict(dataUtilities.Example2CvMat(examplesImp,self.varNames))
+                exToPredict = dataUtilities.Example2CvMat(examplesImp,self.varNames)
+                res = self.classifier.predict(exToPredict)
                 if self.classVar.varType != orange.VarTypes.Continuous and len(self.classVar.values) == 2 and returnDFV:
-                    DFV = self.classifier.predict(dataUtilities.Example2CvMat(examplesImp,self.varNames), True)
+                    DFV = self.classifier.predict(exToPredict, True)
                 else:
                     #On Regression models assume the DVF as the value predicted
                     DFV = res
