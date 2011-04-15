@@ -5,13 +5,13 @@ import random
 import string
 
 import orange
-from AZutilities import dataUtilities
+from AZutilities import InHouseUtilities as dataUtilities
 import AZOrangeConfig as AZOC
 
 
 #toolkitsEnabled = ["cdk","rdk","obabel","webel"]        # NOT so stable!!
-#toolkitsEnabled = ["rdk","obabel","webel"]        # Testing Stability!!
-toolkitsEnabled = ["rdk","webel"]                      # Stable
+#toolkitsEnabled = ["rdk","obabel","webel"]              # Testing Stability!!
+toolkitsEnabled = ["rdk","webel"]                        # Stable
 
 if "cdk" in toolkitsEnabled:
     try: 
@@ -189,7 +189,9 @@ def getRdkDescResult(data,descList, radius = 1):
         for ex in data:
             mol = str(ex[smilesName].value)
             try:
-                chemMol = rdk.Chem.MolFromSmiles(mol)
+                chemMol = rdk.Chem.MolFromSmiles(mol,True)
+                if not chemMol:
+                    chemMol = rdk.Chem.MolFromSmiles(mol,False)
                 fingerPrint = rdk.AllChem.GetMorganFingerprint(chemMol,radius)
                 resDict = fingerPrint.GetNonzeroElements()
             except:
@@ -197,11 +199,11 @@ def getRdkDescResult(data,descList, radius = 1):
             fingerPrintsRes[mol] = {}
             for ID in resDict:
                 count = resDict[ID]
-                name = "FP_"+str(ID)
+                name = rdkTag+"FP_"+str(ID)
                 if name not in [x.name for x in fingerPrintsAttrs]:
                     fingerPrintsAttrs.append(orange.FloatVariable(name))
                 fingerPrintsRes[mol][name]=int(count)
-    resData = orange.ExampleTable(orange.Domain([data.domain[smilesName]] + [orange.FloatVariable(rdkTag+name) for name in myDescList] + [rdkTag+name for name in fingerPrintsAttrs],0))     
+    resData = orange.ExampleTable(orange.Domain([data.domain[smilesName]] + [orange.FloatVariable(rdkTag+name) for name in myDescList] + [name for name in fingerPrintsAttrs],0))     
     badCompounds = 0
     for ex in data:
         newEx = orange.Example(resData.domain)
@@ -209,7 +211,11 @@ def getRdkDescResult(data,descList, radius = 1):
         molStr = str(newEx[smilesName].value)
         # OBS - add something keeping count on the number of unused smiles
         try:
-             mol = rdk.readstring("smi", molStr)
+             chemMol = rdk.Chem.MolFromSmiles(molStr,True)
+             if not chemMol:
+                chemMol = rdk.Chem.MolFromSmiles(molStr,False) 
+             mol = rdk.readstring("mol", rdk.Chem.MolToMolBlock(chemMol))
+             #mol = rdk.readstring("smi", molStr)
              moldesc = mol.calcdesc(myDescList)
              for desc in myDescList:
                  newEx[rdkTag+desc] = moldesc[desc]
@@ -218,13 +224,12 @@ def getRdkDescResult(data,descList, radius = 1):
              if FingerPrints:
                  for desc in fingerPrintsAttrs:
                      if desc.name in fingerPrintsRes[molStr]:
-                         newEx[rdkTag+desc.name] = fingerPrintsRes[molStr][desc.name]
+                         newEx[desc.name] = fingerPrintsRes[molStr][desc.name]
                      else:
-                         newEx[rdkTag+desc.name] = 0
+                         newEx[desc.name] = 0
              resData.append(newEx)
         except: 
             badCompounds += 1
-            pass 
     print "Compounds in original data:       ",len(data)
     print "Compounds able to calculate descs:",len(resData)
     print "Ignored Compounds:                ",badCompounds
