@@ -259,7 +259,8 @@ def Example2CvMat(ex,varNames,thisVer = True,getMissingMask = False):
                 #   If the attribute is Disc. it will use it's repective value
                 # We HAVE to be SURE that the ex is already according to the classifyer domain when using this for predictions
                 #mat[0,idx] = float(ex[idx])
-                cv.cvSetReal1D(mat,idx,float(ex[idx]))
+                cv.cvSetReal1D(mat,idx,float(ex[idx]))  # No difference in speed for 1D vectors
+                #cv.cvmSet(mat,0,idx,float(ex[idx]))   
             return mat
     else: # for backCompatibility with older models. This is deprecated and will not include the missing mask
         for idx in xrange(len(varNames)):
@@ -1767,9 +1768,11 @@ class scalizer(object):
         scalingValues["Scaled Class Max"] = self.nClassMax
         return scalingValues
 
-    def scaleEx(self,ex):
+    def scaleEx(self,ex, skipCheck=False):
         """returns an example with the scalizer domain (all vars continuous including the class) and all vars scaled  
            or False if errors found"""
+        if skipCheck:
+            return self.fastscaleEx(ex)
         #Make sure these are floats
         self.nMin = float(self.nMin)
         self.nMax = float(self.nMax)
@@ -1852,7 +1855,66 @@ class scalizer(object):
 
        # print ex.getclass()," -> ",scaledEx.getclass()
         return scaledEx
-       
+      
+    def fastscaleEx(self,ex):
+        """
+        This method skips the check of self.nClassMin, self.nClassMax, nMin and nMax type and ranges.
+        It assumes data was already analysed, and the example is in the correct domain format and order, for ex, using fixEx
+        
+        """
+        # create empty example [?,?,?,...,?] of the correct domain
+        scaledEx = orange.Example(self.domain)
+
+        #Scale Attributes  -  Scale function is according to libSVM code
+        for idx,attr in enumerate(ex.domain.attributes):
+            if attr.varType == orange.VarTypes.Continuous:
+                if self.maximums[idx] == self.minimums[idx]:   #in case of single-valued attribute
+                    scaledEx[idx]=(self.nMax + self.nMin)/2
+                else:
+                    scaledEx[idx]=self.nMin+(self.nMax-self.nMin)*\
+                            (float(ex[attr].value)-self.minimums[idx])/\
+                            (self.maximums[idx]-self.minimums[idx])
+            else:  # is Discrete
+                value_idx = int(ex[attr])
+                if self.maximums[idx] == self.minimums[idx]:    #in case of single-valued attribute
+                    scaledEx[idx]=(self.nMax + self.nMin)/2
+                else:
+                    scaledEx[idx]=self.nMin+(self.nMax-self.nMin)*\
+                            (value_idx-self.minimums[idx])/\
+                            (self.maximums[idx]-self.minimums[idx])
+
+        #Scale class
+        classVar = ex.domain.classVar
+        if classVar!=None:
+            if ex[classVar].value=="?":
+                scaledEx[classVar.name]="?"
+            else:
+                idx = self.varNameIdx[classVar.name]
+                if classVar.varType == orange.VarTypes.Continuous:
+                    if self.scaleClass:
+                        if self.maximums[idx] == self.minimums[idx]:    #in case of single-valued attribute
+                            scaledEx[idx]=(self.nClassMax + self.nClassMin)/2
+                        else:
+                            scaledEx[idx]=self.nClassMin+(self.nClassMax-self.nClassMin)*\
+                                (float(ex[classVar].value)-self.minimums[idx])/\
+                                (self.maximums[idx]-self.minimums[idx])
+                    else: #Cont. but we dont want to scale it
+                        scaledEx[idx] = ex[classVar].value
+                else:  # is Discrete
+                    if self.scaleClass:
+                        value_idx = int(ex[classVar])
+                        if self.maximums[idx] == self.minimums[idx]:    #in case of single-valued attribute
+                            scaledEx[idx]=(self.nClassMax + self.nClassMin)/2
+                        else:
+                            scaledEx[idx]=self.nClassMin+(self.nClassMax-self.nClassMin)*\
+                                    (value_idx-self.minimums[idx])/\
+                                    (self.maximums[idx]-self.minimums[idx])
+                    else:  #Disc. but don't want to scale
+                        scaledEx[idx] = int(ex[classVar])
+
+       # print ex.getclass()," -> ",scaledEx.getclass()
+        return scaledEx
+ 
     def __setattr__(self,name,value):
         try:
             if name in ("nClassMin","nClassMax"):
