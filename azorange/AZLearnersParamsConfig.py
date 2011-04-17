@@ -201,7 +201,7 @@ ANNLearner = {'nHidden':["[types.IntType]", "values", "(1.0/10.0)*N_EX<3 and [2]
              }
 
 #CvANN parameters
-CvANNLearner = {'nHidden':["[types.IntType]", "values", "(1.0/30.0)*N_EX<3 and [2] or [int(round(x)) for x in miscUtilities.Range(2,((1/30.0)*N_EX))]",[],str(AZOrangeConfig.CVANNDEFAULTDICT["nHidden"]),True,True,"2-N_EX/30"],\
+CvANNLearner = {'nHidden':["[types.IntType]", "values", "(1.0/100.0)*N_EX<3 and [2] or [int(round(x)) for x in miscUtilities.Range(2,((1/100.0)*N_EX))]",[],str(AZOrangeConfig.CVANNDEFAULTDICT["nHidden"]),True,True,"2-N_EX/100"],\
               'maxIter':["types.IntType", "values", "[int(x) for x in miscUtilities.Range(100,10000)]",[],str(AZOrangeConfig.CVANNDEFAULTDICT["maxIter"]),False,True,"100-10000"],\
               'optAlg':["types.IntType", "values", "[0 , 1]",["BACKProp","RProp"],str(AZOrangeConfig.CVANNDEFAULTDICT["optAlg"]),False,False,"Incremental\BACKProp\nRProp"],\
               'stopCrit':["types.IntType", "values", "[1 , 2]",["NIter","EPS"],str(AZOrangeConfig.CVANNDEFAULTDICT["stopCrit"]),False,False,"Number of Iterations\nEpsilon"],\
