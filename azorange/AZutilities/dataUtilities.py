@@ -788,26 +788,41 @@ def concatenate(datasets,useFirstAsLeader=False,mergeDomains=True):
 def loadSMI(filePath, domain = None, **args):
     """Loads an SMI space separated file with 2 columns and no header.
        Returns an ExampleTable with 2 attributes: SMILES (first column on SMI) and MOLNAME (second column of SMI)
-       It ignores args and domain input variables, just for compatibility propose
+       It ignores domain input variables, just for compatibility propose
+       If hasPred keyword is passed, it assumes an extra string column with prediction: "PREDICTION" which will be the class
     """
+    if "hasPred" in args and args["hasPred"]:
+        hasPred = True
+    else:
+        hasPred = False
+
     if not os.path.isfile(filePath):
             if verbose >0: print "ERROR: Could not open file for reading: ", filePath
             return None
     file = open(filePath)
     lines = file.readlines()
 
-    # Create New Domain (classless)
-    domain = orange.Domain([orange.StringVariable("SMILES") , orange.StringVariable("MOLNAME")] , 0)
+    # Create New Domain
+    if hasPred:
+        classVar = orange.StringVariable("PREDICTION")
+    else:
+        classVar = 0
+    domain = orange.Domain([orange.StringVariable("SMILES") , orange.StringVariable("MOLNAME")] , classVar)
     # Create an empty example table with domain "domain"
     examples = DataTable(domain)
 
     # Fill the ExampleTable with the values from file
     for idx,line in enumerate(lines):
+        ex = orange.Example(domain) # [?,?] or [?,?,?]
         sLine = line.split()
+
+        if len(sLine) >= 1:
+            ex[0] = sLine[0]
         if len(sLine) >= 2:
-            examples.append([sLine[0],sLine[1]])
-        elif len(sLine) == 1:
-            examples.append([sLine[0],'?'])
+            ex[1] = sLine[1]
+        if len(sLine) >= 3 and hasPred:
+            ex.setclass(sLine[2])
+        examples.append(ex)
     examples.attributeLoadStatus = [orange.Variable.MakeStatus.OK] * 2
     return examples
 
