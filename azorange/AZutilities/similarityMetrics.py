@@ -191,7 +191,7 @@ def getMahalanobisResults(predictor, invCovMatFile = None, centerFile = None, da
         tab.append(dat)
 
         MD = calcMahalanobis(trainData, tab, invCovMatFile, centerFile, dataTableFile, domain)
-        near3neighbours = [ (MD[0]["_train_id_near1"], MD[0]["_train_SMI_near1"]), (MD[0]["_train_id_near2"], MD[0]["_train_SMI_near2"]), (MD[0]["_train_id_near3" ], MD[0]["_train_SMI_near3"]) ]
+        near3neighbors = [ (MD[0]["_train_id_near1"], MD[0]["_train_SMI_near1"]), (MD[0]["_train_id_near2"], MD[0]["_train_SMI_near2"]), (MD[0]["_train_id_near3" ], MD[0]["_train_SMI_near3"]) ]
         avg3nearest = MD[0]["_train_av3nearest"]
         if avg3nearest < predictor.highConf:
             confStr = predictor.highConfString
@@ -200,7 +200,7 @@ def getMahalanobisResults(predictor, invCovMatFile = None, centerFile = None, da
         else:
             confStr = predictor.medConfString
 
-	return near3neighbours, confStr
+	return near3neighbors, confStr
 
 if __name__ == "__main__":
     dataFile = "trainData.txt"
