@@ -115,7 +115,7 @@ class MahalanobisDistanceCalculator:
             
     
     def _descriptor_distances(self, v, count):
-        """ v is descriptor values for compound. count is number of neighbours we're interested in."""
+        """ v is descriptor values for compound. count is number of neighbors we're interested in."""
         # Figure Pierre's scaling factor
         scale = (15.0 / len(v)) ** 0.5
     
