@@ -49,7 +49,7 @@ class ConsensusClassifierTest(AZorngTestUtil.AZorngTestUtil):
         self.assertEqual(len(Loaded.domain),len(self.irisData.domain))
         self.assertEqual(len(Loaded.imputeData) , len(Loaded.domain))
         self.assertEqual(len(Loaded.basicStat), len(Loaded.domain)) 
-        self.assertEqual(Loaded.NTrainEx, len(self.irisData))
+        self.assertEqual(Loaded.NTrainEx, len(self.irisData)-30)
         for ex in self.irisData:
             predictionsL.append(Loaded(ex))
 
@@ -108,7 +108,7 @@ class ConsensusClassifierTest(AZorngTestUtil.AZorngTestUtil):
         self.assertEqual(len(Loaded.domain),len(self.DataReg.domain))
         self.assertEqual(len(Loaded.imputeData) , len(Loaded.domain))
         self.assertEqual(len(Loaded.basicStat), len(Loaded.domain))
-        self.assertEqual(Loaded.NTrainEx, len(self.DataReg))
+        self.assertEqual(Loaded.NTrainEx, len(self.DataReg)-66)
 
         miscUtilities.removeDir(scratchdir)
  
