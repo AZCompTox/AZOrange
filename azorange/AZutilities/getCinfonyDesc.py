@@ -5,7 +5,7 @@ import random
 import string
 
 import orange
-from AZutilities import InHouseUtilities as dataUtilities
+from AZutilities import dataUtilities
 import AZOrangeConfig as AZOC
 
 
