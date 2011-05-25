@@ -74,6 +74,7 @@ class installerClass:
         self.cinfonyDir = os.path.join(rootDir,"orangeDependencies/src/cinfony")
         self.rdkitDir = os.path.join(rootDir,"orangeDependencies/src/rdkit")
         self.cdkDir = os.path.join(rootDir,"orangeDependencies/src/cdk")
+        self.ftmDir = os.path.join(rootDir,"orangeDependencies/src/ftm")
         self.plearnDir = os.path.join(rootDir,"orangeDependencies/src/plearn")
         self.R8Dir = os.path.join(rootDir,"orangeDependencies/src/R8/Src")
         self.trainingDir = os.path.join(rootDir,"azorange/trainingMethods")
@@ -292,7 +293,34 @@ class installerClass:
             sys.exit(1)
         self.__prependEnvVar("JPYPE_JVM" , libjvm)
         self.__prependEnvVar("CLASSPATH" , CDKJar)
-            
+           
+    def compileFTM(self):
+        if ("ftm" not in self.dependencies):
+            print "Not using the local ftm"
+            return
+        ftminstallDir = os.path.join(self.orangeDependenciesDir,"bin")  
+        if self.dependencies["ftm"]:   #compile and install
+                # The source Dir will have to be available at running time
+                #print "Copying ftm dir to orangeDependencies"
+                #stat, out = commands.getstatusoutput("rm -rf " + ftminstallDir)
+                #stat, out = commands.getstatusoutput("cp -R " + self.ftmDir+ " " + ftminstallDir)
+                #checkStatus(stat, out,"Error installing ftm.")
+		os.chdir(os.path.join(self.ftmDir,"src"))
+                print "Building in:   ",self.ftmDir
+                stat, out = commands.getstatusoutput("make clean")
+		os.chdir(os.path.join(self.ftmDir,"src/openbabel"))
+                stat, out = commands.getstatusoutput("make clean")
+                stat, out = commands.getstatusoutput("make")
+		checkStatus(stat, out,"Error compiling ftm/openbabel.")
+		os.chdir(os.path.join(self.ftmDir,"src"))
+		stat, out = commands.getstatusoutput("make ftm")
+                checkStatus(stat, out,"Error compiling ftm.")
+                print "Installing in: ",ftminstallDir
+		stat, out = commands.getstatusoutput("cp "+ os.path.join(self.ftmDir,"src/ftm") +" "+ ftminstallDir)
+                checkStatus(stat, out,"Error installing ftm.")
+
+        else:
+                print "Not reinstalled"
 
 
     def compileRdkit(self):
@@ -802,6 +830,9 @@ class installerClass:
         
         # Setup the correct environment.
         self.setEnv()
+
+	# Compile ftm
+	self.compileFTM()
 
         # Compile cinfony
         self.compileCinfony()

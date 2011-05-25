@@ -96,13 +96,10 @@ appspack = http://software.sandia.gov/appspack/downloads/appspack-5.0.1.tar.gz,5
 boost = http://downloads.sourceforge.net/project/boost/boost/1.34.1/boost_1_34_1.tar.gz,1.34.1
 opencv = http://downloads.sourceforge.net/project/opencvlibrary/opencv-unix/2.0/OpenCV-2.0.0.tar.bz2,2.0.0
 plearn = svn://svn.berlios.de/plearn/trunk,8124
-;cinfony = http://download.github.com/cinfony-cinfony-cinfony-1.0-0-g61b93b9.tar.gz,1.0
 cinfony = http://cinfony.googlecode.com/files/cinfony-1.0.tar.gz,1.0
 rdkit = http://rdkit.googlecode.com/files/RDKit_Q42009_1.tar.gz,Q42009_2
-;cdk = http://kent.dl.sourceforge.net/project/cdk/cdk%20%28development%29/1.3.6/cdk-1.3.6.jar,1.3.6
 cdk = http://switch.dl.sourceforge.net/project/cdk/cdk/1.2.7/cdk-1.2.7.jar,1.2.7
-;cdk = http://switch.dl.sourceforge.net/project/cdk/cdk/1.2.5/cdk-1.2.5.jar,1.2.5
-;cdk = http://sunet.dl.sourceforge.net/project/cdk/cdk/1.0.2/cdk-1.0.2.jar,1.0.2
+ftm = http://wwwkramer.in.tum.de/projects/ftm.tar.gz
 
 [FeedBack]
 ;For sending reports to multiple accounts, separate them by comma

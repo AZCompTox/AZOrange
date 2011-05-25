@@ -388,6 +388,52 @@ class installer:
         else:
                 self.addLog("*Using "+name+" in SVN Repo (Not implemented yet)")
 
+    def checkoutFTM(self):
+        # Get the dependency Config
+        name = "ftm"
+        if name not in self.dependencies:
+            URL = None
+            REV = None
+            USE_INSTALLED = True
+        else:
+            depCfg = self.dependencies[name].split(",")
+            URL = depCfg[0]
+            if len(depCfg)<2 or depCfg[1] == "":
+                REV = "HEAD"
+            else:
+                REV = depCfg[1]
+            if len(depCfg)>=3 and depCfg[2] == "*":
+                USE_INSTALLED = True
+            else:
+                USE_INSTALLED = False
+
+        if not URL or USE_INSTALLED or self.repoInter == "no":
+           self.addLog("*Not downloading "+name)
+           return
+
+        self.addLog(commands.getstatusoutput("rm -rf " + os.path.join(self.DepSrcDir,name)))
+        os.chdir(self.DepSrcDir)
+        tarFile = os.path.split(URL)[-1].strip()
+        if self.openInstallation:
+                self.addLog("*Downloading "+name+" to trunk ("+URL+":"+REV+")")
+                self.addLog(commands.getstatusoutput("rm -rf " + tarFile))
+                self.addLog(commands.getstatusoutput("wget " + URL ))
+        else:
+                self.addLog("*Using "+name+" in SVN Repo (Not implemented yet)")
+                return
+        UnpackCmd = "tar "
+        if  tarFile[-6:] == "tar.gz":
+            UnpackCmd += "xfz "
+        elif tarFile[-6:] == "tar.bz2":
+            UnpackCmd += "xfj "
+        else:
+            self.addLog("#ERROR: Not a known tar file.")
+            self.successInstall = False
+            return
+        self.addLog(commands.getstatusoutput(UnpackCmd + tarFile))
+
+
+
 
     def checkOutRdkit(self):
         # Get the dependency Config
@@ -1058,6 +1104,8 @@ if __name__ == "__main__":
         install.prepareInstallDirs()
 
     #Checkout any 3rd party software to the proper locations
+    if install.successInstall:
+        install.checkoutFTM()
     if install.successInstall:
         install.checkOutOpenAZO()
     if install.successInstall:
