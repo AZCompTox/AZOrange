@@ -94,7 +94,7 @@ def calcMahalanobis(data, testData, invCovMatFile = None, centerFile = None, dat
         data = averageImputer(data)
     #If Class is continuous and all class values are unknown (and they usually are in ex to predict), the imputer cannot be created.
     # Since we are only using attributes, not the class, we will assign 0 to the class values in order to impute the testData
-    if testData.domain.classVar.varType == orange.VarTypes.Continuous:
+    if testData.domain.classVar and testData.domain.classVar.varType == orange.VarTypes.Continuous:
         for ex in testData:
             if ex.getclass().isSpecial():
                 ex.setclass(0)
