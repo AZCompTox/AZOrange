@@ -471,14 +471,19 @@ class installer:
         UnpackCmd = "tar "
         if  tarFile[-6:] == "tar.gz":
             UnpackCmd += "xfz "
+            unpackDir = tarFile[0:tarFile.rfind(".tar")]
+        elif  tarFile[-4:] == ".tgz":
+            UnpackCmd += "xfz "
+            unpackDir = tarFile[0:tarFile.rfind(".tgz")]
         elif tarFile[-6:] == "tar.bz2":
             UnpackCmd += "xfj "
+            unpackDir = tarFile[0:tarFile.rfind(".tar")]
         else:
             self.addLog("#ERROR: Not a known tar file.")
             self.successInstall = False
             return 
         self.addLog(commands.getstatusoutput(UnpackCmd + tarFile))
-        self.addLog(commands.getstatusoutput("mv " + tarFile[0:tarFile.rfind(".tar")] + " " + name ))
+        self.addLog(commands.getstatusoutput("mv " + unpackDir + " " + name ))
 
 
     def checkOutCinfony(self):

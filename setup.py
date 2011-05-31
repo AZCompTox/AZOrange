@@ -349,7 +349,7 @@ class installerClass:
         # At runtime we will need PYTHONPATH to include the location of new installed modules
         self.__prependEnvVar("PYTHONPATH" , rdkitinstallDir)
         # At runtime we will need LD_LIBRARY_PATH to include the location of shared objects
-        self.__prependEnvVar("LD_LIBRARY_PATH" , os.path.join(rdkitinstallDir,"bin"))
+        self.__prependEnvVar("LD_LIBRARY_PATH" , os.path.join(rdkitinstallDir,"lib"))
         # At runtime we will need RDBASE to include the location of RDKit
         self.__prependEnvVar("RDBASE" , rdkitinstallDir)
         
