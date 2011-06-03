@@ -1,7 +1,7 @@
 # Do Mahalanobis calculations
 # The sole modification is to replace the import ot PyDroneConstants
 
-import os
+import os,commands
 import numpy
 # Global variables needed to avoid importing PyDroneConstants
 TRAIN = "_train"
@@ -10,7 +10,17 @@ NEAREST_ID = "_id_near"
 NEAREST_SMI = "_SMI_near"
 NEAREST_MEASURED = "_exp_near"
 
-def createInvCovMat(data, ICM_file=None, TSDT_file=None, C_file=None):
+def createInvCovMat(data, TSDT_file=None, C_file=None, SQRTICM_file = None, MTD_file = None):
+    """
+     Inputs:
+        data            - The train data orange table
+     Outputs (all in numpy format:  .npy)
+        *Not used*  ICM_file        - Path to save the Invertec Covariance Matrix 
+        TSDT_file       - Path to save the TrainSet Data Table  
+        C_file          - Path to save the Center file 
+        SQRTICM_file    - Path to save the Sqrt Inverted Covariance Matrix 
+        MTD_file        - Path to save the Mahalanobis Transformed Data 
+    """
     from AZutilities import similarityMetrics
     import orange
 
@@ -18,23 +28,62 @@ def createInvCovMat(data, ICM_file=None, TSDT_file=None, C_file=None):
         averageImputer = orange.ImputerConstructor_average(data)
         data = averageImputer(data)
     training_set = similarityMetrics.getTrainingSet(data)
-
-    # Calculate the Inv Cov Matrix and center
-    covarMat = numpy.cov(numpy.asarray(training_set.data_table), rowvar=0)
-    inverse_covarMat = numpy.linalg.pinv(covarMat, rcond=1e-10)
     center =  numpy.average(training_set.data_table, 0)
 
-    #Save the respective files
-    if ICM_file:
+    # BackCompatibility ONLY. TODO: To Remove when mahalanobis is updated
+    if SQRTICM_file:
+        ICM_file = os.path.join(os.path.split(SQRTICM_file)[0],"invCovMatrix.npy") 
+        covarMat = numpy.cov(numpy.asarray(training_set.data_table), rowvar=0)
+        inverse_covarMat = numpy.linalg.pinv(covarMat, rcond=1e-10)
         numpy.save(ICM_file, inverse_covarMat)
+
+
     if TSDT_file:
         numpy.save(TSDT_file, training_set.data_table)
     if C_file:
         numpy.save(C_file, center)
+    
+    # Next call to createMahalanobisData.sh is to be removed when the   sqrtm(CI) is working.
+    #Thisis known to be working in python 2.7 - Numpy - scipy
+    status,out = commands.getstatusoutput("$AZORANGEHOME/azorange/AZutilities/createMahalanobisData.sh "+TSDT_file+" "+C_file+" "+SQRTICM_file+" "+MTD_file)
+    if status:
+        print "Error running Advanced Files creator: "+str(out)
+        return False
+    else:
+        print "Done OK!"
+        return True
+ 
+    #Code runned at the momment by createMahalanobisData.sh using another version of python 
+    #   (python2.7 locally installed in azorangeLive home directory)
+    print "Creating advanced files"
+    from scipy.linalg import sqrtm        
+ 
+    data = numpy.load(TSDT_file)
+    center = numpy.load(C_file)
 
-    return inverse_covarMat
+    m = numpy.mean(data,axis=0)
+    data -= center
+    print " Covariance matrix..."
+    C = numpy.cov(numpy.transpose(data))
+    print "Inverse Covariance matrix..."
+    CI = numpy.linalg.pinv(C, rcond=1e-10)
+    print "Square Root Inverse Covariance matrix..."
+    print CI
+    SQI = sqrtm(CI).real
 
-class DummyTrainingSet():
+    print "Save Square Root Inverse Covariance matrix..."
+    numpy.save(SQRTICM_file, SQI)
+
+    print "Transforming..."
+    MT = numpy.dot(data, SQI.T) # mahalanobis transformed data
+    print " Saving Mahalanobis Transformed Data..."
+    numpy.save(MTD_file, MT)
+
+    return True
+
+
+
+class DummyTrainingSet:
     def __init__(self, dataTableFile):
         self.data_table = numpy.load(dataTableFile)
         dataLen = len(self.data_table) 
@@ -222,4 +271,15 @@ def _name_extensions(count, measured=True):
     return extensions
 
 if __name__ == "__main__":
-    test()
+    import orange
+
+    data = orange.ExampleTable("../../tests/source/data/iris2.tab")
+    TSDT_file = "TSDT.npy"
+    C_file = "C.npy"
+    SQRTICM_file = "SQRTICM.npy"
+    MTD_file =  "MTD.npy"
+    createInvCovMat(data, TSDT_file, C_file, SQRTICM_file, MTD_file)
+    print "\nFinished\n"
+
+
+
