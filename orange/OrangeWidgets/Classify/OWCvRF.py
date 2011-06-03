@@ -40,7 +40,7 @@ class OWCvRF(OWWidget):
         self.priors = AZOC.RFDEFAULTDICT["priors"]
         self.stratify = AZOC.RFDEFAULTDICT["stratify"] == "true"
         self.useBuiltInMissValHandling = int(AZOC.RFDEFAULTDICT["useBuiltInMissValHandling"])
-        self.modelFile = os.path.join(os.getcwd(),"RF.model")
+        self.modelFile = os.path.join(os.getcwd(),"RFmodel")
 
         self.data = None
 

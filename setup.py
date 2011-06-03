@@ -74,6 +74,7 @@ class installerClass:
         self.cinfonyDir = os.path.join(rootDir,"orangeDependencies/src/cinfony")
         self.rdkitDir = os.path.join(rootDir,"orangeDependencies/src/rdkit")
         self.cdkDir = os.path.join(rootDir,"orangeDependencies/src/cdk")
+        self.ftmDir = os.path.join(rootDir,"orangeDependencies/src/ftm")
         self.plearnDir = os.path.join(rootDir,"orangeDependencies/src/plearn")
         self.R8Dir = os.path.join(rootDir,"orangeDependencies/src/R8/Src")
         self.trainingDir = os.path.join(rootDir,"azorange/trainingMethods")
@@ -185,7 +186,7 @@ class installerClass:
         print "Copying trainingMethods, AZutilities and AZOrangeConfig.py to installation directory."
         sumStatus = 0
         try:
-	    ##scPA    Changed the source and destination of these files
+            ##scPA    Changed the source and destination of these files
             sumStatus += os.system("mkdir -p %s/azorange/trainingMethods" % self.orangeInstallDir)
             #Not included in the sumStatus because this command will generate a warning because being sipping directories.
             os.system("cp -f ../azorange/trainingMethods/* %s/azorange/trainingMethods/" % self.orangeInstallDir)
@@ -203,13 +204,13 @@ class installerClass:
                 sumStatus += os.system("cp -Rf ../azorange/documentation %s/azorange/." % self.orangeInstallDir)
                 sumStatus += os.system("cp -f ../azorange/*.txt %s/azorange/." % self.orangeInstallDir)
                 sumStatus += os.system("cp -Rf  ../exampleScripts %s/." % self.orangeInstallDir)
-	    #  Added the azorange to pythonpath in order to maintain the use of modules
+            #  Added the azorange to pythonpath in order to maintain the use of modules
             #  inside it accessible by the same way
             if "PYTHONPATH" in os.environ:
                 os.environ["PYTHONPATH"] =  self.orangeDir + "/azorange:" +  os.environ["PYTHONPATH"]
             else:
                 os.environ["PYTHONPATH"] =  self.orangeDir + "/azorange"
-	    ##ecPA
+            ##ecPA
             #print "copy env:"
             #os.system("ls -l ")
             #os.system("pwd")
@@ -292,7 +293,34 @@ class installerClass:
             sys.exit(1)
         self.__prependEnvVar("JPYPE_JVM" , libjvm)
         self.__prependEnvVar("CLASSPATH" , CDKJar)
-            
+           
+    def compileFTM(self):
+        if ("ftm" not in self.dependencies):
+            print "Not using the local ftm"
+            return
+        ftminstallDir = os.path.join(self.orangeDependenciesDir,"bin")  
+        if self.dependencies["ftm"]:   #compile and install
+                # The source Dir will have to be available at running time
+                #print "Copying ftm dir to orangeDependencies"
+                #stat, out = commands.getstatusoutput("rm -rf " + ftminstallDir)
+                #stat, out = commands.getstatusoutput("cp -R " + self.ftmDir+ " " + ftminstallDir)
+                #checkStatus(stat, out,"Error installing ftm.")
+                os.chdir(os.path.join(self.ftmDir,"src"))
+                print "Building in:   ",self.ftmDir
+                stat, out = commands.getstatusoutput("make clean")
+                os.chdir(os.path.join(self.ftmDir,"src/openbabel/src"))
+                stat, out = commands.getstatusoutput("make clean")
+                stat, out = commands.getstatusoutput("make")
+                checkStatus(stat, out,"Error compiling ftm/openbabel/src")
+                os.chdir(os.path.join(self.ftmDir,"src"))
+                stat, out = commands.getstatusoutput("make ftm")
+                checkStatus(stat, out,"Error compiling ftm.")
+                print "Installing in: ",ftminstallDir
+                stat, out = commands.getstatusoutput("cp "+ os.path.join(self.ftmDir,"src/ftm") +" "+ ftminstallDir)
+                checkStatus(stat, out,"Error installing ftm.")
+
+        else:
+                print "Not reinstalled"
 
 
     def compileRdkit(self):
@@ -321,7 +349,7 @@ class installerClass:
         # At runtime we will need PYTHONPATH to include the location of new installed modules
         self.__prependEnvVar("PYTHONPATH" , rdkitinstallDir)
         # At runtime we will need LD_LIBRARY_PATH to include the location of shared objects
-        self.__prependEnvVar("LD_LIBRARY_PATH" , os.path.join(rdkitinstallDir,"bin"))
+        self.__prependEnvVar("LD_LIBRARY_PATH" , os.path.join(rdkitinstallDir,"lib"))
         # At runtime we will need RDBASE to include the location of RDKit
         self.__prependEnvVar("RDBASE" , rdkitinstallDir)
         
@@ -552,7 +580,7 @@ class installerClass:
         print "The rootDir: ",self.rootDir
         # Add nspr directory to CPATH
         if self.platform[0:3] == "GAS":
-	    try:
+            try:
                 pcfile=open("/usr/lib/pkgconfig/mozilla-nspr.pc")
                 line=pcfile.readline()
                 while(line):
@@ -802,6 +830,9 @@ class installerClass:
         
         # Setup the correct environment.
         self.setEnv()
+
+        # Compile ftm
+        self.compileFTM()
 
         # Compile cinfony
         self.compileCinfony()
