@@ -318,6 +318,17 @@ class installer:
                 #self.addLog(commands.getstatusoutput("git pull"))
             else:
                 if self.installType == "developer":
+                        if "openazo" in self.dependencies:
+                            depCfg = self.dependencies["openazo"].split(",")
+                            if len(depCfg)>=3 and depCfg[2] == "*":
+                                USE_INSTALLED = True
+                            else:
+                                USE_INSTALLED = False
+
+                        if USE_INSTALLED: 
+                           self.addLog("*Not cloning openAZO from GIT")
+                           return
+
                         self.addLog("*Cloning from GIT")
                         self.addLog("#trunk: "+self.trunkDir)
                         self.addLog(commands.getstatusoutput("rm -rf AZOrange"))
