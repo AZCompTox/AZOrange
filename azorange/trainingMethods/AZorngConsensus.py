@@ -87,9 +87,10 @@ class ConsensusLearner(AZBaseClasses.AZLearner):
                 #Try to get the imputeData, basicStat from a model that have it!
                 if hasattr(classifiers[-1], "basicStat") and classifiers[-1].basicStat and not self.basicStat:
                     self.basicStat = classifiers[-1].basicStat
+                if hasattr(classifiers[-1], "NTrainEx") and classifiers[-1].basicStat and not self.NTrainEx:
+                    self.NTrainEx = len(trainingData)
                 if hasattr(classifiers[-1], "imputeData") and classifiers[-1].imputeData and not self.imputeData:
                     self.imputeData = classifiers[-1].imputeData
-        self.NTrainEx = len(trainingData)
 
         return ConsensusClassifier(classifiers = classifiers, classVar = trainingData.domain.classVar,verbose = self.verbose, domain = trainingData.domain, varNames = [attr.name for attr in trainingData.domain.attributes], NTrainEx = self.NTrainEx, basicStat = self.basicStat, imputeData = self.imputeData)
 
@@ -311,6 +312,7 @@ def Consensusread(dirPath,verbose = 0):
 
         #Load the models
         modelFiles = glob.glob(os.path.join(dirPath,'C*.model'))
+        modelFiles.sort()
         if len(modelFiles) < 2:
                 if verbose > 0: print "ERROR: Missing model files in ",dirPath    
                 return None
