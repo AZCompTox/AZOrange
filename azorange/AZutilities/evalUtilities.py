@@ -151,7 +151,7 @@ def ConfMat(res = None):
 
         confMat = orngStat.confusionMatrices(res)[0]
         if len(res.classValues) == 2:
-            cm = [[confMat.TP, confMat.FN],[confMat.FP, confMat.TN]]
+            cm = [[confMat.TN, confMat.FP],[confMat.FN, confMat.TP]]
         else:
             cm = confMat
         return cm
