@@ -4,9 +4,6 @@ import time
 import types,string
 import commands
 
-SHELL_TYPE_BASH = "bash"
-SHELL_TYPE_TCSH = "tcsh"
-
 class installer:
     def __init__(self,configFile):
 	if not os.path.isfile(configFile):
@@ -77,9 +74,6 @@ class installer:
 	self.TemplateProfileFile = os.path.realpath(self.__getFromConfig(section,"templateprofilefile"))
 	if not self.TemplateProfileFile:
 	    self.TemplateProfileFile = os.path.join(self.currentDir,"templateProfile")
-	self.TemplateProfileFileBash = os.path.realpath(self.__getFromConfig(section,"templateprofilefilebash"))
-	if not self.TemplateProfileFileBash:
-	    self.TemplateProfileFileBash = os.path.join(self.currentDir,"templateProfileBash")
 
 	section = "Paths"
 	if not self.__validateOptions(section,["builddir","installdir"]):
@@ -874,48 +868,34 @@ class installer:
         self.addLog("#Running after-install scripts")
         self.addLog(commands.getstatusoutput(os.path.join(self.AZOrangeInstallDir,'azorange/bin/clean.sh')))
 
-    def createProfileExample(self, shellType = SHELL_TYPE_TCSH):
+    def createProfileExample(self):
         # In addition to the place defined in setup.ini for the template profile, a file called templateProfile will always be
         # placed in:
         #    - Install Dir ($AZORANGEHOME):
-    	#       - system installation: place Profile Template at root of installDir
-    	#       - developer installation : place Profile template at root of trunkDir
+	#       - system installation: place Profile Template at root of installDir
+	#       - developer installation : place Profile template at root of trunkDir
         #    - within this running install dir
         # NOTE: The $AZORANGEHOME/templateProfile will be used by MPI calls. Do not remove it from there and
         #       do not rename it.
 
-        self.addLog("*Create a Template  profile")
+	self.addLog("*Create a Template  profile")
         #Compose the template profile content
-        if shellType == SHELL_TYPE_BASH:
-            strFile =  "#!/bin/bash\n"
-        else:
-            strFile =  "#!/bin/tcsh\n"
         localVars = {"installDir":self.AZOrangeInstallDir}
-        strFile +=  "# Template profile for azorange installation at %(installDir)s\n" % localVars
+        strFile =  "# Template profile for azorange installation at %(installDir)s\n" % localVars
         if self.sources:
             strFile += "\n# Additional sources needed\n"
             for source in self.sources:
-                if shellType == SHELL_TYPE_BASH:
-                    if os.path.isfile(source):
-                        strFile += ". "+ source  + "\n"
-                    else:
-                        strFile += "#. "+ source  + "\n"
-                        self.addLog("#The specified source file does not exist: " + source)
+                if os.path.isfile(source):
+                    strFile += "source "+ source  + "\n"
                 else:
-                    if os.path.isfile(source):
-                        strFile += "source "+ source  + "\n"
-                    else:
-                        strFile += "#source "+ source  + "\n"
-                        self.addLog("#The specified source file does not exist: " + source)
+                    strFile += "#source "+ source  + "\n"
+                    self.addLog("#The specified source file does not exist: " + source)
         #Variables
-        if shellType == SHELL_TYPE_BASH:
-            strFile += "export AZORANGEHOME=%(installDir)s\n" % localVars
-        else:
-            strFile += "setenv AZORANGEHOME %(installDir)s\n" % localVars
+        strFile += "setenv AZORANGEHOME %(installDir)s\n" % localVars
 
         #  LD_LIBRARY_PATH  space separated paths in tcsh!!
         #LD_LIBPaths = [localVars["installDir"]+"/orange", localVars["installDir"]+"/orangeDependencies/bin"]
-        LD_LIBPaths = [os.path.join("$AZORANGEHOME", "orange")]
+        LD_LIBPaths = [localVars["installDir"]+"/orange"]
         if "LD_LIBRARY_PATH" in self.EnvVars:
             for value in self.EnvVars["LD_LIBRARY_PATH"]:
                 if value not in LD_LIBPaths: LD_LIBPaths.insert(0,value)
@@ -924,27 +904,20 @@ class installer:
         for idx,value in enumerate(self.EnvVars["LD_LIBRARY_PATH"]):
             if idx: libPathsStr += ":"
             libPathsStr += value
-        if shellType == SHELL_TYPE_BASH:
-            strFile += "if [[ ! -z $LD_LIBRARY_PATH ]] ; then\n"
-            strFile += "    export LD_LIBRARY_PATH=\"%s:${LD_LIBRARY_PATH}\"\n" % libPathsStr
-            strFile += "else\n"
-            strFile += "    export LD_LIBRARY_PATH=\"%s\"\n" % libPathsStr
-            strFile += "fi\n"
-        else:
-            strFile += "if ( $?LD_LIBRARY_PATH ) then\n"
-            strFile += "    setenv LD_LIBRARY_PATH \"%s:${LD_LIBRARY_PATH}\"\n" % libPathsStr
-            strFile += "else\n"
-            strFile += "    setenv LD_LIBRARY_PATH \"%s\"\n" % libPathsStr
-            strFile += "endif\n"
+        strFile += "if ( $?LD_LIBRARY_PATH ) then\n"
+        strFile += "    setenv LD_LIBRARY_PATH \"%s:${LD_LIBRARY_PATH}\"\n" % libPathsStr
+        strFile += "else\n"
+        strFile += "    setenv LD_LIBRARY_PATH \"%s\"\n" % libPathsStr
+        strFile += "endif\n"
 
         #  PATH
-        PATHPaths = [os.path.join("$AZORANGEHOME", "orangeDependencies", "bin"),"${PATH}"]
+        PATHPaths = [localVars["installDir"]+"/orangeDependencies/bin","${PATH}"]
         if "PATH" in self.EnvVars:
             for value in self.EnvVars["PATH"]:
                 if value not in PATHPaths: PATHPaths.insert(0,value)
         self.EnvVars["PATH"] = PATHPaths
         #  PYTHONPATH
-        pythonPaths = [".",os.path.join("$AZORANGEHOME", "orange"), os.path.join("$AZORANGEHOME", "azorange"), os.path.join("$AZORANGEHOME", "tests")]
+        pythonPaths = [".",localVars["installDir"]+"/orange", localVars["installDir"]+"/azorange", localVars["installDir"]+"/tests"]
         if "PYTHONPATH" in self.EnvVars:      
             for value in self.EnvVars["PYTHONPATH"]:
                 if value not in pythonPaths: pythonPaths.insert(0,value)
@@ -953,18 +926,11 @@ class installer:
         for idx,value in enumerate(self.EnvVars["PYTHONPATH"]):
             if idx: pythonPathsStr += ":"
             pythonPathsStr += value
-        if shellType == SHELL_TYPE_BASH:
-            strFile += "if [[ ! -z $PYTHONPATH ]] ; then\n"
-            strFile += "    export PYTHONPATH=%s:${PYTHONPATH}\n" % pythonPathsStr
-            strFile += "else\n"
-            strFile += "    export PYTHONPATH=%s\n" % pythonPathsStr
-            strFile += "fi\n"
-        else:
-            strFile += "if ( $?PYTHONPATH ) then\n"
-            strFile += "    setenv PYTHONPATH %s:${PYTHONPATH}\n" % pythonPathsStr
-            strFile += "else\n"
-            strFile += "    setenv PYTHONPATH %s\n" % pythonPathsStr
-            strFile += "endif\n"
+        strFile += "if ( $?PYTHONPATH ) then\n"
+        strFile += "    setenv PYTHONPATH %s:${PYTHONPATH}\n" % pythonPathsStr
+        strFile += "else\n"
+        strFile += "    setenv PYTHONPATH %s\n" % pythonPathsStr
+        strFile += "endif\n"
 
         #Update and assign ALL Variables but "AZORANGEHOME" and "PYTHONPATH"
         for envVar in [x for x in self.EnvVars if x.upper() not in ["AZORANGEHOME" , "PYTHONPATH","LD_LIBRARY_PATH"]]:
@@ -972,16 +938,10 @@ class installer:
             for idx,value in enumerate(self.EnvVars[envVar]):
                 if idx: strValues += ":"
                 strValues += value
-            if shellType == SHELL_TYPE_BASH:
-                strFile += "export %s=%s\n" % (envVar.upper() ,strValues)
-            else:
-                strFile += "setenv %s %s\n" % (envVar.upper() ,strValues)
+            strFile += "setenv %s %s\n" % (envVar.upper() ,strValues)
         #Aliases
         strFile += "\n# AZOrange canvas alias\n"
-        if shellType == SHELL_TYPE_BASH:
-            strFile += "alias azorange='python " + os.path.join("$AZORANGEHOME", "orange", "OrangeCanvas", "orngCanvas.pyw") + "'\n"
-        else:
-            strFile += "alias azorange python " + os.path.join("$AZORANGEHOME", "orange", "OrangeCanvas", "orngCanvas.pyw") + "\n"
+        strFile += "alias azorange python %(installDir)s/orange/OrangeCanvas/orngCanvas.pyw\n" % localVars
         #Modules
         if eval(self.modules):
             strFile += "\n# AZOrange module dependencies\n"
@@ -1000,40 +960,32 @@ class installer:
 
         #Scripts to run upon setting the envitonment or loading the respective module
         strFile += "\n# Startup scripts\n"
-        strFile += os.path.join("$AZORANGEHOME", "azorange", "bin", "clean.sh") + "\n"
+        strFile += os.path.join(self.AZOrangeInstallDir, "azorange/bin/clean.sh\n")
         #strFile += os.path.join(self.AZOrangeInstallDir, "azorange/bin/ssh_testcfg.sh")  # This will be uncommented when using local mpi for the optimizer
         
 
         #Write the template file to current dir
         try:
-            if shellType == SHELL_TYPE_BASH:
-                localTemplateFile = os.path.join(self.currentDir,"templateProfile.bash")
-            else:
-                localTemplateFile = os.path.join(self.currentDir,"templateProfile")
+            localTemplateFile = os.path.join(self.currentDir,"templateProfile")
             pyFile = open(localTemplateFile,"w")
             pyFile.write(strFile)
             pyFile.close()
         except:
-            self.addLog((1,"Failed to create profile template file"))     
+	    self.addLog((1,"Failed to create profile template file"))     
             return
         # #Write the template file to the user defined place (defined in setup.ini)
-        if shellType == SHELL_TYPE_BASH:
-            if localTemplateFile != self.TemplateProfileFileBash:
-                self.addLog(commands.getstatusoutput("cp -p" + localTemplateFile  +" "+ self.TemplateProfileFileBash))
-            self.addLog("#Profile template file created in "+self.TemplateProfileFileBash)
-        else:
-            if localTemplateFile != self.TemplateProfileFile:
-                self.addLog(commands.getstatusoutput("cp -p" + localTemplateFile  +" "+ self.TemplateProfileFile))
-            self.addLog("#Profile template file created in "+self.TemplateProfileFile)
-            #Write the template file to the install dir depending on the installType
-    	if self.installType == "system" or self.repoInter=="export":
-    	    self.addLog("#Profile template file copied into installDir")
-    	    self.addLog(commands.getstatusoutput("cp " + localTemplateFile + " " + self.AZOrangeInstallDir))
-    	else:	    
-    	    self.addLog("#Profile template file copied into trunkDir")
-    	    self.addLog(commands.getstatusoutput("cp " + localTemplateFile + " " + self.trunkDir))
+        if localTemplateFile != self.TemplateProfileFile:
+            self.addLog(commands.getstatusoutput("cp " + localTemplateFile  +" "+ self.TemplateProfileFile))
+	self.addLog("#Profile template file created in "+self.TemplateProfileFile)
+        #Write the template file to the install dir depending on the installType
+	if self.installType == "system" or self.repoInter=="export":
+	    self.addLog("#Profile template file copied into installDir")
+	    self.addLog(commands.getstatusoutput("cp " + localTemplateFile + " " + self.AZOrangeInstallDir))
+	else:	    
+	    self.addLog("#Profile template file copied into trunkDir")
+	    self.addLog(commands.getstatusoutput("cp " + localTemplateFile + " " + self.trunkDir))
 
-    
+	
     def InstallCacheCleaner(self):
 	if self.cleanInstallCache:
 	    #For system installation, removes trunk and build dir
@@ -1157,10 +1109,6 @@ if __name__ == "__main__":
     #Sends the configuration used to the details only!
     install.printConfiguration(True)
     startInstallTime = time.time()
-    install.createProfileExample(SHELL_TYPE_TCSH)
-    install.createProfileExample(SHELL_TYPE_BASH)
-    sys.exit()
-
 
     # Check for some important requirements
     install.addLog("*Requirements")
@@ -1206,8 +1154,7 @@ if __name__ == "__main__":
         install.addLog("*ERROR: Installation aborted!")
 
     if install.successInstall and not PREPARE_ONLY:
-        install.createProfileExample(SHELL_TYPE_TCSH)
-        install.createProfileExample(SHELL_TYPE_BASH)
+        install.createProfileExample()
         install.InstallCacheCleaner()
         install.runAfterInstallScripts()
 	
