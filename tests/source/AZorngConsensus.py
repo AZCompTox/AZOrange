@@ -26,7 +26,7 @@ class ConsensusClassifierTest(AZorngTestUtil.AZorngTestUtil):
 
     def test_saveloadClass(self):
         """Test the save/load for a classification model - Using Majority"""
-        learnersNames = ["CvANN","CvSVM","RF"]        
+        learnersNames = ["RF","CvANN","CvSVM"]        
 
         learner = AZorngConsensus.ConsensusLearner(learnersNames = learnersNames)
         classifier = learner(self.irisData)
@@ -49,7 +49,7 @@ class ConsensusClassifierTest(AZorngTestUtil.AZorngTestUtil):
         self.assertEqual(len(Loaded.domain),len(self.irisData.domain))
         self.assertEqual(len(Loaded.imputeData) , len(Loaded.domain))
         self.assertEqual(len(Loaded.basicStat), len(Loaded.domain)) 
-        self.assertEqual(Loaded.NTrainEx, len(self.irisData)-30)
+        self.assertEqual(Loaded.NTrainEx, len(self.irisData))
         for ex in self.irisData:
             predictionsL.append(Loaded(ex))
 
@@ -60,7 +60,7 @@ class ConsensusClassifierTest(AZorngTestUtil.AZorngTestUtil):
 
     def test_saveloadClass2(self):
         """Test the save/load for a classification model - Using probabilities average"""
-        learnersNames = ["RF","CvANN"]
+        learnersNames = ["CvANN","RF"]
 
         learner = AZorngConsensus.ConsensusLearner(learnersNames = learnersNames)
         classifier = learner(self.irisData)
@@ -80,14 +80,14 @@ class ConsensusClassifierTest(AZorngTestUtil.AZorngTestUtil):
         self.assertEqual(len(Loaded.domain),len(self.irisData.domain))
         self.assertEqual(len(Loaded.imputeData) , len(Loaded.domain))
         self.assertEqual(len(Loaded.basicStat), len(Loaded.domain))
-        self.assertEqual(Loaded.NTrainEx, len(self.irisData))
+        self.assertEqual(Loaded.NTrainEx, len(self.irisData)-int(0.2 * len(self.irisData)))
 
         miscUtilities.removeDir(scratchdir)
 
        
     def test_saveloadReg(self):
         """Test the save/load for a regression model - Using average of N classifiers"""
-        learnersNames = ["CvANN","CvSVM","RF"]
+        learnersNames = ["RF","CvSVM","CvANN"]
 
         learner = AZorngConsensus.ConsensusLearner(learnersNames = learnersNames)
         classifier = learner(self.DataReg)
@@ -108,7 +108,7 @@ class ConsensusClassifierTest(AZorngTestUtil.AZorngTestUtil):
         self.assertEqual(len(Loaded.domain),len(self.DataReg.domain))
         self.assertEqual(len(Loaded.imputeData) , len(Loaded.domain))
         self.assertEqual(len(Loaded.basicStat), len(Loaded.domain))
-        self.assertEqual(Loaded.NTrainEx, len(self.DataReg)-66)
+        self.assertEqual(Loaded.NTrainEx, len(self.DataReg))
 
         miscUtilities.removeDir(scratchdir)
  

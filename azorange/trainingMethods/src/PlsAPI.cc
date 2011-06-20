@@ -599,7 +599,7 @@ string PlsAPI::FileOrngToPLearn(string orngFilePath,string PLrnFilePath)
 						classElement="";
 						actPos=-1;
 						nxPos=line.find(token,0);
-						while((unsigned int)nxPos!=string::npos)//read all row elements but the last
+						while(nxPos!=(signed size_t)string::npos)//read all row elements but the last
 						{
                             element =line.substr(actPos+1,nxPos-actPos-1);
 							//Strip and replace all spaces with "_nbsp_"
@@ -676,7 +676,7 @@ int PlsAPI::Tokenize(const string* InputStr, string** pSplitedStr ,char Token)
 	int actPos=-1;
 	try{
 		int nxPos=InputStr->find(Token,0);
-		while((unsigned int)nxPos!=string::npos)//Count all row elements but the last
+		while(nxPos!=(signed size_t)string::npos)//Count all row elements but the last
 		{
 			actPos=nxPos;
 			nxPos=InputStr->find(Token,actPos+1);
@@ -688,7 +688,7 @@ int PlsAPI::Tokenize(const string* InputStr, string** pSplitedStr ,char Token)
 		actPos=-1;
 		nxPos=InputStr->find(Token,0);
 		Cols=0;
-		while((unsigned int)nxPos!=string::npos)//Get all row elements but the last
+		while(nxPos!=(signed size_t)string::npos)//Get all row elements but the last
         {  
 			(*pSplitedStr)[Cols]=string(InputStr->substr(actPos+1,nxPos-actPos-1).c_str());
             actPos=nxPos;

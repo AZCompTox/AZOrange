@@ -66,10 +66,11 @@ class OWParamOpt(OWWidget):
         self.SMethods = [("Leave-One-Out", 0),
                          ("Cross Validation", 1)]
 
-        self.execEnvs = [("Local serial", 0)]
-        #                ("Local parallel", 1),
-        #                ("Distributed - Molndal", 2),
-        #                ("Distributed - Lund", 3)]
+        self.execEnvs = [("Local serial", 0),
+                         ("Local parallel", 1),
+                         ("Distributed batch - Molndal", 2),
+                         ("Distributed quick - Molndal", 3)]
+                         #("Distributed - Lund", 3)]
        
         self.defineGUI()
         
@@ -693,9 +694,13 @@ class OWParamOpt(OWWidget):
                 optPID = self.optimizer(learner=self.learner, dataSet=OrngFile, evaluateMethod = evalM , findMin=fMin, nFolds = self.nFolds, samplingMethod = self.SMethods[self.SMethod][1], runPath = scratchdir, verbose = self.verbose, externalControl = 1,useParameters = self.parameters, useGridSearchFirst = self.UseGridSearch,  gridSearchInnerPoints=self.nInnerPoints, machinefile = 0)
             # Sge Molndal
             elif self.execEnv == 2:
-                print "Executing the optimizer in parallel mode on the sge in Molndal"
+                print "Executing the optimizer in parallel mode in the batch queue on the sge in Molndal"
+                print "*****************runPath*****************"
                 optPID = self.optimizer(learner=self.learner, dataSet=OrngFile, evaluateMethod = evalM , findMin=fMin, nFolds = self.nFolds, samplingMethod = self.SMethods[self.SMethod][1], runPath = scratchdir, verbose = self.verbose, externalControl = 1,useParameters = self.parameters, useGridSearchFirst = self.UseGridSearch,  gridSearchInnerPoints=self.nInnerPoints, np = 8,machinefile = "qsub")#, sgeEnv = "sge_seml")
-            # Sge Lund
+            elif self.execEnv == 3:
+                print "Executing the optimizer in parallel mode in the quick queue on the sge in Molndal"
+                print "*****************runPath*****************"
+                optPID = self.optimizer(learner=self.learner, dataSet=OrngFile, evaluateMethod = evalM , findMin=fMin, nFolds = self.nFolds, samplingMethod = self.SMethods[self.SMethod][1], runPath = scratchdir, verbose = self.verbose, externalControl = 1,useParameters = self.parameters, useGridSearchFirst = self.UseGridSearch,  gridSearchInnerPoints=self.nInnerPoints, np = 8,machinefile = "qsub",queueType = "quick.q")#, sgeEnv = "sge_seml")
             else:
                 optPID = None
                 print "Executing the optimizer in parallel mode on the sge in Lund"

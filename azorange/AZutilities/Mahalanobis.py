@@ -1,7 +1,7 @@
 # Do Mahalanobis calculations
 # The sole modification is to replace the import ot PyDroneConstants
 
-import os,commands
+import os,commands,time
 import numpy
 # Global variables needed to avoid importing PyDroneConstants
 TRAIN = "_train"
@@ -9,6 +9,13 @@ NEAREST_DIST = "_dist_near"
 NEAREST_ID = "_id_near"
 NEAREST_SMI = "_SMI_near"
 NEAREST_MEASURED = "_exp_near"
+
+def euclidean(u, v):
+    u = numpy.asarray(u, order='c')
+    v = numpy.asarray(v, order='c')
+    q=numpy.matrix(u-v)
+    return numpy.sqrt((q*q.T).sum())
+
 
 def createInvCovMat(data, TSDT_file=None, C_file=None, SQRTICM_file = None, MTD_file = None):
     """
@@ -50,7 +57,6 @@ def createInvCovMat(data, TSDT_file=None, C_file=None, SQRTICM_file = None, MTD_
         print "Error running Advanced Files creator: "+str(out)
         return False
     else:
-        print "Done OK!"
         return True
  
     #Code runned at the momment by createMahalanobisData.sh using another version of python 
@@ -96,6 +102,7 @@ class MahalanobisDistanceCalculator:
     def __init__(self, training_set = None, invCovMatFile = None, centerFile = None, dataTableFile = None):
         self.norm = None
         self.centre = None
+        self.NoSqrt = False
 
         if (invCovMatFile is not None and not os.path.isfile(invCovMatFile)):
             raise Exception("Cannot locate the Inv. Cov. Matrix file: "+str(invCovMatFile))
@@ -123,7 +130,8 @@ class MahalanobisDistanceCalculator:
     def _lazy_init(self):
         if self.invCovMatFile:
             self.norm = numpy.load(self.invCovMatFile)
-        else:    
+        else:   
+            self.NoSqrt = True 
             self.norm = create_inverse_covariance_norm(self.training_set.data_table)
 
         if self.centerFile:
@@ -172,10 +180,15 @@ class MahalanobisDistanceCalculator:
         d = {}
     
         # First, compute the distance to the center
-        d["_MD"] = compute_distance(v, self.center, self.norm)
-        
+        if self.NoSqrt:
+            d["_MD"] = compute_distance(v, self.center, self.norm)
+        else:
+            v = numpy.dot(self.norm,v - self.center) # transform input descriptor vector
+            c = numpy.dot(self.norm,self.center - self.center)
+            d["_MD"] = euclidean(v,c)
+ 
         # Now, the distance to the training set
-        distances = compute_distances(v, self.training_set.data_table, self.norm)
+        distances = compute_distances(v, self.training_set.data_table, self.norm, useEuclidean = not self.NoSqrt)
     
         measured_list = self.training_set.measured_list
         if measured_list is None:
@@ -222,10 +235,10 @@ def average_vector(vectors):
     return numpy.average(vectors, 0)
 
 
-def compute_distance(v1, v2, norm):
-    return compute_distances(v1, [v2], norm)[0]
+def compute_distance(v1, v2, norm, useEuclidean = False):
+    return compute_distances(v1, [v2], norm, useEuclidean)[0]
 
-def compute_distances(v, vectors, norm):
+def compute_distances(v, vectors, norm,useEuclidean = False):
     # This will return a list of distances for each vector in the list,
     # in the same order as the input
     #import numpy
@@ -239,9 +252,12 @@ def compute_distances(v, vectors, norm):
                 raise TypeError("%r cannot be converted to a float"
                                 % (term,))
         raise
-    diff_v = numpy.subtract(vectors, v)
-    transformed_v = numpy.dot(diff_v, norm)
-    distances = numpy.sum(transformed_v * diff_v, 1)**0.5
+    if useEuclidean:
+        distances = [ euclidean(v,vectors[i]) for i in range(len(vectors)) ]
+    else:
+        diff_v = numpy.subtract(vectors, v)
+        transformed_v = numpy.dot(diff_v, norm)
+        distances = numpy.sum(transformed_v * diff_v, 1)**0.5
     return distances
 
 def create_inverse_covariance_norm(training_vectors):

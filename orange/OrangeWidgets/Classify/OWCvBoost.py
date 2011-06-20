@@ -75,7 +75,7 @@ class OWCvBoost(OWWidget):
         boxFile = OWGUI.widgetBox(self.controlArea, "Path for saving Model", addSpace = True, orientation=0)
         L1 = OWGUI.lineEdit(boxFile, self, "modelFile", labelWidth=80,  orientation = "horizontal", \
         tooltip = "Once a model is created (connect this widget with a data widget), \nit can be saved by giving a \
-file name here and clicking the save button.")
+file name here and clicking the save button.\nPlease observe that model names should not contain an extention.")
         L1.setMinimumWidth(200)
         button = OWGUI.button(boxFile, self, '...', callback = self.browseFile, disabled=0,tooltip = "Choose the dir where to save. After chosen, add a name for the model file!")
         button.setMaximumWidth(25)
