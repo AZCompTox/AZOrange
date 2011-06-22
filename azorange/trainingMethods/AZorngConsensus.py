@@ -7,6 +7,10 @@ import string
 import os,sys
 import AZBaseClasses
 import orange
+import sys
+
+from cStringIO import StringIO
+from tokenize import generate_tokens
 
 from AZutilities import dataUtilities
 #from AZutilities import miscUtilities
@@ -36,6 +40,10 @@ class ConsensusLearner(AZBaseClasses.AZLearner):
         self.learnersNames = None       # The Learners names that we want to include in out consensus model. Only <name> in AZorng<name> will be allowed
         self.learnersObj = None         # The objects handling the desired learners. Can be direcly specifyed or will be constructed from learnersNames
         self.rejectedLearners = []      # Learners that, for some reason, could not be used/trained
+        self.regressionExpression = None# Expression used with the regression model
+        self.discreteExpression = None  # Expression used with the discrete model
+        self.learnerNameMap = None      # Connects a variable, used in an expression, with a learner name 
+        self.learnerObjMap = None       # Connects a variable, used in an expression, with a learner object
         self.name = name
         self.verbose = 0 
         self.imputeData = None
@@ -50,9 +58,15 @@ class ConsensusLearner(AZBaseClasses.AZLearner):
         if not AZBaseClasses.AZLearner.__call__(self,trainingData, weight) or not trainingData:
             return None
 
-        #Create the Learners
+        # Make sure the correct number of arguments are supplied
         if not self.learnersNames and not self.learnersObj:
-            return None 
+            if not self.regressionExpression and not self.discreteExpression:
+                return None
+            
+            if not self.learnerNameMap and not self.learnerObjMap:
+                return None
+
+        #Create the Learners
         if self.learnersNames:
             self.rejectedLearners = []
             self.learnersObj = [] 
@@ -66,33 +80,106 @@ class ConsensusLearner(AZBaseClasses.AZLearner):
             for learner in self.rejectedLearners:
                 self.learnersNames.remove(learner)
                 
-        if len(self.rejectedLearners) > 0:
-            print "WARNING: There werte some learners that were rejected:\n"
-            for l in self.rejectedLearners:
-                print "   ",l,"\n"
-        if len(self.learnersObj) <= 1:
-            raise Exception("ERROR: The Consensus model needs at least 2 valid learners.\n"+\
-                            "Learners: "+str(self.learnersObj))
+            if len(self.rejectedLearners) > 0:
+                print "WARNING: There werte some learners that were rejected:\n"
+                for l in self.rejectedLearners:
+                    print "   ",l,"\n"
+
+        if self.learnersObj:
+            if len(self.learnersObj) <= 1:
+                raise Exception("ERROR: The Consensus model needs at least 2 valid learners.\n"+\
+                                "Learners: "+str(self.learnersObj))
+
+        if self.learnerNameMap:
+            self.rejectedLearners = []
+            self.learnerObjMap = {}
+            for learner in self.learnerNameMap:
+                try:
+                    exec("from trainingMethods import AZorng" + self.learnerNameMap[learner])
+                    self.learnerObjMap[learner] =  eval("AZorng" + self.learnerNameMap[learner] + "." + self.learnerNameMap[learner] + "Learner()")
+                except:
+                    self.rejectedLearners.append(learner)
+
+            for learner in self.rejectedLearners:
+                del self.learnerNameMap[learner]
+
+            if len(self.rejectedLearners) > 0:
+                print "WARNING: There were some learners that were rejected:\n"
+                for l in self.rejectedLearners:
+                    print "   ",l,"\n"
+
+        if self.learnerObjMap:
+            if len(self.learnerObjMap) <= 1:
+                raise Exception("ERROR: The Consensus model needs at least 2 valid learners.\n"+\
+                                "Learners: "+str(self.learnerObjMap))
+
+        
         if trainingData.domain.classVar.varType == orange.VarTypes.Discrete and len(trainingData.domain.classVar.values) != 2:
             raise Exception("ERROR: The Consensus model only supports binary classification or regression problems.")
        
         # Call the train method
-        classifiers = []
-        for learner in self.learnersObj:
-            classifiers.append(learner(trainingData))
-            if not classifiers[-1]:
-                if self.verbose > 0: print "ERROR: Could not create the model ",str(learner)
-                return None
-            else:
-                #Try to get the imputeData, basicStat from a model that have it!
-                if hasattr(classifiers[-1], "basicStat") and classifiers[-1].basicStat and not self.basicStat:
-                    self.basicStat = classifiers[-1].basicStat
-                if hasattr(classifiers[-1], "NTrainEx") and classifiers[-1].basicStat and not self.NTrainEx:
-                    self.NTrainEx = len(trainingData)
-                if hasattr(classifiers[-1], "imputeData") and classifiers[-1].imputeData and not self.imputeData:
-                    self.imputeData = classifiers[-1].imputeData
+        if not self.regressionExpression and not self.discreteExpression:
+            # Default behaviour, no expression defined.
+            classifiers = []
+            for learner in self.learnersObj:
+                classifiers.append(learner(trainingData))
+                if not classifiers[-1]:
+                    if self.verbose > 0:
+                        print "ERROR: Could not create the model ",str(learner)
 
-        return ConsensusClassifier(classifiers = classifiers, classVar = trainingData.domain.classVar,verbose = self.verbose, domain = trainingData.domain, varNames = [attr.name for attr in trainingData.domain.attributes], NTrainEx = self.NTrainEx, basicStat = self.basicStat, imputeData = self.imputeData)
+                    return None
+                else:
+                    
+                    #Try to get the imputeData, basicStat from a model that have it!
+                    if hasattr(classifiers[-1], "basicStat") and classifiers[-1].basicStat and not self.basicStat:
+                        self.basicStat = classifiers[-1].basicStat
+                    
+                    if hasattr(classifiers[-1], "NTrainEx") and classifiers[-1].basicStat and not self.NTrainEx:
+                        self.NTrainEx = len(trainingData)
+                        
+                    if hasattr(classifiers[-1], "imputeData") and classifiers[-1].imputeData and not self.imputeData:
+                        self.imputeData = classifiers[-1].imputeData
+                            
+            return ConsensusClassifier(classifiers = classifiers,
+                                       classVar = trainingData.domain.classVar,
+                                       verbose = self.verbose,
+                                       domain = trainingData.domain,
+                                       varNames = [attr.name for attr in trainingData.domain.attributes],
+                                       NTrainEx = self.NTrainEx,
+                                       basicStat = self.basicStat,
+                                       imputeData = self.imputeData)
+        else:
+            classifiers = {}
+            for learner in self.learnerObjMap:
+                newClassifier = self.learnerObjMap[learner](trainingData)
+
+                if not newClassifier:
+                    if self.verbose > 0:
+                        print "ERROR: Could not create the model ",str(learner)
+
+                    return None
+                else:
+                    classifiers[learner] = newClassifier
+                    #Try to get the imputeData, basicStat from a model that have it!
+                    if hasattr(newClassifier, "basicStat") and newClassifier.basicStat and not self.basicStat:
+                        self.basicStat = newClassifier.basicStat
+                    
+                    if hasattr(newClassifier, "NTrainEx") and newClassifier.basicStat and not self.NTrainEx:
+                        self.NTrainEx = len(trainingData)
+                        
+                    if hasattr(newClassifier, "imputeData") and newClassifier.imputeData and not self.imputeData:
+                        self.imputeData = newClassifier.imputeData
+                            
+            return ConsensusClassifier(classifiers = classifiers,
+                                       discreteExpression = self.discreteExpression,
+                                       regressionExpression = self.regressionExpression,
+                                       classVar = trainingData.domain.classVar,
+                                       verbose = self.verbose,
+                                       domain = trainingData.domain,
+                                       varNames = [attr.name for attr in trainingData.domain.attributes],
+                                       NTrainEx = self.NTrainEx,
+                                       basicStat = self.basicStat,
+                                       imputeData = self.imputeData)
 
 
 class ConsensusClassifier(AZBaseClasses.AZClassifier):
@@ -123,10 +210,13 @@ class ConsensusClassifier(AZBaseClasses.AZClassifier):
                 DFV will be a value from -0.5 to 0.5
         """
         self.status = ""
-        if not self.classVar or not self.domain: self.setDomainAndClass()
-        if origExample == None:
+        if not self.classVar or not self.domain:
+            self.setDomainAndClass()
+
+        if type(self.classifiers).__name__ == 'list':
+            if origExample == None:
                 return self.classifiers[0](None, resultType)
-        else:
+            else:
                 # Predict using the models  
                 predictions = []   #The individual predictions for each repective classifier in classifiers
                 predicted = None
@@ -212,6 +302,79 @@ class ConsensusClassifier(AZBaseClasses.AZClassifier):
                     return (res,DFV)
                 else:
                     return res
+        else:
+            # expression specified
+            if origExample == None:
+                return self.classifiers[0](None, resultType)
+            else:
+                # Predict using the models  
+                predictions = {}   #The individual predictions for each repective classifier in classifiers
+                predicted = None
+                probabilities = None
+                DFV = None
+                if self.classVar.varType == orange.VarTypes.Discrete:
+                    # Discrete expression
+                    self.status = "Using supplied discrete expression (Discrete)"
+                else:
+                    self.status = "Using supplied regression expression (Regression)"
+                    if self.verbose:
+                        print self.status
+                    
+                    for c in self.classifiers:
+                        predictions[c] = self.classifiers[c](origExample)
+
+                    rawParseTree = self._lexRegressionExp(self.regressionExpression)
+                    modParseTree = self._parseRegressionTree(rawParseTree, predictions)
+                    result = self._interpretRegressionTree(modParseTree)
+                
+                    DFV = predicted = result
+                    probabilities = None 
+                    # Regression expression
+
+                if resultType == orange.GetBoth:
+                    if predicted:
+                        orangePrediction = orange.Value(self.classVar, predicted)
+                    else:
+                        orangePrediction = None
+                    
+                    res = orangePrediction, probabilities
+                
+                elif resultType == orange.GetProbabilities:
+                    res = probabilities
+                else: 
+                    if predicted:
+                        orangePrediction = orange.Value(self.classVar, predicted)
+                    else:
+                        orangePrediction = None
+                        
+                    res = orangePrediction
+                        
+                    self.nPredictions += 1
+                    if returnDFV:
+                        return (res,DFV)
+                    else:
+                        return res
+                
+    def _parseRegressionTree(self, tree, predictionResults):
+        """ Replace the variables with results from the classifiers """
+        for k in predictionResults.keys():
+            for n,i in enumerate(tree):
+                if k == i:
+                    tree[n] = str(predictionResults[k])
+                    
+        return tree
+            
+    def _interpretRegressionTree(self, tree):
+        #print tree
+        return eval(''.join(tree))
+
+    def _lexRegressionExp(self, exp):
+        STRING = 1
+        exprList = list(token[STRING] for token
+                        in generate_tokens(StringIO(exp).readline)
+                        if token[STRING])
+        return exprList
+
 
     def convert2DFV(self,probOf1):
         # Subtract 0.5 so that the threshold is 0 and invert the signal as all learners have standard DFV:
@@ -262,7 +425,7 @@ class ConsensusClassifier(AZBaseClasses.AZClassifier):
                 
 
     def write(self, dirPath):
-        """Save a Consensus model to disk including the domain used"""
+        """ Save a Consensus model to disk including the domain used """
         if not self.classVar or not self.domain: self.setDomainAndClass() 
         try:
                 #This removes any trailing '/'
