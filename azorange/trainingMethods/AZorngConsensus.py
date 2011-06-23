@@ -225,7 +225,8 @@ class ConsensusClassifier(AZBaseClasses.AZClassifier):
                 if self.classVar.varType == orange.VarTypes.Discrete:
                     if (len(self.classifiers) % 2) != 0:     #Odd number of Classifiers, Using the Majority
                         self.status = "Using Majority (Odd number of classifiers)"
-                        if self.verbose: print self.status
+                        if self.verbose:
+                            print self.status
                         votes = {self.classVar.values[0]:0, self.classVar.values[1]:0} # We already assured that if var is discrete, it is a binary classifyer
                         for c in self.classifiers:
                             predictions.append(c(origExample))
@@ -315,6 +316,33 @@ class ConsensusClassifier(AZBaseClasses.AZClassifier):
                 if self.classVar.varType == orange.VarTypes.Discrete:
                     # Discrete expression
                     self.status = "Using supplied discrete expression (Discrete)"
+                    if self.verbose:
+                        print self.status
+
+                    # Init votes
+                    votes = {}
+                    for pv in self.classVar.values:
+                        votes[pv] = 0
+
+                    # Do prediction and construct distribution of votes
+                    for c in self.classifiers:
+                        predictions[c] = self.classifiers[c](origExample)
+                        votes[predictions[c].value] += 1
+
+                    result = None
+                    for exp in discreteExpression:
+                        logicalExp, logicalRes = exp.split('->')
+                        logicalExp = logicalExp.trim()
+                        logicalRes = logicalRes.trim()
+                        rawParseTree = _lexLogicalExp(logicalExp)
+                        modParseTree = _parseLogicalTree(rawParseTree, predictions, self.classVar.values)
+                        result =_interpretLogicalTree(modParseTree)
+                        if result:
+                            if self.verbose:
+                                print "Logical Expression is True: ", ''.join(modParseTree)
+                            break
+                            
+                    return result
                 else:
                     self.status = "Using supplied regression expression (Regression)"
                     if self.verbose:
@@ -375,6 +403,29 @@ class ConsensusClassifier(AZBaseClasses.AZClassifier):
                         if token[STRING])
         return exprList
 
+    def _parseLogicalTree(tree, predictionResults, predictionClasses):
+        """ Replace the variables with results from the classifiers """
+        for k in predictionResults.keys():
+            for n,i in enumerate(tree):
+                if k == i:
+                    tree[n] = str(predictionResults[k])
+                    
+        """ Modify the tree such that predictionClasses are actual strings """
+        for i, item in enumerate(tree):
+            if item in predictionClasses:
+                tree[i] = '"%s"' % tree[i]
+                
+        return tree
+            
+    def _interpretLogicalTree(tree):
+        return eval(''.join(tree))
+
+    def _lexLogicalExp(exp):
+        STRING = 1
+        exprList = list(token[STRING] for token
+                        in generate_tokens(StringIO(exp).readline)
+                        if token[STRING])
+        return exprList
 
     def convert2DFV(self,probOf1):
         # Subtract 0.5 so that the threshold is 0 and invert the signal as all learners have standard DFV:
