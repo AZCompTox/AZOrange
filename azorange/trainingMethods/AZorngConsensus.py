@@ -335,13 +335,18 @@ class ConsensusClassifier(AZBaseClasses.AZClassifier):
                         logicalExp, logicalRes = exp.split('->')
                         logicalExp = logicalExp.strip()
                         logicalRes = logicalRes.strip()
+                        
+                        if len(logicalExp) == 0:
+                            predicted = logicalRes
+                            break;    
+
                         rawParseTree = self._lexLogicalExp(logicalExp)
                         modParseTree = self._parseLogicalTree(rawParseTree, predictions, self.classVar.values)
                         result = self._interpretLogicalTree(modParseTree)
                         if result:
-                            predicted = logicalRes
                             if self.verbose:
                                 print "Logical Expression is True: ", ''.join(modParseTree)
+                            predicted = logicalRes
                             break
 
                     self._isRealProb = True
