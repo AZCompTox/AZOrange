@@ -338,7 +338,7 @@ class ConsensusClassifier(AZBaseClasses.AZClassifier):
                         
                         if len(logicalExp) == 0:
                             predicted = logicalRes
-                            break;    
+                            break
 
                         rawParseTree = self._lexLogicalExp(logicalExp)
                         modParseTree = self._parseLogicalTree(rawParseTree, predictions, self.classVar.values)
