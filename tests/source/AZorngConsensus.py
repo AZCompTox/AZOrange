@@ -440,15 +440,26 @@ class ConsensusClassifierTest(AZorngTestUtil.AZorngTestUtil):
         nameLearners = {'firstLearner':'CvSVM',
                         'secondLearner':'CvANN',
                         'thirdLearner':'RF'}
-        discreteExpression = ["firstLearner == Iris-setosa -> Iris-setosa"]
+        discreteExpression = ["firstLearner == Iris-setosa -> Iris-setosa", "-> Iris-virginica"]
         discreteLearner = AZorngConsensus.ConsensusLearner(learnerNameMap = nameLearners, discreteExpression = discreteExpression)
         discreteClassifier = discreteLearner(self.irisData)
+
+        verifiedLearner = AZorngCvSVM.CvSVMLearner()
+        verifiedClassifier = verifiedLearner(self.irisData)
         
         # Act
-        result = discreteClassifier(self.irisData[0])
+        result = []
+        verifiedResult = []
+        for ex in self.irisData:
+            result.append(discreteClassifier(ex))
+            verifiedResult.append(verifiedClassifier(ex))
 
         # Assert
-        self.assertEqual(result.value, 'Iris-setosa')
+        for index, item in enumerate(result):
+            if not result[index].value == verifiedResult[index].value:
+                print "Not equal on index: ", index
+            self.assertEqual(result[index].value, verifiedResult[index].value)
+
 
 if __name__ == "__main__":
     #unittest.main()
