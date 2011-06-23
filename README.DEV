@@ -11,7 +11,8 @@ Installation for developers (Using Ubuntu Lucid Lynx 10.04):
         ./prepareUbuntu4AZO.sh
 5) Create/configure a setup.ini file from a template (inside the <installDir>/AZOrange/install dir):
        cp setup.ini.ubuntu.dev setup.ini
-            (edit the setup.ini to configure accordingly to your system)
+            (edit the setup.ini to configure accordingly to your system. For 64 bits OS disable ftm by commenting the respective line with ";": 
+	     ;ftm = http://wwwkramer.in.tum.de/projects/ftm.tar.gz,0.1  )
 6) Start the installation scripts (inside the <installDir>/AZOrange/install dir):
        python install.py
 

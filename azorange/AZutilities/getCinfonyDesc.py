@@ -181,7 +181,7 @@ def getRdkDescResult(data,descList, radius = 1):
     if "FingerPrints" in myDescList:
         FingerPrints = True
         myDescList.remove("FingerPrints")
-         
+
     #Get fingerprints in advance
     fingerPrintsAttrs = []
     fingerPrintsRes = {}
@@ -202,7 +202,7 @@ def getRdkDescResult(data,descList, radius = 1):
                 name = rdkTag+"FP_"+str(ID)
                 if name not in [x.name for x in fingerPrintsAttrs]:
                     fingerPrintsAttrs.append(orange.FloatVariable(name))
-                fingerPrintsRes[mol][name]=int(count)
+                fingerPrintsRes[mol][name] = float(count)
     #Test attrTypes
     for ex in data:
         try:
@@ -222,13 +222,11 @@ def getRdkDescResult(data,descList, radius = 1):
              #Process fingerprints
              if FingerPrints:
                  for desc in fingerPrintsAttrs:
-                     if desc.name in fingerPrintsRes[molStr] and type(desc.name) == str:
-                         attrObj.append(orange.StringVariable(desc.name))
-                     else:
-                         attrObj.append(orange.FloatVariable(desc.name))
+                     attrObj.append(orange.FloatVariable(desc.name))
              break
         except:
             continue    
+
 
     resData = orange.ExampleTable(orange.Domain([data.domain[smilesName]] + attrObj,0))     
     badCompounds = 0
@@ -253,7 +251,7 @@ def getRdkDescResult(data,descList, radius = 1):
                      if desc.name in fingerPrintsRes[molStr]:
                          newEx[desc.name] = fingerPrintsRes[molStr][desc.name]
                      else:
-                         newEx[desc.name] = 0
+                         newEx[desc.name] = 0.0
              resData.append(newEx)
         except: 
             badCompounds += 1

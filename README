@@ -12,6 +12,8 @@ Installation (Using Ubuntu Lucid Lynx 10.04):
        ./prepareUbuntu4AZO.sh
 6) Create/configure a setup.ini file from a template (inside the <installDir>/AZOrange/install dir):
        cp setup.ini.ubuntu setup.ini
+            (edit the setup.ini to configure accordingly to your system. For 64 bits OS disable ftm by commenting the respective line with ";":
+             ;ftm = http://wwwkramer.in.tum.de/projects/ftm.tar.gz,0.1  )
 7) Edit the setup.ini to configure the destination install dir:
        installDir = YourDesiredInstallFullPath
 8) Start the installation scripts (inside the <installDir>/AZOrange/install dir):
