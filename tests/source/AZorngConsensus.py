@@ -371,8 +371,8 @@ class ConsensusClassifierTest(AZorngTestUtil.AZorngTestUtil):
         self.assertEqual(len(classifier.classifiers), 3)
         self.assertEqual(classifier.regressionExpression, regressionExpression)
 
-    def test_AverageNRegressionExpression(self):
-        """ Test regular expression using average N regression """
+    def test_AverageNRegressionExpressionUsingObjMap(self):
+        """ Test regular expression using average N regression with object map """
         # Arrange
 
         # Construct expression learner/classifier
@@ -400,8 +400,55 @@ class ConsensusClassifierTest(AZorngTestUtil.AZorngTestUtil):
         # Assert
         for index in range(len(expressionPredictions)):
             self.assertEqual(True, float_compare(expressionPredictions[index], defaultPredictions[index]))
-        
 
+    def test_AverageNRegressionExpressionUsingNameMap(self):
+        """ Test regular expression using average N regression with name map """
+        # Arrange
+
+        # Construct expression learner/classifier
+        nameLearners = {'firstLearner':'CvSVM',
+                    'secondLearner':'CvANN',
+                    'thirdLearner':'RF'}
+        regressionExpression = "(firstLearner + secondLearner + thirdLearner) / 3"
+        expressionLearner = AZorngConsensus.ConsensusLearner(learnerNameMap = nameLearners, regressionExpression = regressionExpression)
+        expressionClassifier = expressionLearner(self.DataReg)
+
+        # Construct default learner/classifier
+        learnersNames = ["RF","CvANN","CvSVM"]
+        defaultLearner = AZorngConsensus.ConsensusLearner(learnersNames = learnersNames)
+        defaultClassifier = defaultLearner(self.DataReg)
+        
+        # Act
+        expressionPredictions = []
+        for ex in self.DataReg:
+            expressionPredictions.append(expressionClassifier(ex))
+
+        defaultPredictions = []
+        for ex in self.DataReg:
+            defaultPredictions.append(defaultClassifier(ex))
+
+        # Assert
+        for index in range(len(expressionPredictions)):
+            self.assertEqual(True, float_compare(expressionPredictions[index], defaultPredictions[index]))
+
+        
+    def test_CreateLogicalExpressionConsensusLearner(self):
+        """ Test creation of logical expression consensus learner """
+        # Arrange
+        
+        # Construct expression learner/classifier
+        nameLearners = {'firstLearner':'CvSVM',
+                        'secondLearner':'CvANN',
+                        'thirdLearner':'RF'}
+        discreteExpression = ["firstLearner == POS -> POS"]
+        discreteLearner = AZorngConsensus.ConsensusLearner(learnerNameMap = nameLearners, discreteExpression = discreteExpression)
+        discreteClassifier = discreteLearner(self.irisData)
+        
+        # Act
+        result = discreteClassifier(self.DataReg[0])
+        
+        # Assert
+        self.assertEqual("Regression", result)
 
 if __name__ == "__main__":
     #unittest.main()
