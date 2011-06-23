@@ -8,6 +8,7 @@ import os,sys
 import AZBaseClasses
 import orange
 import sys
+import re
 
 from cStringIO import StringIO
 from tokenize import generate_tokens
@@ -330,19 +331,23 @@ class ConsensusClassifier(AZBaseClasses.AZClassifier):
                         votes[predictions[c].value] += 1
 
                     result = None
-                    for exp in discreteExpression:
+                    for exp in self.discreteExpression:
                         logicalExp, logicalRes = exp.split('->')
-                        logicalExp = logicalExp.trim()
-                        logicalRes = logicalRes.trim()
-                        rawParseTree = _lexLogicalExp(logicalExp)
-                        modParseTree = _parseLogicalTree(rawParseTree, predictions, self.classVar.values)
-                        result =_interpretLogicalTree(modParseTree)
+                        logicalExp = logicalExp.strip()
+                        logicalRes = logicalRes.strip()
+                        rawParseTree = self._lexLogicalExp(logicalExp)
+                        modParseTree = self._parseLogicalTree(rawParseTree, predictions, self.classVar.values)
+                        result = self._interpretLogicalTree(modParseTree)
                         if result:
+                            predicted = logicalRes
                             if self.verbose:
                                 print "Logical Expression is True: ", ''.join(modParseTree)
                             break
-                            
-                    return result
+
+                    self._isRealProb = True
+                    #probOf1 = votes[self.classVar.values[1]]/len(self.classifiers)
+                    #DFV = self.convert2DFV(probOf1)
+                    #probabilities = self.__getProbabilities(probOf1)
                 else:
                     self.status = "Using supplied regression expression (Regression)"
                     if self.verbose:
@@ -403,7 +408,7 @@ class ConsensusClassifier(AZBaseClasses.AZClassifier):
                         if token[STRING])
         return exprList
 
-    def _parseLogicalTree(tree, predictionResults, predictionClasses):
+    def _parseLogicalTree(self, tree, predictionResults, predictionClasses):
         """ Replace the variables with results from the classifiers """
         for k in predictionResults.keys():
             for n,i in enumerate(tree):
@@ -417,14 +422,12 @@ class ConsensusClassifier(AZBaseClasses.AZClassifier):
                 
         return tree
             
-    def _interpretLogicalTree(tree):
+    def _interpretLogicalTree(self, tree):
         return eval(''.join(tree))
 
-    def _lexLogicalExp(exp):
+    def _lexLogicalExp(self, exp):
         STRING = 1
-        exprList = list(token[STRING] for token
-                        in generate_tokens(StringIO(exp).readline)
-                        if token[STRING])
+        exprList = re.split(r'[ ]| or | and ', exp)
         return exprList
 
     def convert2DFV(self,probOf1):
