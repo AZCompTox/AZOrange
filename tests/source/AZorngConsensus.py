@@ -348,8 +348,8 @@ class ConsensusClassifierTest(AZorngTestUtil.AZorngTestUtil):
                 print "Not equal on index: ", index
             self.assertEqual(result[index].value, verifiedResult[index].value)
 
-    def test_SaveLoadCustomExpression(self):
-        """ Test save/load functionality with a custom discrete expression """
+    def test_SaveLoadCustomLogicalExpression(self):
+        """ Test save/load functionality with a custom logical expression """
         # Arrange
         
         # Construct expression learner/classifier
@@ -380,14 +380,50 @@ class ConsensusClassifierTest(AZorngTestUtil.AZorngTestUtil):
                 print "Not equal on index: ", index
             self.assertEqual(result[index].value, resultLoaded[index].value)
 
-        #self.assertEqual([round(pred.value,4) for pred in predictions],
-        #                 [round(pred.value,4) for pred in predictionsL],
-        #                 "Loaded model predictions differ: Pred. 1 (saved/loaded):"+str(predictions[0])+" / "+str(predictionsL[0]))
-
         self.assertEqual(len(loaded.domain),len(self.irisData.domain))
         self.assertEqual(len(loaded.imputeData) , len(loaded.domain))
         self.assertEqual(len(loaded.basicStat), len(loaded.domain))
         self.assertEqual(loaded.NTrainEx, len(self.irisData))
+
+        miscUtilities.removeDir(scratchdir)
+
+    def test_SaveLoadCustomRegressionExpression(self):
+        """ Test save/load custom expression using average N regression with object map """
+        # Arrange
+        learners = {'firstLearner':AZorngCvSVM.CvSVMLearner(),
+                    'secondLearner':AZorngCvANN.CvANNLearner(),
+                    'thirdLearner':AZorngRF.RFLearner()}
+        
+        # Construct expression learner/classifier
+        regressionExpression = "(firstLearner + secondLearner + thirdLearner) / 3"
+        expressionLearner = AZorngConsensus.ConsensusLearner(learners = learners, expression = regressionExpression)
+        expressionClassifier = expressionLearner(self.DataReg)
+
+        # Construct default learner/classifier
+        result = []
+        for ex in self.DataReg:
+            result.append(expressionClassifier(ex))
+
+        # Act
+        scratchdir = miscUtilities.createScratchDir(desc="ConsensusSaveLoadTest")
+        expressionClassifier.write(os.path.join(scratchdir,"./CM.model"))
+
+        resultLoaded = []
+        loaded = AZorngConsensus.Consensusread(os.path.join(scratchdir,"./CM.model"))
+        self.assertNotEqual(loaded, None)
+        for ex in self.DataReg:
+            resultLoaded.append(loaded(ex))
+
+        # Assert
+        for index, item in enumerate(result):
+            if not float_compare(result[index].value, resultLoaded[index].value):
+                print "Not equal on index: ", index
+            self.assertEqual(float_compare(result[index].value, resultLoaded[index].value), True)
+
+        self.assertEqual(len(loaded.domain),len(self.DataReg.domain))
+        self.assertEqual(len(loaded.imputeData) , len(loaded.domain))
+        self.assertEqual(len(loaded.basicStat), len(loaded.domain))
+        self.assertEqual(loaded.NTrainEx, len(self.DataReg))
 
         miscUtilities.removeDir(scratchdir)
 
