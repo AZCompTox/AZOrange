@@ -9,6 +9,7 @@ import AZBaseClasses
 import orange
 import sys
 import re
+import pickle
 
 from cStringIO import StringIO
 from tokenize import generate_tokens
@@ -38,13 +39,9 @@ class ConsensusLearner(AZBaseClasses.AZLearner):
         Set default values of the model parameters if they are not given as inputs
         """
         #NOTE: Only use one of the learnersNames  or learnersObj. learnersNames will have priority on learnersObj!
-        self.learnersNames = None       # The Learners names that we want to include in out consensus model. Only <name> in AZorng<name> will be allowed
-        self.learnersObj = None         # The objects handling the desired learners. Can be direcly specifyed or will be constructed from learnersNames
-        self.rejectedLearners = []      # Learners that, for some reason, could not be used/trained
-        self.regressionExpression = None# Expression used with the regression model
-        self.discreteExpression = None  # Expression used with the discrete model
-        self.learnerNameMap = None      # Connects a variable, used in an expression, with a learner name 
-        self.learnerObjMap = None       # Connects a variable, used in an expression, with a learner object
+        self.rejectedLearners = [] # Learners that, for some reason, could not be used/trained
+        self.expression = None     # Expression used with the model
+        self.learners = None       # Connects a variable, used in an expression, with a learner object
         self.name = name
         self.verbose = 0 
         self.imputeData = None
@@ -56,73 +53,31 @@ class ConsensusLearner(AZBaseClasses.AZLearner):
 
     def __call__(self, trainingData, weight = None):
         """Creates a Consensus model from the data in trainingData. """
+
         if not AZBaseClasses.AZLearner.__call__(self,trainingData, weight) or not trainingData:
             return None
 
         # Make sure the correct number of arguments are supplied
-        if not self.learnersNames and not self.learnersObj:
-            if not self.regressionExpression and not self.discreteExpression:
-                return None
-            
-            if not self.learnerNameMap and not self.learnerObjMap:
-                return None
+        if not self.learners:
+            return None
 
-        #Create the Learners
-        if self.learnersNames:
-            self.rejectedLearners = []
-            self.learnersObj = [] 
-            for learner in self.learnersNames:
-                try:
-                    exec("from trainingMethods import AZorng"+learner)
-                    self.learnersObj.append(eval("AZorng"+learner+"."+learner+"Learner()"))
-                except:
-                    self.rejectedLearners.append(learner)
-
-            for learner in self.rejectedLearners:
-                self.learnersNames.remove(learner)
-                
-            if len(self.rejectedLearners) > 0:
-                print "WARNING: There werte some learners that were rejected:\n"
-                for l in self.rejectedLearners:
-                    print "   ",l,"\n"
-
-        if self.learnersObj:
-            if len(self.learnersObj) <= 1:
+        if self.learners:
+            if len(self.learners) <= 1:
                 raise Exception("ERROR: The Consensus model needs at least 2 valid learners.\n"+\
                                 "Learners: "+str(self.learnersObj))
 
-        if self.learnerNameMap:
-            self.rejectedLearners = []
-            self.learnerObjMap = {}
-            for learner in self.learnerNameMap:
-                try:
-                    exec("from trainingMethods import AZorng" + self.learnerNameMap[learner])
-                    self.learnerObjMap[learner] =  eval("AZorng" + self.learnerNameMap[learner] + "." + self.learnerNameMap[learner] + "Learner()")
-                except:
-                    self.rejectedLearners.append(learner)
+            if type(self.learners).__name__ == 'dict' and not self.expression:
+                return None
 
-            for learner in self.rejectedLearners:
-                del self.learnerNameMap[learner]
-
-            if len(self.rejectedLearners) > 0:
-                print "WARNING: There were some learners that were rejected:\n"
-                for l in self.rejectedLearners:
-                    print "   ",l,"\n"
-
-        if self.learnerObjMap:
-            if len(self.learnerObjMap) <= 1:
-                raise Exception("ERROR: The Consensus model needs at least 2 valid learners.\n"+\
-                                "Learners: "+str(self.learnerObjMap))
-
-        
+        # This test is not valid anymore
         if trainingData.domain.classVar.varType == orange.VarTypes.Discrete and len(trainingData.domain.classVar.values) != 2:
             raise Exception("ERROR: The Consensus model only supports binary classification or regression problems.")
        
         # Call the train method
-        if not self.regressionExpression and not self.discreteExpression:
+        if type(self.learners).__name__ == 'list':
             # Default behaviour, no expression defined.
             classifiers = []
-            for learner in self.learnersObj:
+            for learner in self.learners:
                 classifiers.append(learner(trainingData))
                 if not classifiers[-1]:
                     if self.verbose > 0:
@@ -151,8 +106,8 @@ class ConsensusLearner(AZBaseClasses.AZLearner):
                                        imputeData = self.imputeData)
         else:
             classifiers = {}
-            for learner in self.learnerObjMap:
-                newClassifier = self.learnerObjMap[learner](trainingData)
+            for learner in self.learners:
+                newClassifier = self.learners[learner](trainingData)
 
                 if not newClassifier:
                     if self.verbose > 0:
@@ -172,8 +127,7 @@ class ConsensusLearner(AZBaseClasses.AZLearner):
                         self.imputeData = newClassifier.imputeData
                             
             return ConsensusClassifier(classifiers = classifiers,
-                                       discreteExpression = self.discreteExpression,
-                                       regressionExpression = self.regressionExpression,
+                                       expression = self.expression,
                                        classVar = trainingData.domain.classVar,
                                        verbose = self.verbose,
                                        domain = trainingData.domain,
@@ -187,6 +141,7 @@ class ConsensusClassifier(AZBaseClasses.AZClassifier):
     def __new__(cls, name = "Consensus classifier", **kwds):
         self = AZBaseClasses.AZClassifier.__new__(cls, name = name,  **kwds)        
         return self
+    
     def __init__(self, name = "Consensus classifier", **kwds):
         self.verbose = 0
         varNames = None
@@ -196,7 +151,8 @@ class ConsensusClassifier(AZBaseClasses.AZClassifier):
         self._isRealProb = False
         self.name = name
         self.status = ""
-        if not self.classVar or not self.domain: self.setDomainAndClass()
+        if not self.classVar or not self.domain:
+            self.setDomainAndClass()
 
     def __call__(self, origExample = None, resultType = orange.GetValue, returnDFV = False):
         """
@@ -210,188 +166,210 @@ class ConsensusClassifier(AZBaseClasses.AZClassifier):
                 If it is not a binary classifier, DFV will be equal to None
                 DFV will be a value from -0.5 to 0.5
         """
+        
         self.status = ""
+
+        # Is this needed at all? Already called in the init function.
         if not self.classVar or not self.domain:
             self.setDomainAndClass()
 
+        if origExample == None:
+            return self.classifiers[0](None, resultType)
+
         if type(self.classifiers).__name__ == 'list':
-            if origExample == None:
-                return self.classifiers[0](None, resultType)
+            return self._defaultExpressionBehaviour(origExample, resultType, returnDFV)
+        else:
+            return self._customExpressionBehaviour(origExample, resultType, returnDFV)
+
+
+    def _discreteProblemClass(self):
+        return self.classVar.varType == orange.VarTypes.Discrete
+
+    def _regressionProblemClass(self):
+        return self.classVar.varType != orange.VarTypes.Discrete
+    
+    def _defaultExpressionBehaviour(self, origExample, resultType, returnDFV):
+        # Predict using the models  
+        predictions = []   #The individual predictions for each respective classifier in classifiers
+        predicted = None
+        probabilities = None
+        DFV = None
+        if self.classVar.varType == orange.VarTypes.Discrete:
+            # Majority based vote
+            if (len(self.classifiers) % 2) != 0:     #Odd number of Classifiers, Using the Majority
+                self.status = "Using Majority (Odd number of classifiers)"
+
+                if self.verbose:
+                    print self.status
+
+                votes = {self.classVar.values[0]:0, self.classVar.values[1]:0} # We already assured that if var is discrete, it is a binary classifyer
+                for c in self.classifiers:
+                    predictions.append(c(origExample))
+                    votes[predictions[-1].value] += 1
+
+                if self.verbose: 
+                    print str([cf.name for cf in self.classifiers])[1:-1].replace(",","\t")
+                    print str(predictions)[1:-1].replace(",","\t")
+                    
+                invVotes = dict(map(lambda item: (item[1],item[0]),votes.items()))
+                maxVoted = invVotes[max(invVotes.keys())]
+                predicted = self.classVar[self.classVar.values.index(maxVoted)]
+                # generate probabilities based on voting. We assured already this is a binary classifier
+                self._isRealProb = True
+                probOf1 = votes[self.classVar.values[1]]/len(self.classifiers)
+                DFV = self.convert2DFV(probOf1)
+                probabilities = self.__getProbabilities(probOf1)
+            else:     #Even number of Classifiers: Use the average of the N probabilities.
+                #if at least one of the Classifiers do not support true probabilities, STOP!       
+                self.status = "Using probabilities average (Even number of classifiers)"
+                if self.verbose:
+                    print self.status                     
+                for c in self.classifiers:
+                    FailedPredicting = False
+                    try:
+                        predictions.append(c(origExample, orange.GetBoth))
+                    except:
+                        print "Learner ",c,"couldn't predict: ",sys.exc_info()
+                        FailedPredicting = True
+                    if FailedPredicting or (hasattr(c,"isRealProb")  and not c.isRealProb()):
+                        msg = "ERROR: Cannot predict because the learner "+(hasattr(c,"name") and str(c.name) or str(c))+" does not return real probabilities.\n"+\
+                              "       In order to use the Consensus model with this dataset, do one of the following:\n"+\
+                              "         a) Train the Consensus model with an odd number of learners so that voting can be done instead.\n"+\
+                              "         b) Train the consensus model with learners that support real probabilities."
+                        raise Exception(msg)
+                    self._isRealProb = True
+                    overallProb = {self.classVar.values[0]:0, self.classVar.values[1]:0} 
+                    for p in predictions:
+                        overallProb[p[0].value] += max(p[1]) #For each predicted value of a learner, add the repective probability
+                    for prob in overallProb:
+                        overallProb[prob] = overallProb[prob]/len(predictions)
+                    if overallProb[self.classVar.values[0]] > overallProb[self.classVar.values[1]]:
+                        predicted = self.classVar[self.classVar.values.index(self.classVar.values[0])]
+                    else:
+                        predicted = self.classVar[self.classVar.values.index(self.classVar.values[1])]
+                    if self.verbose: 
+                        print str([cf.name for cf in self.classifiers])[1:-1].replace(",","\t")
+                        print str(predictions)[1:-1].replace(",","\t")
+                    probOf1 = overallProb[self.classVar.values[1]]
+                    DFV = self.convert2DFV(probOf1)
+                    probabilities = self.__getProbabilities(probOf1)
+        else: # With Regression, use always the average fo the N Classifiers
+            self.status = "Using average of N classifiers (Regression)"
+            if self.verbose: print self.status
+            for c in self.classifiers:
+                predictions.append(c(origExample))
+            DFV = predicted = sum(predictions,0.0) / len(predictions)
+            probabilities = None 
+
+            if resultType == orange.GetBoth:
+                if predicted:
+                    orangePrediction = orange.Value(self.classVar, predicted)
+                else:
+                    orangePrediction = None
+                res = orangePrediction, probabilities
+            elif resultType == orange.GetProbabilities:
+                res = probabilities
+            else: 
+                if predicted:
+                    orangePrediction = orange.Value(self.classVar, predicted)
+                else:
+                    orangePrediction = None
+                res = orangePrediction
+
+            self.nPredictions += 1
+            if returnDFV:
+                return (res,DFV)
             else:
-                # Predict using the models  
-                predictions = []   #The individual predictions for each repective classifier in classifiers
-                predicted = None
-                probabilities = None
-                DFV = None
-                if self.classVar.varType == orange.VarTypes.Discrete:
-                    if (len(self.classifiers) % 2) != 0:     #Odd number of Classifiers, Using the Majority
-                        self.status = "Using Majority (Odd number of classifiers)"
+                return res
+            
+    def _customExpressionBehaviour(self, origExample, resultType, returnDFV):
+        # expression specified
+        if origExample == None:
+            return self.classifiers[0](None, resultType)
+        else:
+            # Predict using the models  
+            predictions = {}   #The individual predictions for each repective classifier in classifiers
+            predicted = None
+            probabilities = None
+            DFV = None
+            if self.classVar.varType == orange.VarTypes.Discrete:
+                # Discrete expression
+                self.status = "Using supplied discrete expression (Discrete)"
+                if self.verbose:
+                    print self.status
+
+                # Init votes
+                votes = {}
+                for pv in self.classVar.values:
+                    votes[pv] = 0
+
+                # Do prediction and construct distribution of votes
+                for c in self.classifiers:
+                    predictions[c] = self.classifiers[c](origExample)
+                    votes[predictions[c].value] += 1
+
+                result = None
+                for exp in self.expression:
+                    logicalExp, logicalRes = exp.split('->')
+                    logicalExp = logicalExp.strip()
+                    logicalRes = logicalRes.strip()
+                        
+                    if len(logicalExp) == 0:
+                        predicted = logicalRes
+                        break
+
+                    rawParseTree = self._lexLogicalExp(logicalExp)
+                    modParseTree = self._parseLogicalTree(rawParseTree, predictions, self.classVar.values)
+                    result = self._interpretLogicalTree(modParseTree)
+                    if result:
                         if self.verbose:
-                            print self.status
-                        votes = {self.classVar.values[0]:0, self.classVar.values[1]:0} # We already assured that if var is discrete, it is a binary classifyer
-                        for c in self.classifiers:
-                            predictions.append(c(origExample))
-                            votes[predictions[-1].value] += 1
-                        if self.verbose: 
-                            print str([cf.name for cf in self.classifiers])[1:-1].replace(",","\t")
-                            print str(predictions)[1:-1].replace(",","\t")
-                        invVotes = dict(map(lambda item: (item[1],item[0]),votes.items()))
-                        maxVoted = invVotes[max(invVotes.keys())]
-                        predicted = self.classVar[self.classVar.values.index(maxVoted)]
-                        # generate probabilities based on voting. We assured already this is a binary classifier
-                        self._isRealProb = True
-                        probOf1 = votes[self.classVar.values[1]]/len(self.classifiers)
-                        DFV = self.convert2DFV(probOf1)
-                        probabilities = self.__getProbabilities(probOf1)
-                    else:     #Even number of Classifiers: Use the average of the N probabilities.
-                              #if at least one of the Classifiers do not support true probabilities, STOP!       
-                        self.status = "Using probabilities average (Even number of classifiers)"
-                        if self.verbose: print self.status                     
-                        for c in self.classifiers:
-                            FailedPredicting = False
-                            try:
-                                predictions.append(c(origExample, orange.GetBoth))
-                            except:
-                                print "Learner ",c,"couldn't predict: ",sys.exc_info()
-                                FailedPredicting = True
-                            if FailedPredicting or (hasattr(c,"isRealProb")  and not c.isRealProb()):
-                                msg = "ERROR: Cannot predict because the learner "+(hasattr(c,"name") and str(c.name) or str(c))+" does not return real probabilities.\n"+\
-                                "       In order to use the Consensus model with this dataset, do one of the following:\n"+\
-                                "         a) Train the Consensus model with an odd number of learners so that voting can be done instead.\n"+\
-                                "         b) Train the consensus model with learners that support real probabilities."
-                                raise Exception(msg)
-                        self._isRealProb = True
-                        overallProb = {self.classVar.values[0]:0, self.classVar.values[1]:0} 
-                        for p in predictions:
-                            overallProb[p[0].value] += max(p[1]) #For each predicted value of a learner, add the repective probability
-                        for prob in overallProb:
-                            overallProb[prob] = overallProb[prob]/len(predictions)
-                        if overallProb[self.classVar.values[0]] > overallProb[self.classVar.values[1]]:
-                            predicted = self.classVar[self.classVar.values.index(self.classVar.values[0])]
-                        else:
-                            predicted = self.classVar[self.classVar.values.index(self.classVar.values[1])]
-                        if self.verbose: 
-                            print str([cf.name for cf in self.classifiers])[1:-1].replace(",","\t")
-                            print str(predictions)[1:-1].replace(",","\t")
-                        probOf1 = overallProb[self.classVar.values[1]]
-                        DFV = self.convert2DFV(probOf1)
-                        probabilities = self.__getProbabilities(probOf1)
-                else: # With Regression, use always the average fo the N Classifiers
-                    self.status = "Using average of N classifiers (Regression)"
-                    if self.verbose: print self.status
-                    for c in self.classifiers:
-                        predictions.append(c(origExample))
-                    DFV = predicted = sum(predictions,0.0) / len(predictions)
-                    probabilities = None 
+                            print "Logical Expression is True: ", ''.join(modParseTree)
+                        predicted = logicalRes
+                        break
 
-                if resultType == orange.GetBoth:
-                    if predicted:
-                        orangePrediction = orange.Value(self.classVar, predicted)
-                    else:
-                        orangePrediction = None
-                    res = orangePrediction, probabilities
-                elif resultType == orange.GetProbabilities:
-                    res = probabilities
-                else: 
-                    if predicted:
-                        orangePrediction = orange.Value(self.classVar, predicted)
-                    else:
-                        orangePrediction = None
-                    res = orangePrediction
+                self._isRealProb = True
+                #probOf1 = votes[self.classVar.values[1]]/len(self.classifiers)
+                #DFV = self.convert2DFV(probOf1)
+                #probabilities = self.__getProbabilities(probOf1)
+            else:
+                self.status = "Using supplied regression expression (Regression)"
+                if self.verbose:
+                    print self.status
+                    
+                for c in self.classifiers:
+                    predictions[c] = self.classifiers[c](origExample)
 
+                rawParseTree = self._lexRegressionExp(self.expression)
+                modParseTree = self._parseRegressionTree(rawParseTree, predictions)
+                result = self._interpretRegressionTree(modParseTree)
+                
+                DFV = predicted = result
+                probabilities = None 
+                # Regression expression
+
+            if resultType == orange.GetBoth:
+                if predicted:
+                    orangePrediction = orange.Value(self.classVar, predicted)
+                else:
+                    orangePrediction = None
+                    
+                res = orangePrediction, probabilities
+                
+            elif resultType == orange.GetProbabilities:
+                res = probabilities
+            else: 
+                if predicted:
+                    orangePrediction = orange.Value(self.classVar, predicted)
+                else:
+                    orangePrediction = None
+                        
+                res = orangePrediction
+                        
                 self.nPredictions += 1
                 if returnDFV:
                     return (res,DFV)
                 else:
                     return res
-        else:
-            # expression specified
-            if origExample == None:
-                return self.classifiers[0](None, resultType)
-            else:
-                # Predict using the models  
-                predictions = {}   #The individual predictions for each repective classifier in classifiers
-                predicted = None
-                probabilities = None
-                DFV = None
-                if self.classVar.varType == orange.VarTypes.Discrete:
-                    # Discrete expression
-                    self.status = "Using supplied discrete expression (Discrete)"
-                    if self.verbose:
-                        print self.status
-
-                    # Init votes
-                    votes = {}
-                    for pv in self.classVar.values:
-                        votes[pv] = 0
-
-                    # Do prediction and construct distribution of votes
-                    for c in self.classifiers:
-                        predictions[c] = self.classifiers[c](origExample)
-                        votes[predictions[c].value] += 1
-
-                    result = None
-                    for exp in self.discreteExpression:
-                        logicalExp, logicalRes = exp.split('->')
-                        logicalExp = logicalExp.strip()
-                        logicalRes = logicalRes.strip()
-                        
-                        if len(logicalExp) == 0:
-                            predicted = logicalRes
-                            break
-
-                        rawParseTree = self._lexLogicalExp(logicalExp)
-                        modParseTree = self._parseLogicalTree(rawParseTree, predictions, self.classVar.values)
-                        result = self._interpretLogicalTree(modParseTree)
-                        if result:
-                            if self.verbose:
-                                print "Logical Expression is True: ", ''.join(modParseTree)
-                            predicted = logicalRes
-                            break
-
-                    self._isRealProb = True
-                    #probOf1 = votes[self.classVar.values[1]]/len(self.classifiers)
-                    #DFV = self.convert2DFV(probOf1)
-                    #probabilities = self.__getProbabilities(probOf1)
-                else:
-                    self.status = "Using supplied regression expression (Regression)"
-                    if self.verbose:
-                        print self.status
-                    
-                    for c in self.classifiers:
-                        predictions[c] = self.classifiers[c](origExample)
-
-                    rawParseTree = self._lexRegressionExp(self.regressionExpression)
-                    modParseTree = self._parseRegressionTree(rawParseTree, predictions)
-                    result = self._interpretRegressionTree(modParseTree)
-                
-                    DFV = predicted = result
-                    probabilities = None 
-                    # Regression expression
-
-                if resultType == orange.GetBoth:
-                    if predicted:
-                        orangePrediction = orange.Value(self.classVar, predicted)
-                    else:
-                        orangePrediction = None
-                    
-                    res = orangePrediction, probabilities
-                
-                elif resultType == orange.GetProbabilities:
-                    res = probabilities
-                else: 
-                    if predicted:
-                        orangePrediction = orange.Value(self.classVar, predicted)
-                    else:
-                        orangePrediction = None
-                        
-                    res = orangePrediction
-                        
-                    self.nPredictions += 1
-                    if returnDFV:
-                        return (res,DFV)
-                    else:
-                        return res
                 
     def _parseRegressionTree(self, tree, predictionResults):
         """ Replace the variables with results from the classifiers """
@@ -480,39 +458,74 @@ class ConsensusClassifier(AZBaseClasses.AZClassifier):
         #If we were not success in getting a domain and a classVar, we cannot proceed!
         if not self.classVar or not self.domain:
             raise Exception("The classifiers are not compatible with the Consensus model. Try to use the respective Learners instead.")
-            
-                
 
     def write(self, dirPath):
         """ Save a Consensus model to disk including the domain used """
-        if not self.classVar or not self.domain: self.setDomainAndClass() 
+        if not self.classVar or not self.domain:
+            self.setDomainAndClass()
+            
         try:
-                #This removes any trailing '/'
-                dirPath = os.path.realpath(str(dirPath))
-                if os.path.isdir(dirPath):
-                    modelFiles = glob.glob(os.path.join(dirPath,'C*.model'))
-                    for Mfile in modelFiles:
-                        os.system("rm -rf " + Mfile)     
-                    os.system("rm -f " + os.path.join(dirPath,"trainDomain.tab"))
-                    
 
-                # This assures that all related files will be inside a folder
-                os.system("mkdir -p " + dirPath) 
-                # Save the models
-                trainDomain = dataUtilities.DataTable(self.domain)
-                #Save along with trainDomain file some dummy examples for compatibility
-                ex = orange.Example(self.domain)
-                for attr in self.domain:
-                    if attr.varType == orange.VarTypes.Discrete:
-                        ex[attr] = attr.values[0]
-                    elif attr.varType == orange.VarTypes.Continuous:
-                        ex[attr] = 0
-                    elif attr.varType == orange.VarTypes.String:
-                        ex[attr] = "NA"
-                trainDomain.append(ex)
-                trainDomain.save(os.path.join(dirPath,"trainDomain.tab"))
+            #This removes any trailing '/'
+            dirPath = os.path.realpath(str(dirPath))
+
+            dictionaryFilename = os.path.join(dirPath, 'learnerDict.pkl')
+            expressionListFilename = os.path.join(dirPath, 'expressionList.pkl')
+            expressionFilename = os.path.join(dirPath, 'expression.pkl')        
+
+            if os.path.isdir(dirPath):
+                modelFiles = glob.glob(os.path.join(dirPath,'C*.model'))
+                for Mfile in modelFiles:
+                    os.system("rm -rf " + Mfile)     
+
+                os.system("rm -f " + os.path.join(dirPath,"trainDomain.tab"))
+                os.system("rm -f " + os.path.join(dirPath,"learnerDict.pkl"))
+                os.system("rm -f " + os.path.join(dirPath,"expressionList.pkl"))
+                os.system("rm -f " + os.path.join(dirPath,"expression.pkl"))
+                    
+            # This assures that all related files will be inside a folder
+            os.system("mkdir -p " + dirPath)
+                
+            # Save the models
+            trainDomain = dataUtilities.DataTable(self.domain)
+
+            #Save along with trainDomain file some dummy examples for compatibility
+            ex = orange.Example(self.domain)
+            for attr in self.domain:
+                if attr.varType == orange.VarTypes.Discrete:
+                    ex[attr] = attr.values[0]
+                elif attr.varType == orange.VarTypes.Continuous:
+                    ex[attr] = 0
+                elif attr.varType == orange.VarTypes.String:
+                    ex[attr] = "NA"
+
+            trainDomain.append(ex)
+            trainDomain.save(os.path.join(dirPath,"trainDomain.tab"))
+            
+            if type(self.classifiers).__name__ == 'list':
                 for idx,c in enumerate(self.classifiers):
                     c.write(os.path.join(dirPath,"C"+str(idx)+".model"))
+            else:
+                idx = 0
+                dictionaryMapping = {}
+                for k,c in self.classifiers.iteritems():
+                    c.write(os.path.join(dirPath, "C" + str(idx) + ".model"))
+                    dictionaryMapping[k] = idx
+                    idx = idx + 1
+
+                output = open(dictionaryFilename, 'wb+')
+                pickle.dump(dictionaryMapping, output)
+                output.close()
+
+                if type(self.expression).__name__ == 'list':
+                    output = open(expressionListFilename, 'wb+')
+                    pickle.dump(self.expression, output)
+                    output.close()
+                else:
+                    output = open(expressionFilename, 'wb+')
+                    pickle.dump(self.expression, output)
+                    output.close()
+                    
         except:            
                 if self.verbose > 0: print "ERROR: Could not save the Consensus model to ", dirPath
                 return False
@@ -528,9 +541,14 @@ def Consensusread(dirPath,verbose = 0):
     basicStat = None
     NTrainEx = None
     imputeData = None
+    expression = None
     # This assures that all related files will be inside a folder
     try:
-        domainFile = dataUtilities.DataTable(os.path.join(dirPath,"trainDomain.tab"))
+        domainFile = dataUtilities.DataTable(os.path.join(dirPath, "trainDomain.tab"))
+        
+        learnerFilename = os.path.join(dirPath, 'learnerDict.pkl')
+        expressionListFilename = os.path.join(dirPath, 'expressionList.pkl')
+        expressionFilename = os.path.join(dirPath, 'expression.pkl')
 
         #Load the models
         modelFiles = glob.glob(os.path.join(dirPath,'C*.model'))
@@ -539,26 +557,68 @@ def Consensusread(dirPath,verbose = 0):
                 if verbose > 0: print "ERROR: Missing model files in ",dirPath    
                 return None
         else:
+
+            if os.path.exists(learnerFilename):
+                #
+                # We have a custom expression to read
+                #
+
+                dictionaryFile = open(learnerFilename, 'rb')
+                classifiers = pickle.load(dictionaryFile)
+                dictionaryFile.close()
+
+                models = []
+                for mFile in modelFiles:
+                    models.append(AZBaseClasses.modelRead(mFile))
+
+                for k, v in classifiers.iteritems():
+                    classifiers[k] = models[v]
+
+                #Try to load the imputeData, basicStat and NTrainEx from a model that saved it!
+                if hasattr(classifiers.itervalues().next(), "basicStat") and classifiers.itervalues().next().basicStat and not basicStat:
+                    basicStat = classifiers.itervalues().next().basicStat
+                if hasattr(classifiers.itervalues().next(), "NTrainEx") and classifiers.itervalues().next().NTrainEx and not NTrainEx:
+                    NTrainEx = classifiers.itervalues().next().NTrainEx
+                if hasattr(classifiers.itervalues().next(), "imputeData") and classifiers.itervalues().next().imputeData and not imputeData:
+                    imputeData = classifiers.itervalues().next().imputeData
+                    domainFile = imputeData #This is needed for domain compatibility between imputer and domain var
+
+                if os.path.exists(expressionListFilename):
+                    file = open(expressionListFilename)
+                    expression = pickle.load(file)
+                    file.close()
+                else:
+                    file = open(expressionFilename)
+                    expression = pickle.load(file)
+                    file.close()
+                    
+            else:
+                #
+                # Default expression to read
+                #
+                
                 classifiers = []
                 for mFile in modelFiles:
                     classifiers.append(AZBaseClasses.modelRead(mFile))
-                    if not classifiers[-1]:
-                        if verbose > 0: print "ERROR: Could not load the model ",mFile
-                        return None
-                    else:
-                        #Try to load the imputeData, basicStat and NTrainEx from a model that saved it!
-                        if hasattr(classifiers[-1], "basicStat") and classifiers[-1].basicStat and not basicStat:
-                            basicStat = classifiers[-1].basicStat
-                        if hasattr(classifiers[-1], "NTrainEx") and classifiers[-1].NTrainEx and not NTrainEx:
-                            NTrainEx = classifiers[-1].NTrainEx
-                        if hasattr(classifiers[-1], "imputeData") and classifiers[-1].imputeData and not imputeData:
-                            imputeData = classifiers[-1].imputeData
-                            domainFile = imputeData #This is needed for domain compatibilitu betwene imputer and domain var
+
+                if not classifiers[-1]:
+                    if verbose > 0:
+                        print "ERROR: Could not load the model ",mFile
+                    return None
+                else:
+                    #Try to load the imputeData, basicStat and NTrainEx from a model that saved it!
+                    if hasattr(classifiers[-1], "basicStat") and classifiers[-1].basicStat and not basicStat:
+                        basicStat = classifiers[-1].basicStat
+                    if hasattr(classifiers[-1], "NTrainEx") and classifiers[-1].NTrainEx and not NTrainEx:
+                        NTrainEx = classifiers[-1].NTrainEx
+                    if hasattr(classifiers[-1], "imputeData") and classifiers[-1].imputeData and not imputeData:
+                        imputeData = classifiers[-1].imputeData
+                        domainFile = imputeData #This is needed for domain compatibilitu betwene imputer and domain var
 
     except:
         if verbose > 0: print "ERROR: It was not possible to load the Consensus model"
         return None
-    return ConsensusClassifier(classifiers=classifiers ,varNames = [attr.name for attr in domainFile.domain.attributes],classVar = domainFile.domain.classVar, verbose = verbose, domain = domainFile.domain, basicStat = basicStat, NTrainEx = NTrainEx, imputeData = imputeData)
+    return ConsensusClassifier(classifiers=classifiers, expression=expression, varNames = [attr.name for attr in domainFile.domain.attributes],classVar = domainFile.domain.classVar, verbose = verbose, domain = domainFile.domain, basicStat = basicStat, NTrainEx = NTrainEx, imputeData = imputeData)
 
 
 if __name__ == "__main__":
@@ -571,5 +631,4 @@ if __name__ == "__main__":
     
     # Create a Consensus model from data
     ConsensusClassifier = Ccclearner(data)
-
 
