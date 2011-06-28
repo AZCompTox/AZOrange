@@ -327,10 +327,8 @@ class ConsensusClassifier(AZBaseClasses.AZClassifier):
                         predicted = logicalRes
                         break
 
-                self._isRealProb = True
-                #probOf1 = votes[self.classVar.values[1]]/len(self.classifiers)
-                #DFV = self.convert2DFV(probOf1)
-                #probabilities = self.__getProbabilities(probOf1)
+                self._isRealProb = False
+                probabilities = self.__generateProbabilities(predicted)
             else:
                 self.status = "Using supplied regression expression (Regression)"
                 if self.verbose:
