@@ -38,7 +38,7 @@ class ConsensusLearner(AZBaseClasses.AZLearner):
         """
         Set default values of the model parameters if they are not given as inputs
         """
-        #NOTE: Only use one of the learnersNames  or learnersObj. learnersNames will have priority on learnersObj!
+        #NOTE: Only use one of the learnersNames  or learners. learnersNames will have priority on learners!
         self.rejectedLearners = [] # Learners that, for some reason, could not be used/trained
         self.expression = None     # Expression used with the model
         self.learners = None       # Connects a variable, used in an expression, with a learner object
@@ -64,7 +64,7 @@ class ConsensusLearner(AZBaseClasses.AZLearner):
         if self.learners:
             if len(self.learners) <= 1:
                 raise Exception("ERROR: The Consensus model needs at least 2 valid learners.\n"+\
-                                "Learners: "+str(self.learnersObj))
+                                "Learners: "+str(self.learners))
 
             if type(self.learners).__name__ == 'dict' and not self.expression:
                 return None
@@ -139,20 +139,34 @@ class ConsensusLearner(AZBaseClasses.AZLearner):
 
 class ConsensusClassifier(AZBaseClasses.AZClassifier):
     def __new__(cls, name = "Consensus classifier", **kwds):
-        self = AZBaseClasses.AZClassifier.__new__(cls, name = name,  **kwds)        
+        self = AZBaseClasses.AZClassifier.__new__(cls, name = name,  **kwds)      
         return self
     
     def __init__(self, name = "Consensus classifier", **kwds):
+        #Optional inputs
+        # name 
         self.verbose = 0
-        varNames = None
+        self.varNames = None
         self.domain = None
         self.classVar = None
+        self.NTrainEx = None
+        self.basicStat = None
+        self.imputeData = None
+        #Required Inputs:
+        self.classifiers = None
+
         self.__dict__.update(kwds)
+
         self._isRealProb = False
         self.name = name
         self.status = ""
-        if not self.classVar or not self.domain:
+        if not self.classVar or not self.domain or not self.varNames:
             self.setDomainAndClass()
+        if not self.NTrainEx or not self.basicStat or not self.imputeData:
+            self.setStatData()
+        if self.domain.classVar.varType == orange.VarTypes.Discrete and len(self.domain.classVar.values) != 2:
+            raise Exception("ERROR: The Consensus model only supports binary classification or regression problems.")
+
 
     def __call__(self, origExample = None, resultType = orange.GetValue, returnDFV = False):
         """
@@ -170,8 +184,10 @@ class ConsensusClassifier(AZBaseClasses.AZClassifier):
         self.status = ""
 
         # Is this needed at all? Already called in the init function.
-        if not self.classVar or not self.domain:
+        if not self.classVar or not self.domain or not self.varNames:
             self.setDomainAndClass()
+        if not self.NTrainEx or not self.basicStat or not self.imputeData:
+            self.setStatData()
 
         if origExample == None:
             return self.classifiers[0](None, resultType)
@@ -435,6 +451,17 @@ class ConsensusClassifier(AZBaseClasses.AZClassifier):
         dist = orange.DiscDistribution(self.classVar)
         dist[prediction]=1
         return dist
+            
+    def setStatData(self):
+        for classifier in self.classifiers:
+            #Try to get the imputeData, basicStat from a model that have it!
+            if hasattr(classifier, "basicStat") and classifier.basicStat and not self.basicStat:
+                    self.basicStat = classifier.basicStat
+            if hasattr(classifier, "NTrainEx") and classifier.basicStat and not self.NTrainEx:
+                    self.NTrainEx = classifier.NTrainEx
+            if hasattr(classifier, "imputeData") and classifier.imputeData and not self.imputeData:
+                    self.imputeData = classifier.imputeData
+ 
 
     def setDomainAndClass(self):
         #Find a possible Domain among the classifiers
@@ -456,12 +483,16 @@ class ConsensusClassifier(AZBaseClasses.AZClassifier):
         #If we were not success in getting a domain and a classVar, we cannot proceed!
         if not self.classVar or not self.domain:
             raise Exception("The classifiers are not compatible with the Consensus model. Try to use the respective Learners instead.")
+        if not self.varNames:
+            self.varNames = [attr.name for attr in self.domain.attributes]            
 
     def write(self, dirPath):
         """ Save a Consensus model to disk including the domain used """
-        if not self.classVar or not self.domain:
+        if not self.classVar or not self.domain or not self.varNames:
             self.setDomainAndClass()
-            
+        if not self.NTrainEx or not self.basicStat or not self.imputeData:
+            self.setStatData()
+    
         try:
 
             #This removes any trailing '/'
