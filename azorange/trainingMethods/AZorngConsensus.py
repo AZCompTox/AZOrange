@@ -61,20 +61,22 @@ class ConsensusLearner(AZBaseClasses.AZLearner):
         if not self.learners:
             return None
 
-        if self.learners:
-            if len(self.learners) <= 1:
-                raise Exception("ERROR: The Consensus model needs at least 2 valid learners.\n"+\
-                                "Learners: "+str(self.learners))
+        if len(self.learners) <= 1:
+            print "ERROR: The Consensus model needs at least 2 valid learners.\n" + "Learners: " + str(self.learners)
+            return None
+        
+        if type(self.learners).__name__ == 'dict' and not self.expression:
+            print "ERROR: Missing expression! You must provide an expression together with the learner mapping"
+            return None
 
-            if type(self.learners).__name__ == 'dict' and not self.expression:
-                return None
-
-        # This test is not valid anymore
-        if trainingData.domain.classVar.varType == orange.VarTypes.Discrete and len(trainingData.domain.classVar.values) != 2:
-            raise Exception("ERROR: The Consensus model only supports binary classification or regression problems.")
-       
         # Call the train method
         if type(self.learners).__name__ == 'list':
+
+            if trainingData.domain.classVar.varType == orange.VarTypes.Discrete and len(trainingData.domain.classVar.values) != 2:
+                print "ERROR: The Consensus model only supports binary classification or regression problems."
+                return None
+
+            
             # Default behaviour, no expression defined.
             classifiers = []
             for learner in self.learners:
@@ -164,8 +166,9 @@ class ConsensusClassifier(AZBaseClasses.AZClassifier):
             self.setDomainAndClass()
         if not self.NTrainEx or not self.basicStat or not self.imputeData:
             self.setStatData()
-        if self.domain.classVar.varType == orange.VarTypes.Discrete and len(self.domain.classVar.values) != 2:
-            raise Exception("ERROR: The Consensus model only supports binary classification or regression problems.")
+
+        if type(self.classifiers).__name__ == 'list' and self.domain.classVar.varType == orange.VarTypes.Discrete and len(self.domain.classVar.values) != 2:
+                raise Exception("ERROR: The Consensus model only supports binary classification or regression problems.")
 
 
     def __call__(self, origExample = None, resultType = orange.GetValue, returnDFV = False):
