@@ -261,26 +261,26 @@ class ConsensusClassifier(AZBaseClasses.AZClassifier):
             DFV = predicted = sum(predictions,0.0) / len(predictions)
             probabilities = None 
 
-            if resultType == orange.GetBoth:
-                if predicted:
-                    orangePrediction = orange.Value(self.classVar, predicted)
-                else:
-                    orangePrediction = None
-                res = orangePrediction, probabilities
-            elif resultType == orange.GetProbabilities:
-                res = probabilities
-            else: 
-                if predicted:
-                    orangePrediction = orange.Value(self.classVar, predicted)
-                else:
-                    orangePrediction = None
-                res = orangePrediction
-
-            self.nPredictions += 1
-            if returnDFV:
-                return (res,DFV)
+        if resultType == orange.GetBoth:
+            if predicted:
+                orangePrediction = orange.Value(self.classVar, predicted)
             else:
-                return res
+                orangePrediction = None
+            res = orangePrediction, probabilities
+        elif resultType == orange.GetProbabilities:
+            res = probabilities
+        else: 
+            if predicted:
+                orangePrediction = orange.Value(self.classVar, predicted)
+            else:
+                orangePrediction = None
+            res = orangePrediction
+
+        self.nPredictions += 1
+        if returnDFV:
+            return (res,DFV)
+        else:
+            return res
             
     def _customExpressionBehaviour(self, origExample, resultType, returnDFV):
         # expression specified
