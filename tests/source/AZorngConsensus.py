@@ -428,6 +428,128 @@ class ConsensusClassifierTest(AZorngTestUtil.AZorngTestUtil):
         miscUtilities.removeDir(scratchdir)
 
 
+    def test_CustomLogicalExpressionUsingAndStatement(self):
+        """ Test logical expression using AND statements """
+        # Arrange
+
+        # Construct verification learners
+        a = AZorngCvSVM.CvSVMLearner()
+        a = a(self.irisData)
+        b = AZorngCvANN.CvANNLearner()
+        b = b(self.irisData)
+        c = AZorngRF.RFLearner()
+        c = c(self.irisData)
+        
+        # Construct expression learner/classifier
+        learners = {'a':AZorngCvSVM.CvSVMLearner(),
+                    'b':AZorngCvANN.CvANNLearner(),
+                    'c':AZorngRF.RFLearner()}
+        discreteExpression = ["a == Iris-setosa and b == Iris-setosa -> Iris-setosa", "-> Iris-virginica"]
+        discreteLearner = AZorngConsensus.ConsensusLearner(learners = learners, expression = discreteExpression)
+        discreteClassifier = discreteLearner(self.irisData)
+
+        # Act
+        result = []
+        for ex in self.irisData:
+            result.append(discreteClassifier(ex))
+
+        verifiedResult = []
+        for ex in self.irisData:
+            if a(ex).value == "Iris-setosa" and b(ex).value == "Iris-setosa":
+                verifiedResult.append("Iris-setosa")
+            else:
+                verifiedResult.append("Iris-virginica")
+
+
+        # Assert
+        for index, item in enumerate(result):
+            if not result[index].value == verifiedResult[index]:
+                print "Not equal on index: ", index, " Predicted: ", result[index].value, " Real: ", verifiedResult[index]
+            self.assertEqual(result[index].value, verifiedResult[index])
+
+
+    def test_CustomLogicalExpressionUsingOrStatement(self):
+        """ Test logical expression using OR statements """
+        # Arrange
+
+        # Construct verification learners
+        a = AZorngCvSVM.CvSVMLearner()
+        a = a(self.irisData)
+        b = AZorngCvANN.CvANNLearner()
+        b = b(self.irisData)
+        c = AZorngRF.RFLearner()
+        c = c(self.irisData)
+        
+        # Construct expression learner/classifier
+        learners = {'a':AZorngCvSVM.CvSVMLearner(),
+                    'b':AZorngCvANN.CvANNLearner(),
+                    'c':AZorngRF.RFLearner()}
+        discreteExpression = ["a == Iris-setosa or b == Iris-setosa -> Iris-setosa", "-> Iris-virginica"]
+        discreteLearner = AZorngConsensus.ConsensusLearner(learners = learners, expression = discreteExpression)
+        discreteClassifier = discreteLearner(self.irisData)
+
+        # Act
+        result = []
+        for ex in self.irisData:
+            result.append(discreteClassifier(ex))
+
+        verifiedResult = []
+        for ex in self.irisData:
+            if a(ex).value == "Iris-setosa" or b(ex).value == "Iris-setosa":
+                verifiedResult.append("Iris-setosa")
+            else:
+                verifiedResult.append("Iris-virginica")
+
+
+        # Assert
+        for index, item in enumerate(result):
+            if not result[index].value == verifiedResult[index]:
+                print "Not equal on index: ", index, " Predicted: ", result[index].value, " Real: ", verifiedResult[index]
+            self.assertEqual(result[index].value, verifiedResult[index])
+
+    def test_CustomLogicalExpressionUsingOrAndStatement(self):
+        """ Test logical expression using OR/AND statements """
+        # Arrange
+
+        # Construct verification learners
+        a = AZorngCvSVM.CvSVMLearner()
+        a = a(self.irisData)
+        b = AZorngCvANN.CvANNLearner()
+        b = b(self.irisData)
+        c = AZorngRF.RFLearner()
+        c = c(self.irisData)
+        
+        # Construct expression learner/classifier
+        learners = {'a':AZorngCvSVM.CvSVMLearner(),
+                    'b':AZorngCvANN.CvANNLearner(),
+                    'c':AZorngRF.RFLearner()}
+        discreteExpression = ["a == Iris-setosa and c == Iris-virginica or b == Iris-setosa -> Iris-setosa", "-> Iris-virginica"]
+        discreteLearner = AZorngConsensus.ConsensusLearner(learners = learners, expression = discreteExpression)
+        discreteClassifier = discreteLearner(self.irisData)
+
+        # Act
+        result = []
+        for ex in self.irisData:
+            result.append(discreteClassifier(ex))
+
+        verifiedResult = []
+        for ex in self.irisData:
+            if a(ex).value == "Iris-setosa" and c(ex).value == "Iris-virginica" or b(ex).value == "Iris-setosa":
+                verifiedResult.append("Iris-setosa")
+            else:
+                verifiedResult.append("Iris-virginica")
+
+
+        # Assert
+        for index, item in enumerate(result):
+            if not result[index].value == verifiedResult[index]:
+                print "Not equal on index: ", index, " Predicted: ", result[index].value, " Real: ", verifiedResult[index]
+            self.assertEqual(result[index].value, verifiedResult[index])
+
+
+
+
+
 if __name__ == "__main__":
     #unittest.main()
     suite = unittest.TestLoader().loadTestsFromTestCase(ConsensusClassifierTest)
