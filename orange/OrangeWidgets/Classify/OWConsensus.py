@@ -45,7 +45,7 @@ class OWConsensus(OWWidget):
         self.outputs = [("Learner", orange.Learner),("Classifier", orange.Classifier)]
 
         self.name = name
-        self.exp = ""
+        self.expr = ""
         self.data = None
         self.classifiers = {}
         self.learners = {}
@@ -77,7 +77,7 @@ class OWConsensus(OWWidget):
         OWGUI.lineEdit(self.controlArea, self, 'name', box='Learner/Classifier Name', \
                        tooltip='Name to be used by other widgets to identify your learner/classifier.<br>This should be a unique name!')
 
-        OWGUI.lineEdit(self.controlArea, self, 'exp', box='Expression', \
+        OWGUI.lineEdit(self.controlArea, self, 'expr', box='Expression', \
                        tooltip='Expression')
 
         # Apply the settings and send the learner to the output channel
