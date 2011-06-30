@@ -47,6 +47,7 @@ class ConsensusLearner(AZBaseClasses.AZLearner):
         self.imputeData = None
         self.NTrainEx = 0
         self.basicStat  = None
+        self.weights = None
         # Append arguments to the __dict__ member variable
         self.__dict__.update(kwds)
 
@@ -86,8 +87,7 @@ class ConsensusLearner(AZBaseClasses.AZLearner):
                         print "ERROR: Could not create the model ",str(learner)
 
                     return None
-                else:
-                    
+                else:                   
                     #Try to get the imputeData, basicStat from a model that have it!
                     if hasattr(classifiers[-1], "basicStat") and classifiers[-1].basicStat and not self.basicStat:
                         self.basicStat = classifiers[-1].basicStat
@@ -130,6 +130,7 @@ class ConsensusLearner(AZBaseClasses.AZLearner):
                             
             return ConsensusClassifier(classifiers = classifiers,
                                        expression = self.expression,
+                                       weights = self.weights,
                                        classVar = trainingData.domain.classVar,
                                        verbose = self.verbose,
                                        domain = trainingData.domain,
@@ -154,6 +155,7 @@ class ConsensusClassifier(AZBaseClasses.AZClassifier):
         self.NTrainEx = None
         self.basicStat = None
         self.imputeData = None
+        self.weights = None
         #Required Inputs:
         self.classifiers = None
 
@@ -332,7 +334,11 @@ class ConsensusClassifier(AZBaseClasses.AZClassifier):
                     logicalExp, logicalRes = exp.split('->')
                     logicalExp = logicalExp.strip()
                     logicalRes = logicalRes.strip()
-                        
+
+                    if logicalRes == "None":
+                        print "ERROR: Logical result cannot be None. For unknown values use ? instead!"
+                        return None
+                    
                     if len(logicalExp) == 0:
                         predicted = logicalRes
                         break
@@ -355,6 +361,12 @@ class ConsensusClassifier(AZBaseClasses.AZClassifier):
                     
                 for c in self.classifiers:
                     predictions[c] = self.classifiers[c](origExample)
+
+                if self.weights:
+                    for p in predictions:
+                        if p in self.weights:
+                            predictions[p] *= self.weights[p](predictions[p])
+                        
 
                 rawParseTree = self._lexRegressionExp(self.expression)
                 modParseTree = self._parseRegressionTree(rawParseTree, predictions)
@@ -452,6 +464,8 @@ class ConsensusClassifier(AZBaseClasses.AZClassifier):
     def __generateProbabilities(self, prediction):
         # Method to artificialy generate a list the length of the number of classes and set the predicted class to 1
         dist = orange.DiscDistribution(self.classVar)
+        if prediction == "?":
+            return dist
         dist[prediction]=1
         return dist
             
