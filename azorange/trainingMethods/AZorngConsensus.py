@@ -365,7 +365,7 @@ class ConsensusClassifier(AZBaseClasses.AZClassifier):
                 if self.weights:
                     for p in predictions:
                         if p in self.weights:
-                            predictions[p] *= self.weights[p](predictions[p])
+                            predictions[p] *= self.weights[p](origExample)
                         
 
                 rawParseTree = self._lexRegressionExp(self.expression)
