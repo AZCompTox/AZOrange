@@ -590,6 +590,54 @@ class ConsensusClassifierTest(AZorngTestUtil.AZorngTestUtil):
             self.assertEqual(float_compare(result[index].value, verifiedResult[index]), True)
 
 
+    def test_SaveLoadCustomExpressionUsingWeights(self):
+        """ Test loading/saving using weights """
+        # Arrange
+        learners = {'a':AZorngCvSVM.CvSVMLearner(),
+                    'b':AZorngCvANN.CvANNLearner(),
+                    'c':AZorngRF.RFLearner()}
+
+        weights = { 'a': lambda x: 1,
+                    'b': lambda x: 2,
+                    'c': lambda x: 3 }
+        
+        regressionExpression = "(a + b + c) / 3"
+        expressionLearner = AZorngConsensus.ConsensusLearner(learners = learners, expression = regressionExpression, weights = weights)
+        classifier = expressionLearner(self.DataReg)
+
+        # Act
+        result = []
+        for ex in self.DataReg:
+            result.append(classifier(ex))
+
+        scratchdir = miscUtilities.createScratchDir(desc="ConsensusSaveLoadTest")
+        classifier.write(os.path.join(scratchdir,"./CM.model"))
+
+        verifiedResult = []
+        for ex in self.DataReg:
+            a_value = classifier.classifiers['a'](ex)
+            a_weight_value = weights['a'](a_value)
+            b_value = classifier.classifiers['b'](ex)
+            b_weight_value = weights['b'](b_value)
+            c_value = classifier.classifiers['c'](ex)
+            c_weight_value = weights['c'](c_value) 
+
+            prediction = (a_value * a_weight_value +
+                          b_value * b_weight_value +
+                          c_value * c_weight_value)/3
+            
+            verifiedResult.append(prediction)
+            
+        # Assert
+        for index, item in enumerate(result):
+            if float_compare(result[index].value, verifiedResult[index]) == False:
+                print "Not equal on index: ", index
+                print "Result: ", result[index].value, " Verified: ", verifiedResult[index]
+                print "Delta: ", abs(result[index].value - verifiedResult[index])
+            self.assertEqual(float_compare(result[index].value, verifiedResult[index]), True)
+
+        miscUtilities.removeDir(scratchdir)
+
 if __name__ == "__main__":
     #unittest.main()
     suite = unittest.TestLoader().loadTestsFromTestCase(ConsensusClassifierTest)
