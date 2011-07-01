@@ -1,0 +1,260 @@
+ \title{AZOrange Consensus Algorithm \\User Guide and Developer Documentation}
+\author{
+        Philip Werner \\
+         Research and Development Information (RDI)\\
+}
+\date{\today}
+
+\documentclass[12pt]{article}
+
+\begin{document}
+\maketitle
+
+\newpage
+
+\section{Introduction}
+
+The consensus model uses multiple machine learning algorithms when making a prediction.
+This method is useful in domains which are too complex for a single
+algorithm to make an overall high prediction rate. A single algorithm might cover a part
+of the domain very well, whilst being less precise in others, thus leading to less accurate
+prediction rate. Instead of trying to overcome the problem of covering the whole domain
+accurately using one algorithm, the consensus model relies on weighted decisions among
+multiple ones. 
+
+\section{Requirements}
+
+\begin{list}{*}{}
+\item Both classification and regression problems need to be supported.
+\item Regression problems should support a generic mathematical expression.
+\item Default behaviour for regression problems should an average value over all learners.
+\item The regression expression should support weighting of the learners, expressed as a function.
+\item Classification problems should support a generic logical expression
+\item Default behaviour for classification problems using an uneven number of learners 
+  should be majority vote.
+\item Default behaviour for classification problems using an even number of learners
+  should be average of N probabilities, where N is the number of learners.
+\end{list}
+
+\newpage
+\section{User Guide}\label{user}
+
+\subsection{Regression problems}
+
+Regression problems can be initialized in two ways. Either the user has a custom
+expression, or default mode is used. The default mode will be explained first, given
+the simplicity of the input. Default mode in regression means using an average value
+of the learners supplied. In mathematical terms:
+
+\begin{equation}
+  \frac{1}{n} \sum_{i=1}^n learner_i
+\end{equation}
+\\
+
+An example using three learners will illustrate how to use the consensus model in 
+default mode for regression. We first start by creating a list of learner objects,
+where the minimum number of objects to use is two.
+
+\begin{verbatim}
+learners = [AZorngRF.RFLearner(), 
+            AZorngCvSVM.CvSVMLearner(),
+	            AZorngCvANN.CvANNLearner()]
+\end{verbatim}
+
+This list of learners will then be used as input to the consensus learner. To get
+the classifier, we call the learner with the training data.
+
+\begin{verbatim}
+consensusLearner = 
+    AZorngConsensus.ConsensusLearner(learners = learners)
+
+classifier = consensusLearner(trainingData)
+\end{verbatim}
+
+The classifier is now ready to be used! 
+
+\begin{verbatim}
+prediction = classifier(example)
+\end{verbatim}
+
+\newpage
+In some cases, the average of the learners will not be adequate as an expression.
+In these cases, the user can supply a custom mathematical expression, as long
+as it conforms to valid python code. The initialization of the consensus model will
+then differ from that of default behaviour. Instead of using a list of learners,
+as explained above, the user must supply two arguments. A dictionary (also known
+as a map) of the learners, and a mathematical expression with variables, given as a string.
+The variables will be mapped to the learners through the dictionary supplied as
+input to the consensus model.
+
+We will use the same example as above, but instead provide our own custom 
+average expression. We have three learners, which we need to map to variables
+using a dictionary.
+
+\begin{verbatim}
+learners = { 'a': AZorngRF.RFLearner(), 
+             'b': AZorngCvSVM.CvSVMLearner(),
+	             'c': AZorngCvANN.CvANNLearner() }
+\end{verbatim}
+
+The learners will now map to the variables a, b and c. As such we can use them in
+the mathematical expression we provide to the consensus model. The mathematical 
+expression is given below.
+
+\begin{verbatim}
+expression = '(a + b + c)/3'
+\end{verbatim}
+
+We now initialize our consensus model, using these arguments, and create a
+classifier by supplying training data. The classifier is then used as before.
+
+\begin{verbatim}
+consensusLearner = 
+    AZorngConsensus.ConsensusLearner(learners = learners, 
+                                     expression = expression)
+
+classifier = consensusLearner(trainingData)
+
+prediction = classifier(example)
+\end{verbatim}
+
+The consensus model also has the ability to use individual weights for each learner.
+This can be used to determine the importance each learner should have when making
+the consensus prediction. The weights are stored in a dictionary, mapping the 
+learner variables to the weight function. 
+
+\begin{verbatim}
+learners = { 'a': AZorngRF.RFLearner(), 
+             'b': AZorngCvSVM.CvSVMLearner(),
+	             'c': AZorngCvANN.CvANNLearner() }
+
+def weightfunction1(example):
+   return example[0]*2
+
+def weightfunction2(example):
+   return example[0]*4
+
+def weightfunction3(example):
+   return example[0]*6
+
+weights = { 'a': weightfunction1, 
+             'b': weightfunction2,
+	             'c': weightfunction3 }
+
+expression = '(a + b + c)/3'
+
+consensusLearner = 
+    AZorngConsensus.ConsensusLearner(learners = learners, 
+                                     expression = expression,
+				                                     weights = weights)
+
+classifier = consensusLearner(trainingData)
+
+prediction = classifier(example)
+\end{verbatim}
+
+The example above will use the mathematical expression shown below when making a prediction.
+
+\begin{equation}
+  \sum_{i=1}^n learner(ex)_i*weightfunction_i(ex)
+\end{equation}
+\\
+
+
+\newpage
+\subsection{Classification problems}
+
+There are few differences with regards to initialization compared to regression
+models, as such, only these will be covered in this section. As with the regression
+model, an example will help highlight the use.
+
+If only a list of learners is specified as input, the consensus model will use
+either a majority vote or return a result based on probability. The choice depends
+on the number of learners provided; an even number will predict depending on probabilities,
+while an uneven will use majority voting. Below is the code to initialize the consensus
+learner using default behaviour. It is the training data, with its domain, which determines
+if the problem is classification or regression. Care must be taken such that the learners
+can return probabilities, if an even number of learners is provided to the consensus model.
+
+\begin{verbatim}
+learners = [AZorngRF.RFLearner(), 
+            AZorngCvSVM.CvSVMLearner(),
+	            AZorngCvANN.CvANNLearner()]
+consensusLearner = 
+    AZorngConsensus.ConsensusLearner(learners = learners)
+
+classifier = consensusLearner(trainingData)
+\end{verbatim}
+
+\newpage
+Classification problems can also use a custom logical expression to determine the outcome
+of a prediction. The idea behind this logical expression is to mimic, as much as possible,
+the use of if/else-if/else statements, found in most languages. The if/else-if/else
+statements used with the consensus learner, is simply a list of strings, representing
+logical expressions and their return statements, if the statement is true. We will now
+convert a trivial if/else-if/else statement into the expected format of the consensus 
+learner. Below is the trivial example:
+
+\begin{verbatim}
+if a == POS then
+    return POS
+else
+    return NEG
+end if
+\end{verbatim}
+
+And this is transformed into the following list of strings.
+
+\begin{verbatim}
+[``a == POS -> POS'', 
+ ``-> NEG'']
+\end{verbatim}
+
+A more complex example:
+
+\begin{verbatim}
+if a == POS and b == POS then
+    return POS
+else if a == NEG and b == NEG then
+    return NEG
+else
+    return UNKNOWN
+end if
+\end{verbatim}
+
+And this is transformed into the following list of strings.
+
+\begin{verbatim}
+[``a == POS and b == POS -> POS'', 
+ ``a == NEG and b == NEG -> NEG'', 
+ ``-> UNKNOWN``]
+\end{verbatim}
+
+\newpage
+Given the last expression, a dictionary mapping the variables to learners need to
+be specified. The complete code example is shown below.
+
+\begin{verbatim}
+
+learners = { 'a': AZorngRF.RFLearner(), 
+             'b': AZorngCvSVM.CvSVMLearner(),
+	             'c': AZorngCvANN.CvANNLearner() }
+
+expression = 
+  [``a == POS and b == POS -> POS'', 
+   ``a == NEG and b == NEG -> NEG'', 
+   ``-> UNKNOWN``]
+
+consensusLearner = 
+    AZorngConsensus.ConsensusLearner(learners = learners, expression = expression)
+
+classifier = consensusLearner(trainingData)
+
+prediction = classifier(example)
+\end{verbatim}
+
+\newpage
+\section{Developer Documentation}\label{developer}
+
+\end{document}
+
