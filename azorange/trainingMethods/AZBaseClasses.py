@@ -94,7 +94,7 @@ class AZLearner(orange.Learner):
             print "AZBaseClasses ERROR: Duplicated names found in the training data. Please use the method dataUtilities.DataTable() when loading a dataset in order to fix the duplicated names and avoid this error."
             self.basicStat = None
             return False
-        possibleMetas = dataUtilities.getPossibleMetas(trainingData)
+        possibleMetas = dataUtilities.getPossibleMetas(trainingData, checkIndividuality = True)
         if possibleMetas:
             msg="\nAZBaseClasses ERROR: Detected attributes that should be considered meta-attributes:"
             for attr in possibleMetas:
