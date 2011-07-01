@@ -553,9 +553,9 @@ class ConsensusClassifierTest(AZorngTestUtil.AZorngTestUtil):
                     'b':AZorngCvANN.CvANNLearner(),
                     'c':AZorngRF.RFLearner()}
 
-        weights = { 'a': lambda x: x**2,
-                    'b': lambda x: x+x,
-                    'c': lambda x: x*x }
+        weights = { 'a': lambda x: 1,
+                    'b': lambda x: 2,
+                    'c': lambda x: 3 }
         
         regressionExpression = "(a + b + c) / 3"
         expressionLearner = AZorngConsensus.ConsensusLearner(learners = learners, expression = regressionExpression, weights = weights)
@@ -565,7 +565,6 @@ class ConsensusClassifierTest(AZorngTestUtil.AZorngTestUtil):
         result = []
         for ex in self.DataReg:
             result.append(classifier(ex))
-            
 
         verifiedResult = []
         for ex in self.DataReg:
