@@ -20,7 +20,7 @@ algorithm to make an overall high prediction rate. A single algorithm might cove
 of the domain very well, whilst being less precise in others, thus leading to less accurate
 prediction rate. Instead of trying to overcome the problem of covering the whole domain
 accurately using one algorithm, the consensus model relies on weighted decisions among
-multiple ones.
+multiple ones. 
 
 \section{Requirements}
 
@@ -28,6 +28,7 @@ multiple ones.
 \item Both classification and regression problems need to be supported.
 \item Regression problems should support a generic mathematical expression.
 \item Default behaviour for regression problems should an average value over all learners.
+\item The regression expression should support weighting of the learners, expressed as a function.
 \item Classification problems should support a generic logical expression
 \item Default behaviour for classification problems using an uneven number of learners 
   should be majority vote.
@@ -116,6 +117,49 @@ classifier = consensusLearner(trainingData)
 
 prediction = classifier(example)
 \end{verbatim}
+
+The consensus model also has the ability to use individual weights for each learner.
+This can be used to determine the importance each learner should have when making
+the consensus prediction. The weights are stored in a dictionary, mapping the 
+learner variables to the weight function. 
+
+\begin{verbatim}
+learners = { 'a': AZorngRF.RFLearner(), 
+             'b': AZorngCvSVM.CvSVMLearner(),
+	             'c': AZorngCvANN.CvANNLearner() }
+
+def weightfunction1(example):
+   return example[0]*2
+
+def weightfunction2(example):
+   return example[0]*4
+
+def weightfunction3(example):
+   return example[0]*6
+
+weights = { 'a': weightfunction1, 
+             'b': weightfunction2,
+	             'c': weightfunction3 }
+
+expression = '(a + b + c)/3'
+
+consensusLearner = 
+    AZorngConsensus.ConsensusLearner(learners = learners, 
+                                     expression = expression,
+				                                     weights = weights)
+
+classifier = consensusLearner(trainingData)
+
+prediction = classifier(example)
+\end{verbatim}
+
+The example above will use the mathematical expression shown below when making a prediction.
+
+\begin{equation}
+  \sum_{i=1}^n learner(ex)_i*weightfunction_i(ex)
+\end{equation}
+\\
+
 
 \newpage
 \subsection{Classification problems}
