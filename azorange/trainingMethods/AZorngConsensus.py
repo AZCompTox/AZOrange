@@ -38,12 +38,10 @@ class ConsensusLearner(AZBaseClasses.AZLearner):
         """
         Set default values of the model parameters if they are not given as inputs
         """
-        #NOTE: Only use one of the learnersNames  or learners. learnersNames will have priority on learners!
-        self.rejectedLearners = [] # Learners that, for some reason, could not be used/trained
-        self.expression = None     # Expression used with the model
-        self.learners = None       # Connects a variable, used in an expression, with a learner object
+        self.expression = None
+        self.learners = None
         self.name = name
-        self.verbose = 0 
+        self.verbose = 0
         self.imputeData = None
         self.NTrainEx = 0
         self.basicStat  = None
@@ -51,15 +49,16 @@ class ConsensusLearner(AZBaseClasses.AZLearner):
         # Append arguments to the __dict__ member variable
         self.__dict__.update(kwds)
 
-
     def __call__(self, trainingData, weight = None):
         """Creates a Consensus model from the data in trainingData. """
 
         if not AZBaseClasses.AZLearner.__call__(self,trainingData, weight) or not trainingData:
+            print "ERROR: Base constructor failed or training data was None."
             return None
 
         # Make sure the correct number of arguments are supplied
-        if not self.learners:
+        if self.learners is None:
+            print "ERROR: Learners was None. Cannot start training without learners."
             return None
 
         if len(self.learners) <= 1:
@@ -67,14 +66,14 @@ class ConsensusLearner(AZBaseClasses.AZLearner):
             return None
         
         if type(self.learners).__name__ == 'dict' and not self.expression:
-            print "ERROR: Missing expression! You must provide an expression together with the learner mapping"
+            print "ERROR: Missing expression! You must provide an expression together with the learner mapping!"
             return None
 
         # Call the train method
         if type(self.learners).__name__ == 'list':
 
             if trainingData.domain.classVar.varType == orange.VarTypes.Discrete and len(trainingData.domain.classVar.values) != 2:
-                print "ERROR: The Consensus model only supports binary classification or regression problems."
+                print "ERROR: The Consensus model only supports binary classification or regression problems in default mode."
                 return None
 
             
@@ -147,14 +146,15 @@ class ConsensusClassifier(AZBaseClasses.AZClassifier):
     
     def __init__(self, name = "Consensus classifier", **kwds):
         #Optional inputs
-        # name 
-        self.verbose = 0
-        self.varNames = None
-        self.domain = None
-        self.classVar = None
-        self.NTrainEx = None
+        # name
         self.basicStat = None
+        self.classVar = None
+        self.domain = None
+        self.expression = None
         self.imputeData = None
+        self.NTrainEx = None
+        self.varNames = None
+        self.verbose = 0
         self.weights = None
         #Required Inputs:
         self.classifiers = None
@@ -165,9 +165,9 @@ class ConsensusClassifier(AZBaseClasses.AZClassifier):
         self.name = name
         self.status = ""
         if not self.classVar or not self.domain or not self.varNames:
-            self.setDomainAndClass()
+            self._setDomainAndClass()
         if not self.NTrainEx or not self.basicStat or not self.imputeData:
-            self.setStatData()
+            self._setStatData()
 
         if type(self.classifiers).__name__ == 'list' and self.domain.classVar.varType == orange.VarTypes.Discrete and len(self.domain.classVar.values) != 2:
                 raise Exception("ERROR: The Consensus model only supports binary classification or regression problems.")
@@ -190,9 +190,9 @@ class ConsensusClassifier(AZBaseClasses.AZClassifier):
 
         # Is this needed at all? Already called in the init function.
         if not self.classVar or not self.domain or not self.varNames:
-            self.setDomainAndClass()
+            self._setDomainAndClass()
         if not self.NTrainEx or not self.basicStat or not self.imputeData:
-            self.setStatData()
+            self._setStatData()
 
         if origExample == None:
             return self.classifiers[0](None, resultType)
@@ -238,8 +238,8 @@ class ConsensusClassifier(AZBaseClasses.AZClassifier):
                 # generate probabilities based on voting. We assured already this is a binary classifier
                 self._isRealProb = True
                 probOf1 = votes[self.classVar.values[1]]/len(self.classifiers)
-                DFV = self.convert2DFV(probOf1)
-                probabilities = self.__getProbabilities(probOf1)
+                DFV = self._convert2DFV(probOf1)
+                probabilities = self._getProbabilities(probOf1)
             else:     #Even number of Classifiers: Use the average of the N probabilities.
                 #if at least one of the Classifiers do not support true probabilities, STOP!       
                 self.status = "Using probabilities average (Even number of classifiers)"
@@ -272,8 +272,8 @@ class ConsensusClassifier(AZBaseClasses.AZClassifier):
                         print str([cf.name for cf in self.classifiers])[1:-1].replace(",","\t")
                         print str(predictions)[1:-1].replace(",","\t")
                     probOf1 = overallProb[self.classVar.values[1]]
-                    DFV = self.convert2DFV(probOf1)
-                    probabilities = self.__getProbabilities(probOf1)
+                    DFV = self._convert2DFV(probOf1)
+                    probabilities = self._getProbabilities(probOf1)
         else: # With Regression, use always the average fo the N Classifiers
             self.status = "Using average of N classifiers (Regression)"
             if self.verbose: print self.status
@@ -353,7 +353,7 @@ class ConsensusClassifier(AZBaseClasses.AZClassifier):
                         break
 
                 self._isRealProb = False
-                probabilities = self.__generateProbabilities(predicted)
+                probabilities = self._generateProbabilities(predicted)
             else:
                 self.status = "Using supplied regression expression (Regression)"
                 if self.verbose:
@@ -442,14 +442,14 @@ class ConsensusClassifier(AZBaseClasses.AZClassifier):
         exprList = re.split(r'[ ]| or | and ', exp)
         return exprList
 
-    def convert2DFV(self,probOf1):
+    def _convert2DFV(self,probOf1):
         # Subtract 0.5 so that the threshold is 0 and invert the signal as all learners have standard DFV:
         # Positive Values for the first element of the class attributes, and negatove values to the second
         DFV = -(probOf1-0.5)
         self._updateDFVExtremes(DFV)
         return DFV
 
-    def __getProbabilities(self,ProbOf1):
+    def _getProbabilities(self,ProbOf1):
         """Get the orange like output probabilities for the current predicted example"""
         #This is only valid for binary classifiers opencv limitation!
         # From openCv we know that the probability returned for this example represents the fraction of tree votes for class 1
@@ -461,54 +461,70 @@ class ConsensusClassifier(AZBaseClasses.AZClassifier):
         return dist
 
 
-    def __generateProbabilities(self, prediction):
+    def _generateProbabilities(self, prediction):
         # Method to artificialy generate a list the length of the number of classes and set the predicted class to 1
         dist = orange.DiscDistribution(self.classVar)
         if prediction == "?":
             return dist
         dist[prediction]=1
         return dist
-            
-    def setStatData(self):
-        for classifier in self.classifiers:
-            #Try to get the imputeData, basicStat from a model that have it!
-            if hasattr(classifier, "basicStat") and classifier.basicStat and not self.basicStat:
-                    self.basicStat = classifier.basicStat
-            if hasattr(classifier, "NTrainEx") and classifier.basicStat and not self.NTrainEx:
-                    self.NTrainEx = classifier.NTrainEx
-            if hasattr(classifier, "imputeData") and classifier.imputeData and not self.imputeData:
-                    self.imputeData = classifier.imputeData
- 
 
-    def setDomainAndClass(self):
+    def _getListOfClassifiers(self):
+        if self.classifiers is None:
+            return None
+        elif type(self.classifiers).__name__ == "list":
+            return self.classifiers
+        else:
+            return self.classifiers.values()
+
+    def _setStatData(self):
+        classifiers = self._getListOfClassifiers()
+
+        for classifier in classifiers:
+        #Try to get the imputeData, basicStat from a model that have it!
+            if hasattr(classifier, "basicStat") and classifier.basicStat and not self.basicStat:
+                self.basicStat = classifier.basicStat
+            if hasattr(classifier, "NTrainEx") and classifier.basicStat and not self.NTrainEx:
+                self.NTrainEx = classifier.NTrainEx
+            if hasattr(classifier, "imputeData") and classifier.imputeData and not self.imputeData:
+                self.imputeData = classifier.imputeData
+            
+
+    def _setDomainAndClass(self):
+        classifiers = self._getListOfClassifiers()
+
         #Find a possible Domain among the classifiers
         if not self.domain:
-            for c in self.classifiers:
+            for c in classifiers:
                 if hasattr(c,"domain") and c.domain:
                     self.domain = c.domain
                     break
+
         #Find a possible classVar among the classifiers
         if not self.classVar:
-            for c in self.classifiers:
+            for c in classifiers:
                 if hasattr(c,"classVar") and c.classVar:
                     self.classVar = c.classVar
                     break
+
         #If there wasn't found a classVar, try to get it from the Domain
         if not self.classVar and self.domain and self.domain.classVar:
             self.classVar = self.domain.classVar
- 
+
         #If we were not success in getting a domain and a classVar, we cannot proceed!
         if not self.classVar or not self.domain:
             raise Exception("The classifiers are not compatible with the Consensus model. Try to use the respective Learners instead.")
         if not self.varNames:
-            self.varNames = [attr.name for attr in self.domain.attributes]            
+            self.varNames = [attr.name for attr in self.domain.attributes]
 
+            
+            
     def write(self, dirPath):
         """ Save a Consensus model to disk including the domain used """
         if not self.classVar or not self.domain or not self.varNames:
-            self.setDomainAndClass()
+            self._setDomainAndClass()
         if not self.NTrainEx or not self.basicStat or not self.imputeData:
-            self.setStatData()
+            self._setStatData()
     
         try:
 
@@ -517,7 +533,8 @@ class ConsensusClassifier(AZBaseClasses.AZClassifier):
 
             dictionaryFilename = os.path.join(dirPath, 'learnerDict.pkl')
             expressionListFilename = os.path.join(dirPath, 'expressionList.pkl')
-            expressionFilename = os.path.join(dirPath, 'expression.pkl')        
+            expressionFilename = os.path.join(dirPath, 'expression.pkl')
+            weightsFilename = os.path.join(dirPath, 'weights.pkl')
 
             if os.path.isdir(dirPath):
                 modelFiles = glob.glob(os.path.join(dirPath,'C*.model'))
@@ -528,6 +545,7 @@ class ConsensusClassifier(AZBaseClasses.AZClassifier):
                 os.system("rm -f " + os.path.join(dirPath,"learnerDict.pkl"))
                 os.system("rm -f " + os.path.join(dirPath,"expressionList.pkl"))
                 os.system("rm -f " + os.path.join(dirPath,"expression.pkl"))
+                os.system("rm -f " + os.path.join(dirPath,"weights.pkl"))
                     
             # This assures that all related files will be inside a folder
             os.system("mkdir -p " + dirPath)
@@ -571,6 +589,11 @@ class ConsensusClassifier(AZBaseClasses.AZClassifier):
                     output = open(expressionFilename, 'wb+')
                     pickle.dump(self.expression, output)
                     output.close()
+
+                if self.weights is not None:
+                    output = open(weightsFilename, 'wb+')
+                    pickle.dump(self.weights, output)
+                    output.close()
                     
         except:            
                 if self.verbose > 0: print "ERROR: Could not save the Consensus model to ", dirPath
@@ -588,6 +611,7 @@ def Consensusread(dirPath,verbose = 0):
     NTrainEx = None
     imputeData = None
     expression = None
+    weights = None
     # This assures that all related files will be inside a folder
     try:
         domainFile = dataUtilities.DataTable(os.path.join(dirPath, "trainDomain.tab"))
@@ -595,6 +619,7 @@ def Consensusread(dirPath,verbose = 0):
         learnerFilename = os.path.join(dirPath, 'learnerDict.pkl')
         expressionListFilename = os.path.join(dirPath, 'expressionList.pkl')
         expressionFilename = os.path.join(dirPath, 'expression.pkl')
+        weightsFilename = os.path.join(dirPath, 'weights.pkl')
 
         #Load the models
         modelFiles = glob.glob(os.path.join(dirPath,'C*.model'))
@@ -637,6 +662,11 @@ def Consensusread(dirPath,verbose = 0):
                     file = open(expressionFilename)
                     expression = pickle.load(file)
                     file.close()
+
+                if os.path.exists(weightsFilename):
+                    file = open(weightsFilename)
+                    weights = pickle.load(file)
+                    file.close()
                     
             else:
                 #
@@ -664,7 +694,7 @@ def Consensusread(dirPath,verbose = 0):
     except:
         if verbose > 0: print "ERROR: It was not possible to load the Consensus model"
         return None
-    return ConsensusClassifier(classifiers=classifiers, expression=expression, varNames = [attr.name for attr in domainFile.domain.attributes],classVar = domainFile.domain.classVar, verbose = verbose, domain = domainFile.domain, basicStat = basicStat, NTrainEx = NTrainEx, imputeData = imputeData)
+    return ConsensusClassifier(classifiers=classifiers, expression=expression, weights=weights, varNames = [attr.name for attr in domainFile.domain.attributes],classVar = domainFile.domain.classVar, verbose = verbose, domain = domainFile.domain, basicStat = basicStat, NTrainEx = NTrainEx, imputeData = imputeData)
 
 
 if __name__ == "__main__":
