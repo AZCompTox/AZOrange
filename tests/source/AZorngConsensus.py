@@ -724,6 +724,39 @@ class ConsensusClassifierTest(AZorngTestUtil.AZorngTestUtil):
                 print "Delta: ", abs(result[index].value - verifiedResult[index])
             self.assertEqual(float_compare(result[index].value, verifiedResult[index]), True)
 
+    def test_InvalidCustomRegressionExpression(self):
+        """ Test invalid custom expression """
+        # Arrange
+        learners = {'a':AZorngCvSVM.CvSVMLearner(),
+                    'b':AZorngCvANN.CvANNLearner(),
+                    'c':AZorngRF.RFLearner()}
+
+        regressionExpression = "(a + b + 3cd45 + c) / 3"
+        expressionLearner = AZorngConsensus.ConsensusLearner(learners = learners, expression = regressionExpression)
+
+        # Act
+        classifier = expressionLearner(self.DataReg)
+
+        # Assert
+        self.assertEqual(classifier(self.DataReg[0]), None)
+
+    def test_InvalidCustomClassificationExpression(self):
+        """ Test invalid custom expression """
+        # Arrange
+        learners = {'a':AZorngCvSVM.CvSVMLearner(),
+                    'b':AZorngCvANN.CvANNLearner(),
+                    'c':AZorngRF.RFLearner()}
+
+        discreteExpression = ["a == Iris-setosa and or c == Iris-virginica or b == Iris-setosa -> Iris-setosa", "-> Iris-virginica"]
+        expressionLearner = AZorngConsensus.ConsensusLearner(learners = learners, expression = discreteExpression)
+
+        # Act
+        classifier = expressionLearner(self.getClassificationTrainingData())
+
+        # Assert
+        self.assertEqual(classifier(self.getClassificationTrainingData()[0]), None)
+
+
 
 if __name__ == "__main__":
     #unittest.main()
