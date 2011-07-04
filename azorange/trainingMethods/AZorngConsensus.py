@@ -306,7 +306,7 @@ class ConsensusClassifier(AZBaseClasses.AZClassifier):
     def _customExpressionBehaviour(self, origExample, resultType, returnDFV):
         # expression specified
         if origExample == None:
-            return self.classifiers[0](None, resultType)
+            return self.classifiers.values()[0](None, resultType)
         else:
             # Predict using the models  
             predictions = {}   #The individual predictions for each repective classifier in classifiers
@@ -342,10 +342,20 @@ class ConsensusClassifier(AZBaseClasses.AZClassifier):
                     if len(logicalExp) == 0:
                         predicted = logicalRes
                         break
-
-                    rawParseTree = self._lexLogicalExp(logicalExp)
-                    modParseTree = self._parseLogicalTree(rawParseTree, predictions, self.classVar.values)
-                    result = self._interpretLogicalTree(modParseTree)
+                    try:
+                        rawParseTree = self._lexLogicalExp(logicalExp)
+                        modParseTree = self._parseLogicalTree(rawParseTree, predictions, self.classVar.values)
+                        result = self._interpretLogicalTree(modParseTree)
+                    except SyntaxError, (errno, strerror):
+                        print "Syntax error: ", strerror
+                        return None
+                    except NameError, (errno, strerror):
+                        print "Name error exception during evaluation of expression: ", strerror
+                        return None
+                    except Exception, (errno, strerror):
+                        print "Error evaluating expression: ", strerror
+                        return None
+                        
                     if result:
                         if self.verbose:
                             print "Logical Expression is True: ", ''.join(modParseTree)
@@ -367,10 +377,19 @@ class ConsensusClassifier(AZBaseClasses.AZClassifier):
                         if p in self.weights:
                             predictions[p] *= self.weights[p](origExample)
                         
-
-                rawParseTree = self._lexRegressionExp(self.expression)
-                modParseTree = self._parseRegressionTree(rawParseTree, predictions)
-                result = self._interpretRegressionTree(modParseTree)
+                try:
+                    rawParseTree = self._lexRegressionExp(self.expression)
+                    modParseTree = self._parseRegressionTree(rawParseTree, predictions)
+                    result = self._interpretRegressionTree(modParseTree)
+                except SyntaxError, (errno, strerror):
+                    print "Syntax error: ", strerror
+                    return None
+                except NameError,(errno, strerror):
+                    print "Name error exception during evaluation of expression: ", strerror
+                    return None
+                except Exception, (errno, strerror):
+                    print "Error evaluating expression: ", strerror
+                    return None
                 
                 DFV = predicted = result
                 probabilities = None 
@@ -399,6 +418,13 @@ class ConsensusClassifier(AZBaseClasses.AZClassifier):
                     return (res,DFV)
                 else:
                     return res
+
+    def _isValidExpression(self):
+        if self.expression is None:
+            return False
+
+        
+        
                 
     def _parseRegressionTree(self, tree, predictionResults):
         """ Replace the variables with results from the classifiers """
