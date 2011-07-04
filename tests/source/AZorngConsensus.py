@@ -28,25 +28,274 @@ class ConsensusClassifierTest(AZorngTestUtil.AZorngTestUtil):
         self.DataReg = dataUtilities.DataTable(testDataRegPath)
         self.irisData = dataUtilities.DataTable(irisPath)
 
-    def test_saveloadClass(self):
-        """Test the save/load for a classification model - Using Majority"""
-        learners = [AZorngRF.RFLearner(), AZorngCvSVM.CvSVMLearner(), AZorngCvANN.CvANNLearner()]
+    def getRegressionTrainingData(self):
+        return self.DataReg
 
+    def getClassificationTrainingData(self):
+        return self.irisData
+
+    def createTestLearners(self):
+        return [AZorngRF.RFLearner(), AZorngCvSVM.CvSVMLearner(), AZorngCvANN.CvANNLearner()]
+
+    def test_CreateDefaultModel(self):
+        """ Test the creation of Consensus Model using no learners """
+        
+        # Arrange
+
+        # Act
+        learner = AZorngConsensus.ConsensusLearner()
+
+        # Assert
+        self.assertEqual(learner.learners, None)
+        self.assertEqual(learner.expression, None)
+        self.assertEqual(learner.name, "Consensus learner")
+        self.assertEqual(learner.verbose, 0)
+        self.assertEqual(learner.imputeData, None)
+        self.assertEqual(learner.NTrainEx, 0)
+        self.assertEqual(learner.basicStat, None)
+        self.assertEqual(learner.weights, None)
+
+
+    def test_CreateModelWithLearnerList(self):
+        """ Test the creation of Consensus Model using list of learners """
+        
+        # Arrange
+        learners = [AZorngCvSVM.CvSVMLearner(), AZorngCvANN.CvANNLearner(), AZorngRF.RFLearner()]
+        
+        # Act
         learner = AZorngConsensus.ConsensusLearner(learners = learners)
-        classifier = learner(self.irisData)
 
-        self.assertEqual(len(classifier.domain),len(self.irisData.domain))
-        self.assertEqual(len(classifier.imputeData) , len(classifier.domain))
-        self.assertEqual(len(classifier.basicStat), len(classifier.domain))
-        self.assertEqual(classifier.NTrainEx, len(self.irisData))
+        # Assert
+        for i, l in enumerate(learner.learners):
+            self.assertEqual(learner.learners[i], learners[i])
 
+        self.assertEqual(learner.expression, None)
+        self.assertEqual(learner.name, "Consensus learner")
+        self.assertEqual(learner.verbose, 0)
+        self.assertEqual(learner.imputeData, None)
+        self.assertEqual(learner.NTrainEx, 0)
+        self.assertEqual(learner.basicStat, None)
+        self.assertEqual(learner.weights, None)
+
+    def test_CreateModelWithLearnerDictionary(self):
+        """ Test the creation of Consensus Model using dictionary of learners """
+        
+        # Arrange
+        learners = { 'a': AZorngCvSVM.CvSVMLearner(), 'b':AZorngCvANN.CvANNLearner(), 'c':AZorngRF.RFLearner() }
+        expression = "a + b + c"
+        
+        # Act
+        learner = AZorngConsensus.ConsensusLearner(learners = learners, expression = expression)
+
+        # Assert
+        for k,v in learner.learners.items():
+            self.assertEqual(learner.learners[k], learners[k])
+        self.assertEqual(learner.expression, expression)
+        self.assertEqual(learner.name, "Consensus learner")
+        self.assertEqual(learner.verbose, 0)
+        self.assertEqual(learner.imputeData, None)
+        self.assertEqual(learner.NTrainEx, 0)
+        self.assertEqual(learner.basicStat, None)
+        self.assertEqual(learner.weights, None)
+
+    def test_CreateDefaultClassifierUsingTrainingData(self):
+        """ Test the creation of default Classifier by calling learner with training data. """
+        
+        # Arrange
+        learners = [AZorngCvSVM.CvSVMLearner(), AZorngCvANN.CvANNLearner(), AZorngRF.RFLearner()]
+        trainingData = self.getRegressionTrainingData()
+        learner = AZorngConsensus.ConsensusLearner(learners = learners)
+        
+        # Act
+        classifier = learner(trainingData)
+
+        # Assert
+        self.assertNotEqual(classifier, None)
+        self.assertEqual(len(classifier.classifiers), len(learners))
+        self.assertEqual(classifier.expression, None)
+        self.assertEqual(classifier.name, "Consensus classifier")
+        self.assertEqual(classifier.verbose, 0)
+        self.assertNotEqual(classifier.imputeData, None)
+        self.assertEqual(classifier.NTrainEx, len(trainingData))
+        self.assertNotEqual(classifier.basicStat, None)
+        self.assertEqual(classifier.weights, None)
+
+    def test_CreateCustomRegressionClassifierUsingTrainingData(self):
+        """ Test the creation of custom regression Classifier by calling learner with training data. """
+        
+        # Arrange
+        learners = { 'a': AZorngCvSVM.CvSVMLearner(), 'b':AZorngCvANN.CvANNLearner(), 'c':AZorngRF.RFLearner() }
+        expression = "a + b + c"
+        trainingData = self.getRegressionTrainingData()
+        learner = AZorngConsensus.ConsensusLearner(learners = learners, expression = expression)
+        
+        # Act
+        classifier = learner(trainingData)
+
+        # Assert
+        self.assertNotEqual(classifier, None)
+        self.assertEqual(len(classifier.classifiers), len(learners))
+        self.assertNotEqual(classifier.basicStat, None)
+        self.assertNotEqual(classifier.classVar, None)
+        self.assertNotEqual(classifier.domain, None)
+        self.assertEqual(classifier.expression, expression)
+        self.assertNotEqual(classifier.imputeData, None)
+        self.assertEqual(classifier.NTrainEx, len(trainingData))
+        self.assertEqual(classifier.name, "Consensus classifier")
+        self.assertNotEqual(classifier.varNames, None)
+        self.assertEqual(classifier.verbose, 0)
+        self.assertEqual(classifier.weights, None)
+
+    def test_CreateCustomClassificationClassifierUsingTrainingData(self):
+        """ Test the creation of custom classification Classifier by calling learner with training data. """
+        
+        # Arrange
+        learners = { 'a': AZorngCvSVM.CvSVMLearner(), 'b':AZorngCvANN.CvANNLearner(), 'c':AZorngRF.RFLearner() }
+        expression = ["firstLearner == Iris-setosa -> Iris-setosa", "-> Iris-virginica"]
+        trainingData = self.getClassificationTrainingData()
+        learner = AZorngConsensus.ConsensusLearner(learners = learners, expression = expression)
+        
+        # Act
+        classifier = learner(trainingData)
+
+        # Assert
+        self.assertNotEqual(classifier, None)
+        self.assertEqual(len(classifier.classifiers), len(learners))
+        self.assertNotEqual(classifier.basicStat, None)
+        self.assertNotEqual(classifier.classVar, None)
+        self.assertNotEqual(classifier.domain, None)
+        self.assertEqual(classifier.expression, expression)
+        self.assertNotEqual(classifier.imputeData, None)
+        self.assertEqual(classifier.NTrainEx, len(trainingData))
+        self.assertEqual(classifier.name, "Consensus classifier")
+        self.assertNotEqual(classifier.varNames, None)
+        self.assertEqual(classifier.verbose, 0)
+        self.assertEqual(classifier.weights, None)
+
+
+    def test_CreateDefaultClassifierUsingPreTrainedClassificationClassifiers(self):
+        """ Test the creation of default Consensus Classifier using pre-trained classification classifiers. """
+
+        # Arrange
+        learners = [AZorngCvSVM.CvSVMLearner(), AZorngCvANN.CvANNLearner(), AZorngRF.RFLearner()]
+        classifiers = [l(self.getClassificationTrainingData()) for l in learners]
+
+        # Act
+        classifier = AZorngConsensus.ConsensusClassifier(classifiers = classifiers)
+
+        # Assert
+        self.assertNotEqual(classifier, None)
+        self.assertEqual(len(classifier.classifiers), len(learners))
+        self.assertNotEqual(classifier.basicStat, None)
+        self.assertNotEqual(classifier.classVar, None)
+        self.assertNotEqual(classifier.domain, None)
+        self.assertEqual(classifier.expression, None)
+        self.assertNotEqual(classifier.imputeData, None)
+        #self.assertEqual(classifier.NTrainEx, len(trainingData))
+        self.assertEqual(classifier.name, "Consensus classifier")
+        self.assertNotEqual(classifier.varNames, None)
+        self.assertEqual(classifier.verbose, 0)
+        self.assertEqual(classifier.weights, None)
+
+
+    def test_CreateDefaultClassifierUsingPreTrainedRegressionClassifiers(self):
+        """ Test the creation of default Consensus Classifier using pre-trained classification classifiers. """
+
+        # Arrange
+        learners = [AZorngCvSVM.CvSVMLearner(), AZorngCvANN.CvANNLearner(), AZorngRF.RFLearner()]
+        classifiers = [l(self.getRegressionTrainingData()) for l in learners]
+
+        # Act
+        classifier = AZorngConsensus.ConsensusClassifier(classifiers = classifiers)
+
+        # Assert
+        self.assertNotEqual(classifier, None)
+        self.assertEqual(len(classifier.classifiers), len(learners))
+        self.assertNotEqual(classifier.basicStat, None)
+        self.assertNotEqual(classifier.classVar, None)
+        self.assertNotEqual(classifier.domain, None)
+        self.assertEqual(classifier.expression, None)
+        self.assertNotEqual(classifier.imputeData, None)
+        #self.assertEqual(classifier.NTrainEx, len(trainingData))
+        self.assertEqual(classifier.name, "Consensus classifier")
+        self.assertNotEqual(classifier.varNames, None)
+        self.assertEqual(classifier.verbose, 0)
+        self.assertEqual(classifier.weights, None)
+
+
+    def test_CreateCustomClassifierUsingPreTrainedClassificationClassifiers(self):
+        """ Test the creation of custom Consensus Classifier using pre-trained classification classifiers. """
+
+        # Arrange
+        learners = { 'a':AZorngCvSVM.CvSVMLearner(), 'b':AZorngCvANN.CvANNLearner(), 'c':AZorngRF.RFLearner() }
+        classifiers = {}
+        for k,v in learners.items():
+            classifiers[k] = v(self.getClassificationTrainingData())
+        expression = ["firstLearner == Iris-setosa -> Iris-setosa", "-> Iris-virginica"]
+
+        # Act
+        classifier = AZorngConsensus.ConsensusClassifier(classifiers = classifiers, expression = expression)
+
+        # Assert
+        self.assertNotEqual(classifier, None)
+        self.assertEqual(len(classifier.classifiers), len(classifiers))
+        self.assertNotEqual(classifier.basicStat, None)
+        self.assertNotEqual(classifier.classVar, None)
+        self.assertNotEqual(classifier.domain, None)
+        self.assertEqual(classifier.expression, expression)
+        self.assertNotEqual(classifier.imputeData, None)
+        #self.assertEqual(classifier.NTrainEx, len(trainingData))
+        self.assertEqual(classifier.name, "Consensus classifier")
+        self.assertNotEqual(classifier.varNames, None)
+        self.assertEqual(classifier.verbose, 0)
+        self.assertEqual(classifier.weights, None)
+
+
+    def test_CreateDefaultClassifierUsingPreTrainedRegressionClassifiers(self):
+        """ Test the creation of custom Consensus Classifier using pre-trained regression classifiers. """
+
+        # Arrange
+        learners = { 'a':AZorngCvSVM.CvSVMLearner(), 'b':AZorngCvANN.CvANNLearner(), 'c':AZorngRF.RFLearner() }
+        classifiers = {}
+        for k,v in learners.items():
+            classifiers[k] = v(self.getRegressionTrainingData())
+        expression = "a + b + c"
+
+        # Act
+        classifier = AZorngConsensus.ConsensusClassifier(classifiers = classifiers, expression = expression)
+
+        # Assert
+        self.assertNotEqual(classifier, None)
+        self.assertEqual(len(classifier.classifiers), len(learners))
+        self.assertNotEqual(classifier.basicStat, None)
+        self.assertNotEqual(classifier.classVar, None)
+        self.assertNotEqual(classifier.domain, None)
+        self.assertEqual(classifier.expression, expression)
+        self.assertNotEqual(classifier.imputeData, None)
+        #self.assertEqual(classifier.NTrainEx, len(trainingData))
+        self.assertEqual(classifier.name, "Consensus classifier")
+        self.assertNotEqual(classifier.varNames, None)
+        self.assertEqual(classifier.verbose, 0)
+        self.assertEqual(classifier.weights, None)
+
+
+    def test_CanPersistClassificationModelMajority(self):
+        """Test the save/load for a classification model - Using Majority"""
+
+        """ Arrange """
+        learners = self.createTestLearners()
+        learner = AZorngConsensus.ConsensusLearner(learners = learners)
+        classifier = learner(self.getClassificationTrainingData())
+
+        """ Act """
         predictions = []
         for ex in self.irisData:
             predictions.append(classifier(ex))
-        
+
         scratchdir = miscUtilities.createScratchDir(desc="ConsensusSaveLoadTest")
         classifier.write(os.path.join(scratchdir,"./CM.model"))
 
+        """ Assert """
         predictionsL = []
         Loaded = AZorngConsensus.Consensusread(os.path.join(scratchdir,"./CM.model"))
         self.assertEqual(len(Loaded.domain),len(self.irisData.domain))
@@ -61,12 +310,15 @@ class ConsensusClassifierTest(AZorngTestUtil.AZorngTestUtil):
         miscUtilities.removeDir(scratchdir) 
 
 
-    def test_saveloadClass2(self):
+    def test_CanPersistClassificationModelProbabilities(self):
         """Test the save/load for a classification model - Using probabilities average"""
-        learners = [AZorngRF.RFLearner(), AZorngCvANN.CvANNLearner()]
 
+        # Arrange
+        learners = [AZorngRF.RFLearner(), AZorngCvANN.CvANNLearner()]
         learner = AZorngConsensus.ConsensusLearner(learners = learners)
         classifier = learner(self.irisData)
+
+        # Act
         predictions = []
         for ex in self.irisData:
             predictions.append(classifier(ex))
@@ -74,6 +326,7 @@ class ConsensusClassifierTest(AZorngTestUtil.AZorngTestUtil):
         scratchdir = miscUtilities.createScratchDir(desc="ConsensusSaveLoadTest")
         classifier.write(os.path.join(scratchdir,"./CM.model"))
 
+        # Assert
         predictionsL = []
         Loaded = AZorngConsensus.Consensusread(os.path.join(scratchdir,"./CM.model"))
         for ex in self.irisData:
@@ -84,17 +337,19 @@ class ConsensusClassifierTest(AZorngTestUtil.AZorngTestUtil):
         self.assertEqual(len(Loaded.imputeData) , len(Loaded.domain))
         self.assertEqual(len(Loaded.basicStat), len(Loaded.domain))
         self.assertEqual(Loaded.NTrainEx, len(self.irisData) - int(0.2 * len(self.irisData)))
-        #self.assertEqual(Loaded.NTrainEx, len(self.irisData))
 
         miscUtilities.removeDir(scratchdir)
 
        
-    def test_saveloadReg(self):
+    def test_CanPersistRegressionModelUsingClassifiers(self):
         """Test the save/load for a regression model - Using average of N classifiers"""
-        learners = [AZorngRF.RFLearner(), AZorngCvSVM.CvSVMLearner(), AZorngCvANN.CvANNLearner()]
 
+        # Arrange
+        learners = [AZorngRF.RFLearner(), AZorngCvSVM.CvSVMLearner(), AZorngCvANN.CvANNLearner()]
         learner = AZorngConsensus.ConsensusLearner(learners = learners)
         classifier = learner(self.DataReg)
+
+        # Act
         predictions = []
         for ex in self.DataReg:
             predictions.append(classifier(ex))
@@ -102,6 +357,7 @@ class ConsensusClassifierTest(AZorngTestUtil.AZorngTestUtil):
         scratchdir = miscUtilities.createScratchDir(desc="ConsensusSaveLoadTest")
         classifier.write(os.path.join(scratchdir,"./CM.model"))
 
+        # Assert
         predictionsL = []
         Loaded = AZorngConsensus.Consensusread(os.path.join(scratchdir,"./CM.model"))
         for ex in self.DataReg:
@@ -118,127 +374,6 @@ class ConsensusClassifierTest(AZorngTestUtil.AZorngTestUtil):
 
         miscUtilities.removeDir(scratchdir)
  
-
-    def test_FeedLearnersReg(self):
-        """Test the creation of Consensus feeding Learners for regression"""
-        # The Learners can be individualy costumized before passing them to the Consensus
-        learners = [AZorngCvSVM.CvSVMLearner(), AZorngCvANN.CvANNLearner(), AZorngRF.RFLearner()]
-
-        # Passing now the learnersObj instead
-        learner = AZorngConsensus.ConsensusLearner(learners = learners)
-        classifier = learner(self.DataReg)
-        predictions = []
-        for ex in self.DataReg:
-            predictions.append(classifier(ex))
-
-        scratchdir = miscUtilities.createScratchDir(desc="ConsensusSaveLoadTest")
-        classifier.write(os.path.join(scratchdir,"./CM.model"))
-
-        predictionsL = []
-        Loaded = AZorngConsensus.Consensusread(os.path.join(scratchdir,"./CM.model"))
-        for ex in self.DataReg:
-            predictionsL.append(Loaded(ex))
-
-        self.assertEqual([round(pred.value,4) for pred in predictions],[round(pred.value,4) for pred in predictionsL],"Loaded model predictions differ: Pred. 1 (saved/loaded):"+str(predictions[0])+" / "+str(predictionsL[0]))
-
-        self.assertEqual(len(Loaded.domain),len(self.DataReg.domain))
-        self.assertEqual(len(Loaded.imputeData) , len(Loaded.domain))
-        self.assertEqual(len(Loaded.basicStat), len(Loaded.domain))
-        self.assertEqual(Loaded.NTrainEx, len(self.DataReg))
-
-        miscUtilities.removeDir(scratchdir)
-
-
-    def test_FeedClassifiersClass(self):
-        """Test the creation of Consensus feeding Classifiers"""
-
-        learners = [AZorngCvSVM.CvSVMLearner(), AZorngCvANN.CvANNLearner(), AZorngRF.RFLearner()]
-        classifiers = [l(self.irisData) for l in learners]
-
-        classifier = AZorngConsensus.ConsensusClassifier(classifiers = classifiers)
-
-        predictions = []
-        for ex in self.irisData:
-            predictions.append(classifier(ex))
-
-        scratchdir = miscUtilities.createScratchDir(desc="ConsensusSaveLoadTest")
-        classifier.write(os.path.join(scratchdir,"./CM.model"))
-
-        predictionsL = []
-        Loaded = AZorngConsensus.Consensusread(os.path.join(scratchdir,"./CM.model"))
-        for ex in self.irisData:
-            predictionsL.append(Loaded(ex))
-
-        self.assertEqual(predictions,predictionsL)
-
-        self.assertEqual(len(Loaded.domain),len(self.irisData.domain))
-        self.assertEqual(len(Loaded.imputeData) , len(Loaded.domain))
-        self.assertEqual(len(Loaded.basicStat), len(Loaded.domain))
-        self.assertEqual(Loaded.NTrainEx, len(self.irisData))
-
-        miscUtilities.removeDir(scratchdir)
-
-
-    def test_FeedClassifiersReg(self):
-        """Test the feeding of regression classifiers """
-        #DataSet = dataUtilities.DataTable("/home/palmeida/dev/OpenAZOTesteInstall/tests/source/data/linearTrain.tab")
-        DataSet = self.DataReg
-        learners = [AZorngCvSVM.CvSVMLearner(), AZorngCvANN.CvANNLearner(), AZorngRF.RFLearner()]
-        classifiers = [l(DataSet) for l in learners]
-
-        classifier = AZorngConsensus.ConsensusClassifier(classifiers = classifiers)
-        predictions = []
-        for ex in DataSet:
-            predictions.append(classifier(ex))
-
-        scratchdir = miscUtilities.createScratchDir(desc="ConsensusSaveLoadTest")
-        classifier.write(os.path.join(scratchdir,"./CM.model"))
-
-        predictionsL = []
-        Loaded = AZorngConsensus.Consensusread(os.path.join(scratchdir,"./CM.model"))
-        for ex in DataSet:
-            predictionsL.append(Loaded(ex))
-        self.assertEqual([round(pred.value,4) for pred in predictions],
-                         [round(pred.value,4) for pred in predictionsL],
-                         "Loaded model predictions differ: Pred. 1 (saved/loaded):"+str(predictions[0])+" / "+str(predictionsL[0]))
-
-        self.assertEqual(len(Loaded.domain),len(DataSet.domain))
-        self.assertEqual(len(Loaded.imputeData) , len(Loaded.domain))
-        self.assertEqual(len(Loaded.basicStat), len(Loaded.domain))
-        self.assertEqual(Loaded.NTrainEx, len(DataSet))
-
-        miscUtilities.removeDir(scratchdir)
-
-
-    def test_FeedLearnersClass(self):
-        """Test the creation of Consensus feeding Learners for classification"""
-        #The Learners can be individualy costumized before passing them to the Consensus
-        learners = [AZorngCvSVM.CvSVMLearner(), AZorngCvANN.CvANNLearner(), AZorngRF.RFLearner()]
-
-        #Passing now the learnersObj instead
-        learner = AZorngConsensus.ConsensusLearner(learners = learners)
-        classifier = learner(self.irisData)
-        predictions = []
-        for ex in self.irisData:
-            predictions.append(classifier(ex))
-
-        scratchdir = miscUtilities.createScratchDir(desc="ConsensusSaveLoadTest")
-        classifier.write(os.path.join(scratchdir,"./CM.model"))
-
-        predictionsL = []
-        Loaded = AZorngConsensus.Consensusread(os.path.join(scratchdir,"./CM.model"))
-        for ex in self.irisData:
-            predictionsL.append(Loaded(ex))
-
-        self.assertEqual(predictions,predictionsL)
-
-        self.assertEqual(len(Loaded.domain),len(self.irisData.domain))
-        self.assertEqual(len(Loaded.imputeData) , len(Loaded.domain))
-        self.assertEqual(len(Loaded.basicStat), len(Loaded.domain))
-        self.assertEqual(Loaded.NTrainEx, len(self.irisData))
-
-        miscUtilities.removeDir(scratchdir)
-
         
     def test_CreateLearnerWithObjectMapping(self):
         """ Test the creation of learners with an object map """
@@ -589,54 +724,6 @@ class ConsensusClassifierTest(AZorngTestUtil.AZorngTestUtil):
                 print "Delta: ", abs(result[index].value - verifiedResult[index])
             self.assertEqual(float_compare(result[index].value, verifiedResult[index]), True)
 
-
-    def test_SaveLoadCustomExpressionUsingWeights(self):
-        """ Test loading/saving using weights """
-        # Arrange
-        learners = {'a':AZorngCvSVM.CvSVMLearner(),
-                    'b':AZorngCvANN.CvANNLearner(),
-                    'c':AZorngRF.RFLearner()}
-
-        weights = { 'a': lambda x: 1,
-                    'b': lambda x: 2,
-                    'c': lambda x: 3 }
-        
-        regressionExpression = "(a + b + c) / 3"
-        expressionLearner = AZorngConsensus.ConsensusLearner(learners = learners, expression = regressionExpression, weights = weights)
-        classifier = expressionLearner(self.DataReg)
-
-        # Act
-        result = []
-        for ex in self.DataReg:
-            result.append(classifier(ex))
-
-        scratchdir = miscUtilities.createScratchDir(desc="ConsensusSaveLoadTest")
-        classifier.write(os.path.join(scratchdir,"./CM.model"))
-
-        verifiedResult = []
-        for ex in self.DataReg:
-            a_value = classifier.classifiers['a'](ex)
-            a_weight_value = weights['a'](a_value)
-            b_value = classifier.classifiers['b'](ex)
-            b_weight_value = weights['b'](b_value)
-            c_value = classifier.classifiers['c'](ex)
-            c_weight_value = weights['c'](c_value) 
-
-            prediction = (a_value * a_weight_value +
-                          b_value * b_weight_value +
-                          c_value * c_weight_value)/3
-            
-            verifiedResult.append(prediction)
-            
-        # Assert
-        for index, item in enumerate(result):
-            if float_compare(result[index].value, verifiedResult[index]) == False:
-                print "Not equal on index: ", index
-                print "Result: ", result[index].value, " Verified: ", verifiedResult[index]
-                print "Delta: ", abs(result[index].value - verifiedResult[index])
-            self.assertEqual(float_compare(result[index].value, verifiedResult[index]), True)
-
-        miscUtilities.removeDir(scratchdir)
 
 if __name__ == "__main__":
     #unittest.main()
