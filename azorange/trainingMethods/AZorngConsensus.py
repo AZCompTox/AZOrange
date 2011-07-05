@@ -38,13 +38,13 @@ class ConsensusLearner(AZBaseClasses.AZLearner):
         """
         Set default values of the model parameters if they are not given as inputs
         """
+        self.basicStat  = None
         self.expression = None
+        self.imputeData = None
         self.learners = None
         self.name = name
-        self.verbose = 0
-        self.imputeData = None
         self.NTrainEx = 0
-        self.basicStat  = None
+        self.verbose = 0
         self.weights = None
         # Append arguments to the __dict__ member variable
         self.__dict__.update(kwds)
@@ -145,6 +145,7 @@ class ConsensusClassifier(AZBaseClasses.AZClassifier):
     def __init__(self, name = "Consensus classifier", **kwds):
         #Optional inputs
         # name 
+        self.expression = None
         self.verbose = 0
         self.varNames = None
         self.domain = None
@@ -328,26 +329,33 @@ class ConsensusClassifier(AZBaseClasses.AZClassifier):
 
                 result = None
                 for exp in self.expression:
-                    logicalExp, logicalRes = exp.split('->')
-                    logicalExp = logicalExp.strip()
-                    logicalRes = logicalRes.strip()
+                    try:
+                        logicalExp, logicalRes = exp.split('->')
+                        logicalExp = logicalExp.strip()
+                        logicalRes = logicalRes.strip()
 
-                    if logicalRes == "None":
-                        print "ERROR: Logical result cannot be None. For unknown values use ? instead!"
+                        if logicalRes == "None":
+                            print "ERROR: Logical result cannot be None. For unknown values use ? instead!"
+                            return None
+
+                        if len(logicalExp) == 0:
+                            predicted = logicalRes
+                            break
+
+                        rawParseTree = self._lexLogicalExp(logicalExp)
+                        modParseTree = self._parseLogicalTree(rawParseTree, predictions, self.classVar.values)
+                        result = self._interpretLogicalTree(modParseTree)
+                        if result:
+                            if self.verbose:
+                                print "Logical Expression is True: ", ''.join(modParseTree)
+                            predicted = logicalRes
+                            break
+                    except SyntaxError, (errno, strerror):
+                        print "Syntax Error: ", strerror
                         return None
-                    
-                    if len(logicalExp) == 0:
-                        predicted = logicalRes
-                        break
-
-                    rawParseTree = self._lexLogicalExp(logicalExp)
-                    modParseTree = self._parseLogicalTree(rawParseTree, predictions, self.classVar.values)
-                    result = self._interpretLogicalTree(modParseTree)
-                    if result:
-                        if self.verbose:
-                            print "Logical Expression is True: ", ''.join(modParseTree)
-                        predicted = logicalRes
-                        break
+                    except Exception, (errno, strerror):
+                        print "Exception: ", strerror
+                        return None
 
                 self._isRealProb = False
                 probabilities = self._generateProbabilities(predicted)
@@ -364,10 +372,16 @@ class ConsensusClassifier(AZBaseClasses.AZClassifier):
                         if p in self.weights:
                             predictions[p] *= self.weights[p](origExample)
                         
-
-                rawParseTree = self._lexRegressionExp(self.expression)
-                modParseTree = self._parseRegressionTree(rawParseTree, predictions)
-                result = self._interpretRegressionTree(modParseTree)
+                try:
+                    rawParseTree = self._lexRegressionExp(self.expression)
+                    modParseTree = self._parseRegressionTree(rawParseTree, predictions)
+                    result = self._interpretRegressionTree(modParseTree)
+                except SyntaxError, (errno, strerror):
+                    print "Syntax Error: ", strerror
+                    return None
+                except Exception, (errno, strerror):
+                    print "Exception Error: ", strerror
+                    return None
                 
                 DFV = predicted = result
                 probabilities = None 
@@ -465,9 +479,19 @@ class ConsensusClassifier(AZBaseClasses.AZClassifier):
             return dist
         dist[prediction]=1
         return dist
+
+    def _getClassifierList(self):
+        if self.classifiers is None:
+            return None
+        elif type(self.classifiers).__name__ == "list":
+            return self.classifiers
+        else:
+            return self.classifiers.values()
+        
             
     def _setStatData(self):
-        for classifier in self.classifiers:
+        classifiers = self._getClassifierList()
+        for classifier in classifiers:
             #Try to get the imputeData, basicStat from a model that have it!
             if hasattr(classifier, "basicStat") and classifier.basicStat and not self.basicStat:
                     self.basicStat = classifier.basicStat
@@ -479,14 +503,15 @@ class ConsensusClassifier(AZBaseClasses.AZClassifier):
 
     def _setDomainAndClass(self):
         #Find a possible Domain among the classifiers
+        classifiers = self._getClassifierList()        
         if not self.domain:
-            for c in self.classifiers:
+            for c in classifiers:
                 if hasattr(c,"domain") and c.domain:
                     self.domain = c.domain
                     break
         #Find a possible classVar among the classifiers
         if not self.classVar:
-            for c in self.classifiers:
+            for c in classifiers:
                 if hasattr(c,"classVar") and c.classVar:
                     self.classVar = c.classVar
                     break
