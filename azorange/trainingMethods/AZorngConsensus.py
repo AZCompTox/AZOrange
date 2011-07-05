@@ -351,10 +351,10 @@ class ConsensusClassifier(AZBaseClasses.AZClassifier):
                             predicted = logicalRes
                             break
                     except SyntaxError, (errno, strerror):
-                        print "Syntax Error: ", strerror
+                        print "Syntax Error! Check your custom logical expression: ", strerror
                         return None
                     except Exception, (errno, strerror):
-                        print "Exception: ", strerror
+                        print "Exception: Check your custom logical expression: ", strerror
                         return None
 
                 self._isRealProb = False
@@ -377,10 +377,10 @@ class ConsensusClassifier(AZBaseClasses.AZClassifier):
                     modParseTree = self._parseRegressionTree(rawParseTree, predictions)
                     result = self._interpretRegressionTree(modParseTree)
                 except SyntaxError, (errno, strerror):
-                    print "Syntax Error: ", strerror
+                    print "Syntax Error! Check your custom regression expression: ", strerror
                     return None
                 except Exception, (errno, strerror):
-                    print "Exception Error: ", strerror
+                    print "Exception Error! Check your custom regression expression: ", strerror
                     return None
                 
                 DFV = predicted = result
