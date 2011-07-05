@@ -53,12 +53,10 @@ class ConsensusLearner(AZBaseClasses.AZLearner):
         """Creates a Consensus model from the data in trainingData. """
 
         if not AZBaseClasses.AZLearner.__call__(self,trainingData, weight) or not trainingData:
-            print "ERROR: Base constructor failed or training data was None."
             return None
 
         # Make sure the correct number of arguments are supplied
-        if self.learners is None:
-            print "ERROR: Learners was None. Cannot start training without learners."
+        if not self.learners:
             return None
 
         if len(self.learners) <= 1:
@@ -66,14 +64,14 @@ class ConsensusLearner(AZBaseClasses.AZLearner):
             return None
         
         if type(self.learners).__name__ == 'dict' and not self.expression:
-            print "ERROR: Missing expression! You must provide an expression together with the learner mapping!"
+            print "ERROR: Missing expression! You must provide an expression together with the learner mapping."
             return None
 
         # Call the train method
         if type(self.learners).__name__ == 'list':
 
             if trainingData.domain.classVar.varType == orange.VarTypes.Discrete and len(trainingData.domain.classVar.values) != 2:
-                print "ERROR: The Consensus model only supports binary classification or regression problems in default mode."
+                print "ERROR: The Consensus model only supports binary classification or regression problems."
                 return None
 
             
@@ -146,15 +144,14 @@ class ConsensusClassifier(AZBaseClasses.AZClassifier):
     
     def __init__(self, name = "Consensus classifier", **kwds):
         #Optional inputs
-        # name
-        self.basicStat = None
-        self.classVar = None
-        self.domain = None
-        self.expression = None
-        self.imputeData = None
-        self.NTrainEx = None
-        self.varNames = None
+        # name 
         self.verbose = 0
+        self.varNames = None
+        self.domain = None
+        self.classVar = None
+        self.NTrainEx = None
+        self.basicStat = None
+        self.imputeData = None
         self.weights = None
         #Required Inputs:
         self.classifiers = None
@@ -306,7 +303,7 @@ class ConsensusClassifier(AZBaseClasses.AZClassifier):
     def _customExpressionBehaviour(self, origExample, resultType, returnDFV):
         # expression specified
         if origExample == None:
-            return self.classifiers.values()[0](None, resultType)
+            return self.classifiers[0](None, resultType)
         else:
             # Predict using the models  
             predictions = {}   #The individual predictions for each repective classifier in classifiers
@@ -342,20 +339,10 @@ class ConsensusClassifier(AZBaseClasses.AZClassifier):
                     if len(logicalExp) == 0:
                         predicted = logicalRes
                         break
-                    try:
-                        rawParseTree = self._lexLogicalExp(logicalExp)
-                        modParseTree = self._parseLogicalTree(rawParseTree, predictions, self.classVar.values)
-                        result = self._interpretLogicalTree(modParseTree)
-                    except SyntaxError, (errno, strerror):
-                        print "Syntax error: ", strerror
-                        return None
-                    except NameError, (errno, strerror):
-                        print "Name error exception during evaluation of expression: ", strerror
-                        return None
-                    except Exception, (errno, strerror):
-                        print "Error evaluating expression: ", strerror
-                        return None
-                        
+
+                    rawParseTree = self._lexLogicalExp(logicalExp)
+                    modParseTree = self._parseLogicalTree(rawParseTree, predictions, self.classVar.values)
+                    result = self._interpretLogicalTree(modParseTree)
                     if result:
                         if self.verbose:
                             print "Logical Expression is True: ", ''.join(modParseTree)
@@ -377,19 +364,10 @@ class ConsensusClassifier(AZBaseClasses.AZClassifier):
                         if p in self.weights:
                             predictions[p] *= self.weights[p](origExample)
                         
-                try:
-                    rawParseTree = self._lexRegressionExp(self.expression)
-                    modParseTree = self._parseRegressionTree(rawParseTree, predictions)
-                    result = self._interpretRegressionTree(modParseTree)
-                except SyntaxError, (errno, strerror):
-                    print "Syntax error: ", strerror
-                    return None
-                except NameError,(errno, strerror):
-                    print "Name error exception during evaluation of expression: ", strerror
-                    return None
-                except Exception, (errno, strerror):
-                    print "Error evaluating expression: ", strerror
-                    return None
+
+                rawParseTree = self._lexRegressionExp(self.expression)
+                modParseTree = self._parseRegressionTree(rawParseTree, predictions)
+                result = self._interpretRegressionTree(modParseTree)
                 
                 DFV = predicted = result
                 probabilities = None 
@@ -418,13 +396,6 @@ class ConsensusClassifier(AZBaseClasses.AZClassifier):
                     return (res,DFV)
                 else:
                     return res
-
-    def _isValidExpression(self):
-        if self.expression is None:
-            return False
-
-        
-        
                 
     def _parseRegressionTree(self, tree, predictionResults):
         """ Replace the variables with results from the classifiers """
@@ -494,57 +465,41 @@ class ConsensusClassifier(AZBaseClasses.AZClassifier):
             return dist
         dist[prediction]=1
         return dist
-
-    def _getListOfClassifiers(self):
-        if self.classifiers is None:
-            return None
-        elif type(self.classifiers).__name__ == "list":
-            return self.classifiers
-        else:
-            return self.classifiers.values()
-
-    def _setStatData(self):
-        classifiers = self._getListOfClassifiers()
-
-        for classifier in classifiers:
-        #Try to get the imputeData, basicStat from a model that have it!
-            if hasattr(classifier, "basicStat") and classifier.basicStat and not self.basicStat:
-                self.basicStat = classifier.basicStat
-            if hasattr(classifier, "NTrainEx") and classifier.basicStat and not self.NTrainEx:
-                self.NTrainEx = classifier.NTrainEx
-            if hasattr(classifier, "imputeData") and classifier.imputeData and not self.imputeData:
-                self.imputeData = classifier.imputeData
             
+    def _setStatData(self):
+        for classifier in self.classifiers:
+            #Try to get the imputeData, basicStat from a model that have it!
+            if hasattr(classifier, "basicStat") and classifier.basicStat and not self.basicStat:
+                    self.basicStat = classifier.basicStat
+            if hasattr(classifier, "NTrainEx") and classifier.basicStat and not self.NTrainEx:
+                    self.NTrainEx = classifier.NTrainEx
+            if hasattr(classifier, "imputeData") and classifier.imputeData and not self.imputeData:
+                    self.imputeData = classifier.imputeData
+ 
 
     def _setDomainAndClass(self):
-        classifiers = self._getListOfClassifiers()
-
         #Find a possible Domain among the classifiers
         if not self.domain:
-            for c in classifiers:
+            for c in self.classifiers:
                 if hasattr(c,"domain") and c.domain:
                     self.domain = c.domain
                     break
-
         #Find a possible classVar among the classifiers
         if not self.classVar:
-            for c in classifiers:
+            for c in self.classifiers:
                 if hasattr(c,"classVar") and c.classVar:
                     self.classVar = c.classVar
                     break
-
         #If there wasn't found a classVar, try to get it from the Domain
         if not self.classVar and self.domain and self.domain.classVar:
             self.classVar = self.domain.classVar
-
+ 
         #If we were not success in getting a domain and a classVar, we cannot proceed!
         if not self.classVar or not self.domain:
             raise Exception("The classifiers are not compatible with the Consensus model. Try to use the respective Learners instead.")
         if not self.varNames:
-            self.varNames = [attr.name for attr in self.domain.attributes]
+            self.varNames = [attr.name for attr in self.domain.attributes]            
 
-            
-            
     def write(self, dirPath):
         """ Save a Consensus model to disk including the domain used """
         if not self.classVar or not self.domain or not self.varNames:
@@ -720,7 +675,16 @@ def Consensusread(dirPath,verbose = 0):
     except:
         if verbose > 0: print "ERROR: It was not possible to load the Consensus model"
         return None
-    return ConsensusClassifier(classifiers=classifiers, expression=expression, weights=weights, varNames = [attr.name for attr in domainFile.domain.attributes],classVar = domainFile.domain.classVar, verbose = verbose, domain = domainFile.domain, basicStat = basicStat, NTrainEx = NTrainEx, imputeData = imputeData)
+    return ConsensusClassifier(classifiers=classifiers,
+                               expression=expression,
+                               weights=weights,
+                               varNames = [attr.name for attr in domainFile.domain.attributes],
+                               classVar = domainFile.domain.classVar,
+                               verbose = verbose,
+                               domain = domainFile.domain,
+                               basicStat = basicStat,
+                               NTrainEx = NTrainEx,
+                               imputeData = imputeData)
 
 
 if __name__ == "__main__":
