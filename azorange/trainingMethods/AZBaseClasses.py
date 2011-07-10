@@ -84,7 +84,12 @@ class AZLearner(orange.Learner):
 	self.name = name
         self.basicStat = None
         return self
-        
+      
+    def isCompatible(self, classVar):
+        """Checks if the learner is compatiblue with thw passed class variable"""
+        return True
+
+ 
     def __call__(self, trainingData = None, weight = None): 
         if not trainingData:
             print "AZBaseClasses ERROR: Missing training data!"

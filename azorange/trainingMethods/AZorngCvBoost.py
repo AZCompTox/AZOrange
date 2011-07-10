@@ -24,6 +24,7 @@ class CvBoostLearner(AZBaseClasses.AZLearner):
         self.name = name
         self.trainData = None
         self.imputer = None
+        self.compatibility = ["classification"]
 	#Read default parameters from AZOrangeConfig.py file
         #CVBOOSTTYPE = { "DISCRETE":0, "REAL":1, "LOGIT":2, "GENTLE":3 }
         #CVBOOSTSPLITCRIT{ "DEFAULT":0, "GINI":1, "MISCLASS":3, "SQERR":4 }
@@ -33,6 +34,12 @@ class CvBoostLearner(AZBaseClasses.AZLearner):
             setattr(self, par, AZOC.CVBOOSTDEFAULTDICT[par])
         self.__dict__.update(kwds)
 
+    def isCompatible(self, classVar):
+        """Checks if the learner is compatiblue with thw passed class variable""" 
+        if classVar.varType != orange.VarTypes.Discrete or len(classVar.values) != 2:
+            return False
+        else:
+            return True
 
     def printParams(self,params):
         print "Boost train parameters:"
@@ -45,7 +52,8 @@ class CvBoostLearner(AZBaseClasses.AZLearner):
         if not AZBaseClasses.AZLearner.__call__(self, data, weight):
             return None
         if data.domain.classVar.varType != orange.VarTypes.Discrete:
-            raise Exception("AZorngCvBoost can only be used for 2-class classification.")
+            print "AZorngCvBoost can only be used for binary classification."
+            return None
         #Remove from the domain any unused values of discrete attributes including class
         data = dataUtilities.getDataWithoutUnusedValues(data,True)
 
