@@ -19,6 +19,14 @@ from AZutilities import dataUtilities
 
 import AZOrangeConfig as AZOC
 
+def IF0(expr, ifTrue):
+    """Tests expr, and if it is zero, return what's in ifTrue otherwise return the expr"""
+    if expr == 0:
+        return ifTrue
+    else:
+        return expr
+    
+
 class ConsensusLearner(AZBaseClasses.AZLearner):
     """
     Creates a Consensus as an Orange type of learner instance. 
@@ -405,11 +413,11 @@ class ConsensusClassifier(AZBaseClasses.AZClassifier):
                         
                 res = orangePrediction
                         
-                self.nPredictions += 1
-                if returnDFV:
-                    return (res,DFV)
-                else:
-                    return res
+            self.nPredictions += 1
+            if returnDFV:
+                return (res,DFV)
+            else:
+                return res
                 
     def _parseRegressionTree(self, tree, predictionResults):
         """ Replace the variables with results from the classifiers """
