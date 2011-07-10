@@ -59,6 +59,25 @@ class evalUtilitiesTest(unittest.TestCase):
         self.assertEqual(round(quantiles[1],3), round(1.6345715553057074,3))
         self.assertEqual(round(quantiles[2],3), round(2.316536184143136,3))
 
+    def testgetRsqrt(self):
+        data = dataUtilities.DataTable(self.regDataPath)
+        RFlearner = AZorngRF.RFLearner()
+        trainData = data[0:int(len(data)/2)]
+        testData = data[int(len(data)/2)+1:]
+        classifier = RFlearner(data)
+        Rsqrt = evalUtilities.getRsqrt(testData,classifier)
+        self.assert_(Rsqrt-0.684011336894 < 0.05, "Got:"+str(Rsqrt))
+
+    def testgetRMSE(self):
+        data = dataUtilities.DataTable(self.regDataPath)
+        RFlearner = AZorngRF.RFLearner()
+        trainData = data[0:int(len(data)/2)]
+        testData = data[int(len(data)/2)+1:]
+        classifier = RFlearner(data)
+        RMSE = evalUtilities.getRMSE(testData,classifier)
+        self.assert_(RMSE-2.07396535555 < 0.05, "Got:"+str(RMSE))
+        
+
     def testRMSEstdCalc(self):
 
         data = dataUtilities.DataTable(self.regDataPath)
