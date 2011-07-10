@@ -151,6 +151,7 @@ def ConfMat(res = None):
 
         confMat = orngStat.confusionMatrices(res)[0]
         if len(res.classValues) == 2:
+            # NOTE: orngStat returns TN, TP, FN, FP with inverted labels, so we have to set properly:
             cm = [[confMat.TN, confMat.FP],[confMat.FN, confMat.TP]]
         else:
             cm = confMat
@@ -208,19 +209,23 @@ def getClassificationAccuracy(testData, classifier):
 
 
 def getRMSE(testData, predictor):
+    #Construct the list of experimental and predicted values: [(exp1, pred1), (exp2, pred2), ...]
+    exp_pred = []
+    for ex in testData:
+        exp_pred.append( (ex.getclass(), predictor(ex)) )
+    return calcRMSE(exp_pred)
 
+def calcRMSE(exp_pred_Val):
     accSum = 0.0
     nPredEx = 0
-    for ex in testData:
-        #print "Class "+str(ex.getclass())+" "+str(string.atof(str(predictor(ex))))
+    for idx,val in enumerate(exp_pred_Val):
         try:
-            #print "(",ex.getclass(),"-",string.atof(str(predictor(ex))),")^2= ",(ex.getclass()-string.atof(str(predictor(ex))))**2,"(",math.pow(ex.getclass()-string.atof(str(predictor(ex))),2),")" 
-            accSum = accSum + math.pow(ex.getclass()-string.atof(str(predictor(ex))),2)
+            accSum = accSum + math.pow(val[0]-string.atof(str(val[1])),2)
             nPredEx = nPredEx + 1 
         except:
             if verbose > 0: print "Warning!!!!"
-            if verbose > 0: print "No prediction could be made for the following example:"
-            if verbose > 0: print ex
+            if verbose > 0: print "No prediction could be made for the example idx = ",idx
+            if verbose > 0: print val
     
     accuracy = math.sqrt(accSum/nPredEx)
     return accuracy
@@ -230,22 +235,54 @@ def getRsqrt(testData, predictor):
     """Calculate the coefficient of determination (R-squared) for the orange model predictor on the data set testData. 
         This uses the Test Set Activity Mean
         R^2 = 1 - sum((pred - actual)^2)/(sum((testMean - actual)^2))"""
-
-    # Calc average of the response variable
-    actualValuesList = []
+        
+    #Construct the list of experimental and predicted values: [(exp1, pred1), (exp2, pred2), ...]
+    exp_pred = []
     for ex in testData:
-        actualValuesList.append(ex.getclass().value)
+        exp_pred.append( (ex.getclass(), predictor(ex)) )
+    return calcRsqrt(exp_pred)
+
+def calcRsqrt(exp_pred_Val):
+    """Calculates the Rsqrt of the predicted values in exp_pred_Val[1] against the 
+        respective experimental values in exp_pred_Val[0]         
+    """
+    # Calc mean of the experimental response variable
+    actualValuesList = []
+    for val in exp_pred_Val:
+        actualValuesList.append(val[0].value)
     testMean = statc.mean(actualValuesList)
 
     errSum = 0.0
     meanSum = 0.0
-    for ex in testData:
-        errSum = errSum + math.pow(ex.getclass() - string.atof(str(predictor(ex))),2)
-        meanSum = meanSum + math.pow(testMean - ex.getclass(),2)
+    for val in exp_pred_Val:
+        errSum = errSum + math.pow(val[0] - string.atof(str(val[1])),2)
+        meanSum = meanSum + math.pow(testMean - val[0],2)
 
     Rsqrt = 1 - errSum/meanSum
     return Rsqrt
 
+
+def calcMCC(CM):
+    """ CM =   [[TP, FN],i
+                [FP, TN]]
+    """
+    #Compute MCC = (TP x TN - FP x FN) / sqrt( (TP + FP)(TP + FN)(TN + FP)(TN + FN) )
+    if len(CM) != 2:
+        print "WARNING: Cannot calculate MCC for other than binary classification" 
+        return None   
+    [TP, FN], [FP, TN] = map(None,CM)    
+    sqrtArg = 1 
+    for arg in [(TP + FP),(TP + FN),(TN + FP),(TN + FN)]:
+        if arg != 0:    # According to the paper where MCC was defined, if one of the arguments is zero, assume it as 1
+            sqrtArg *= arg
+    MCC = (TP * TN - FP * FN) / math.sqrt(1.0 * sqrtArg)
+    return MCC
+
+def stability(res):
+    mean = statc.mean(res)
+    dists = [abs(x-mean) for x in res]
+    return statc.mean(dists)
+    
 
 def getQ2(testData, predictor):
     """Calculate the predictive squared correlation coefficient Q2, which uses the Training Set Activity Mean.. 
