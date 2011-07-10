@@ -45,8 +45,8 @@ class GetAccWOptParam(AZorngTestUtil.AZorngTestUtil):
         paramList = ["nActVars"]
         evaluator = getAccWOptParam.AccWOptParamGetter(data = self.irisContData, learner = learner, paramList = paramList ,nExtFolds = 3, nInnerFolds = 3)
         res = evaluator.getAcc()
-        expectedRes0 = [0.27741430697239661, 0.27945999999999999, 0.276116805384]  # [InHouse, Ubuntu, Ubuntu 64 bits]
-        expectedRes1 = [0.97464488216654444, 0.97420405774, 0.974887867109]        # [InHouse, Ubuntu, Ubuntu 64 bits]
+        expectedRes0 = [0.27741430697239661, 0.27945999999999999, 0.276116805384, 0.277488734272]  # [InHouse, Ubuntu, Ubuntu 64 bits]
+        expectedRes1 = [0.97464488216654444, 0.97420405774, 0.974887867109, 0.97510044677]        # [InHouse, Ubuntu, Ubuntu 64 bits]
         self.assert_(round(res["RMSE"],5) in [round(x,5) for x in expectedRes0],"Got: "+str(res["RMSE"]))
         self.assert_(round(res["R2"],5) in [round(x,5) for x in expectedRes1],"Got: "+str(res["R2"]))
 
