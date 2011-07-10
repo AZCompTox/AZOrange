@@ -41,7 +41,7 @@ class Appspack:
         self.np = None                  # number of processors to use when using MPI
         self.usedMPI = False            # Flag indicating if last optimization done was made using MPI version of appspack
         self.advancedMPIoptions = ""    # Other MPI valid options that user might want to set.
-        self.learner = None             # The Learner to be optimized
+        self.learner = None             # The Learner to be optimize
         self.dataSet = ""               # the PATH for the dataset to use for optimization
         self.runPath = "./"             # the runPath for the optimization
         self.verbose = 0                # Verbose Flag
@@ -53,12 +53,14 @@ class Appspack:
         self.useGridSearchFirst = False  # Flag indicating if GridSearch is to be performed to define the initial point of appspack search. If false, the midrange point will be used
         self.nExtFolds = None            # The number of folds to use in a loop over CV with different seeds. To reduce the 
                                          # influence of data sampling on the generalization accuracy of each model parameter point.
-        self.useStd = True               # Do not select optimized parameter unless the accuracy differenc is significant.
+        self.useStd = True               # Do not select optimize parameter unless the accuracy differenc is significant.
         # Append arguments to the __dict__ member variable 
         self.__dict__.update(kwds)
 
 
         # Non-User defined vars
+        self.nIntRes = 0                # Number of intermediate results in the IndRes file. Muste be >= 2 and for optimization Success must be >2
+        self.noParams2Opt = False       # Flag indicating that the parameters to optimiza have not enouth possible values
         self.parameters = None          # All the optimization parameters defined by the user in useParameters. 
                                         #     If not defined, they will be the same as the origParameters
         self.origParameters = None      # All the optimization parameters present in the static AZLearnersParamsConfig.py file
@@ -254,7 +256,7 @@ class Appspack:
             self.learner.nActVars = -1
             classifier = self.learner(data)
             if classifier.nActVars == None or classifier.nActVars == -1 or classifier.nActVars == 0:
-                print "ERROR: Couls not optimize R mTry (nActVars)"
+                print "ERROR: Could not optimize R mTry (nActVars)"
                 return None
             self.learner.nActVars = classifier.nActVars 
             if hasattr(self.learner, "setattr"):
@@ -301,11 +303,19 @@ class Appspack:
                     return self.appspackPID
         
     def assignTunedParameters(self):
-
+        optimized = False
         if self.learner.optimized:
-            tunedParameters = self.processAppspackResults()
+            optimized = True
+            raise Exeption("Learner should not be optimized already! Check method Appspack::assignTunedParameters() in paramOptUtilities.py")
+            tunedParameters = self.processAppspackResults()  # Deprecated. will not be called!
         else:
             tunedParameters = self.processIntResResults()
+            if self.nIntRes > 2:
+                optimized = True
+            elif self.nIntRes == 2 and self.noParams2Opt:
+                    optimized = True
+                    print "WARNING: Appspack may had print some error message since there are parameters without enough possible values to optimize."
+                    print "         Optimization will though be made among the default and mid-range points."
 
         if tunedParameters == None:
             self.tunedParameters = "Could not optimize the parameters"
@@ -342,9 +352,9 @@ class Appspack:
         if self.verbose > 0: print "tunedParameters = ", tunedParameters
         #optimization was successfull, so set "optimized" to true
         if hasattr(self.learner, "setattr"):
-            self.learner.setattr("optimized", True)
+            self.learner.setattr("optimized", optimized)
         else:
-            setattr(self.learner, "optimized", True)
+            setattr(self.learner, "optimized", optimized)
         self.tunedParameters = tunedParameters
 
     def getTunedParameters(self):
@@ -443,6 +453,7 @@ print cPickle.dumps(eval(evalMethod)(res)[0])
         resDomain = intResTxt.pop(0).split()
         #Convert the intResTxt into splited strings
         intRes = [line.split() for line in intResTxt]
+        self.nIntRes = len(intRes)
         #ADD THE STDevalRes variable before start processing the intRes file
         resDomain.insert(-1,"STDevalRes")
         for idx,line in enumerate(intRes):
@@ -499,7 +510,7 @@ print cPickle.dumps(eval(evalMethod)(res)[0])
         else:
             selectOptParam = True
 
-        if self.verbose > 0: print "The optimized parameters are selected: "+str(selectOptParam)
+        if self.verbose > 0: print "The optimize parameters are selected: "+str(selectOptParam)
 
         # get the learner parameters used on that best point or the defautl parameters
         optParameters = {}
@@ -665,6 +676,13 @@ print cPickle.dumps(eval(evalMethod)(res)[0])
             if "DNE" in upperVector or "DNE" in lowerVector:
                 if self.verbose > 0: print "ERROR: DNE not permited in range vectors"
                 return None
+
+            # Test for presence of one-value parameter range
+            # We will still run Appspack in order to finalize optimization and report the results for the default and mid-range points.
+            for idx,Uv in enumerate(upperVector):
+                if Uv == lowerVector[idx]:
+                    self.noParams2Opt = True
+                    break
 
             #evaluate the function at the default point
             if self.useDefaultPoint:
