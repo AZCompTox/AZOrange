@@ -156,4 +156,14 @@ CVSVMDEFAULTDICT = {
         'coef0'        : 5     ,
         'degree'       : 5     }
 
-
+#QSAR definitions
+#MLMETHODS: {"MethodNAme": [<MLmodule>, <Learnerobject>], ...}
+MLMETHODS = {"CvRF":{"module":"trainingMethods.AZorngRF","object":"RFLearner"},
+             "CvANN":{"module":"trainingMethods.AZorngCvANN","object":"CvANNLearner"},
+             "CvSVM":{"module":"trainingMethods.AZorngCvSVM","object":"CvSVMLearner"},
+             "CvBoost":{"module":"trainingMethods.AZorngCvBoost","object":"CvBoostLearner"},
+             "PLS":{"module":"trainingMethods.AZorngPLS","object":"PLSLearner"}
+                }
+QSARNEXTFOLDS = 10
+QSARNINNERFOLDS = 5
+QSARSTABILITYTHRESHOLD = 0.1
