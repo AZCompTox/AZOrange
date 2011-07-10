@@ -143,7 +143,6 @@ class AccWOptParamGetter():
             MLmethods[self.learner.name] = self.learner
 
         models={}
-        print MLmethods
         for ml in MLmethods:
           try:
             #Var for saving each Fols result
@@ -207,10 +206,7 @@ class AccWOptParamGetter():
                 pprint(res)
             if not res:
                 raise Exception("No results available!")
-            print "RESAUTO: ",ml
-            print res
             statistics[ml] = res.copy()
-            print statistics
           except:
             print "Learner "+ml+" failed to optimize!"
             res = self.createStatObj()
@@ -269,13 +265,9 @@ class AccWOptParamGetter():
                 res = self.createStatObj(Cresults, Cexp_pred, responseType, self.nExtFolds)
                 statistics["Consensus"] = res.copy()
                 statistics["Consensus"]["IndividualStatistics"] = stableML.copy()
-            print "Statistics for multiple learners:"
-            pprint(statistics)
             return statistics
                  
         #By default return the only existing statistics!
-        print "Statistics for a single Learner:"
-        pprint(statistics[statistics.keys()[0]])
         return statistics[statistics.keys()[0]]
 
 
