@@ -31,7 +31,7 @@ class AccWOptParamGetter():
         if not self.data.domain.classVar:
             print "The data has no Class!"
             return False
-        if self.queueType not in ["NoSGE", "batch.q", "quick.q"]
+        if self.queueType not in ["NoSGE", "batch.q", "quick.q"]:
             print "Invalid queueType"
             return False
         if not len(self.data):
@@ -148,7 +148,7 @@ class AccWOptParamGetter():
 
         models={}
         for ml in MLmethods:
-          try:
+          #try:
             #Var for saving each Fols result
             results[ml] = []
             exp_pred[ml] = []
@@ -197,10 +197,10 @@ class AccWOptParamGetter():
             if not res:
                 raise Exception("No results available!")
             statistics[ml] = res.copy()
-          except:
-            print "Learner "+ml+" failed to optimize!"
-            res = self.createStatObj()
-            statistics[ml] = res.copy()
+          #except:
+          #  print "Learner "+ml+" failed to optimize!"
+          #  res = self.createStatObj()
+          #  statistics[ml] = res.copy()
 
         if len(statistics) < 1:
             print "ERROR: No statistics to return!"

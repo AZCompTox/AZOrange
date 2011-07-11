@@ -16,7 +16,7 @@ for ML in AZOC.MLMETHODS:
 print "Available MLMETHODS:",[ml for ml in MLMETHODS]
 
 
-def getMLStatistics(trainData,savePath = None):
+def getMLStatistics(trainData,savePath = None, queueType = "NoSGE", verbose = 0):
         """
         Loop over all MLMETHODS to get their statistics
         Write to disk the full MLStatistics including the consensus model:
@@ -30,7 +30,7 @@ def getMLStatistics(trainData,savePath = None):
                 print "Ignored learner ",ml," since it's not compatible with this class."
                 continue
             learners[ml] = learner
-        evaluator = getAccWOptParam.AccWOptParamGetter(data = trainData, learner = learners, paramList = None, nExtFolds = AZOC.QSARNEXTFOLDS, nInnerFolds = AZOC.QSARNINNERFOLDS)
+        evaluator = getAccWOptParam.AccWOptParamGetter(data = trainData, learner = learners, paramList = None, nExtFolds = AZOC.QSARNEXTFOLDS, nInnerFolds = AZOC.QSARNINNERFOLDS, queueType = queueType, verbose = verbose)
         MLStatistics = evaluator.getAcc()
 
         if savePath and os.path.isdir(os.path.split(savePath)[0]):
@@ -147,7 +147,7 @@ def buildModel(trainData, MLMethod, queueType = "NoSGE", verbose = 0):
 
 
 def getModel(trainData, savePath = None,queueType = "NoSGE", verbose = 0):
-        MLStatistics = getMLStatistics(trainData, savePath)
+        MLStatistics = getMLStatistics(trainData, savePath, queueType = queueType, verbose = verbose)
         MLMethod = selectModel(MLStatistics)
         model = buildModel(trainData, MLMethod, queueType = queueType, verbose = verbose)
         return model
@@ -158,7 +158,7 @@ def getStatistics(dataset):
 
 if __name__ == "__main__":
         data = orange.ExampleTable("/home/kgvf414/projects/M-Lab/paper/MLcomplementarity/data/Regression/QSARnoRef/THERM_RDK.tab")
-        model = getModel(data, savePath = "./MLStat_reg_THERM_RDK.txt", queueType = "batch.q")
+        model = getModel(data, verbose = 3, savePath = "./MLStat_reg_THERM_RDK.txt", queueType = "batch.q")
         print model
 
         data = orange.ExampleTable("/home/kgvf414/projects/M-Lab/paper/MLcomplementarity/data/Classification/LOcontempQSARsets/hivrt_RDK.tab")
