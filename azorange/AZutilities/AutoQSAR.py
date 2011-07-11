@@ -131,7 +131,7 @@ def buildModel(trainData, MLMethod, queueType = "NoSGE", verbose = 0):
                 print "ERROR: AutoQSAR: The learner was not optimized."
                 return None
             else:
-                print "Optimized learner ",learnerName            
+                print "Optimized learner ",learners[ML]           
             miscUtilities.removeDir(runPath)
 
         #Train the model
@@ -158,10 +158,10 @@ def getStatistics(dataset):
 
 if __name__ == "__main__":
         data = orange.ExampleTable("/home/kgvf414/projects/M-Lab/paper/MLcomplementarity/data/Regression/QSARnoRef/THERM_RDK.tab")
-        model = getModel(data, verbose = 3, savePath = "./MLStat_reg_THERM_RDK.txt", queueType = "batch.q")
+        model = getModel(data, verbose = 3, savePath = "./MLStat_reg_THERM_RDK.txt")
         print model
 
         data = orange.ExampleTable("/home/kgvf414/projects/M-Lab/paper/MLcomplementarity/data/Classification/LOcontempQSARsets/hivrt_RDK.tab")
-        model = getModel(data, savePath = "./MLStat_class_hivrt_RDK.txt", queueType = "batch.q")
+        model = getModel(data, savePath = "./MLStat_class_hivrt_RDK.txt")
         print model
 
