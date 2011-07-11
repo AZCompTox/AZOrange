@@ -1195,7 +1195,7 @@ def getOptParam(learner, trainDataFile, paramList = None, useGrid = False, verbo
     # Find the name of the Learner
     learnerName = str(learner.__class__)[:str(learner.__class__).rfind("'")].split(".")[-1]
     # Set the response type
-    dataInfo = getQuickDataSize(trainDataFile)
+    dataInfo = dataUtilities.getQuickDataSize(trainDataFile)
     # returned["discreteClass"]    - Flag indicating the type of class: 1:discrete, 0:continuous, -1: unknown
     if dataInfo["discreteClass"] == 1:
         responseType = "Classification"
@@ -1250,7 +1250,7 @@ def getOptParam(learner, trainDataFile, paramList = None, useGrid = False, verbo
                     nFolds = nFolds,\
                     np = np,\
                     machinefile = machinefile,\
-                    verbose = 0,\
+                    verbose = verbose,\
                     queueType = queueType)
 
     if verbose > 0:
