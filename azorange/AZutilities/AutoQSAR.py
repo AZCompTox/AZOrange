@@ -15,11 +15,6 @@ for ML in AZOC.MLMETHODS:
 
 print "Available MLMETHODS:",[ml for ml in MLMETHODS]
 
-def getDefaultOptParamList(learnerObjectName):
-        #Return the parameters set by default for optimization defined in AZLearnersParamsConfig 
-        defs = OPTconf.API(learnerObjectName)
-        return [par for par in defs.getParameterNames() if defs.getParameter(par,"optimize")]
-                
 
 def getMLStatistics(trainData,savePath = None):
         """
@@ -103,7 +98,7 @@ def buildConsensus(trainData, learners, MLMethods):
         return learner(trainData)
 
                     
-def buildModel(trainData, MLMethod):
+def buildModel(trainData, MLMethod, queueType = "NoSGE", verbose = 0):
         """
         Buld the methods passed in MLMethods and optimize (if len(MLMethods) == 1)
         if MLMethods is the Consensus (len(MLMethods) > 1) , build each and optimize first all models and after build the consensus!
@@ -119,24 +114,16 @@ def buildModel(trainData, MLMethod):
         # optimize all MLMethods
         for ML in MLMethods:
             learners[ML] = MLMETHODS[ML](name = ML)
-            # Find the name of the Learner
-            learnerName = str(learners[ML].__class__)[:str(learners[ML].__class__).rfind("'")].split(".")[-1]
-            # Set the response type
-            responseType = trainData.domain.classVar.varType == orange.VarTypes.Discrete and "Classification"  or "Regression"
 
             runPath = miscUtilities.createScratchDir(desc = "AutoQSAR")
             trainData.save(os.path.join(runPath,"trainData.tab"))
 
-            paramOptUtilities.optimizeSelectedParam(
+            paramOptUtilities.getOptParam(
                 learner = learners[ML],
-                learnerName = learnerName,
                 trainDataFile = os.path.join(runPath,"trainData.tab"),
-                paramList = getDefaultOptParamList(learnerName),
-                responseType = responseType,
-                grid = False,
                 useGrid = False,
-                verbose = 0,
-                queueType = "batch.q",
+                verbose = verbose,
+                queueType = queueType,
                 runPath = runPath,
                 nExtFolds = None)
 
@@ -159,10 +146,10 @@ def buildModel(trainData, MLMethod):
         return model
 
 
-def getModel(trainData, savePath = None):
+def getModel(trainData, savePath = None,queueType = "NoSGE", verbose = 0):
         MLStatistics = getMLStatistics(trainData, savePath)
         MLMethod = selectModel(MLStatistics)
-        model = buildModel(trainData, MLMethod)
+        model = buildModel(trainData, MLMethod, queueType = queueType, verbose = verbose)
         return model
 
 
@@ -171,10 +158,10 @@ def getStatistics(dataset):
 
 if __name__ == "__main__":
         data = orange.ExampleTable("/home/kgvf414/projects/M-Lab/paper/MLcomplementarity/data/Regression/QSARnoRef/THERM_RDK.tab")
-        model = getModel(data, savePath = "./MLStat_reg_THERM_RDK.txt")
+        model = getModel(data, savePath = "./MLStat_reg_THERM_RDK.txt", queueType = "batch.q")
         print model
 
         data = orange.ExampleTable("/home/kgvf414/projects/M-Lab/paper/MLcomplementarity/data/Classification/LOcontempQSARsets/hivrt_RDK.tab")
-        model = getModel(data, savePath = "./MLStat_class_hivrt_RDK.txt")
+        model = getModel(data, savePath = "./MLStat_class_hivrt_RDK.txt", queueType = "batch.q")
         print model
 

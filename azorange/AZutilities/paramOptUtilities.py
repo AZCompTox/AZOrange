@@ -1181,91 +1181,44 @@ echo "end mpirun"
         return True
 
 
-def optimize(learner, learnerName, trainDataFile, responseType, verbose = 0, queueType = "batch.q", runPath = None, nExtFolds = None, nFolds = 5, useGrid = False):
+def getOptParam(learner, trainDataFile, paramList = None, useGrid = False, verbose = 0, queueType = "NoSGE", runPath = None, nExtFolds = None, nFolds = 5):
     """
-    Optimize with default values for the learner (defined in AZLearnersParmsConfig)
+    Optimize the parameters in paramList. If no parametres defines, optimize defauld parameters (defined in AZLearnersParmsConfig). 
     Run optimization in parallel.
     Possible values:
-    responseType: Classification or other
-    learnerNames: RFLearner, CvSVMLearner, CvANNLearner, PLSLearner
-    queueType: 'batch.q' or 'quick.q' (jobs start immediatly but are terminated after 30 min) or 'NoSGE' (without access to the distributed environment)
+    Execute on the SGE or not: 
+                'NoSGE'   (without access to the distributed environment)
+                'batch.q'
+                'quick.q' (jobs start immediatly but are terminated after 30 min)
     runPath: If directory not provided, will run in NFS_SCRATCHDIR
     """
-
-    # Create an interface for setting optimizer parameters
-    pars = AZLearnersParamsConfig.API(learnerName)
-
-    # Create a directory for running the appspack (if not defined it will use the present working directory)
-    if not runPath:
-        runPath = miscUtilities.createScratchDir(desc ="optQsubTest", baseDir = AZOC.NFS_SCRATCHDIR)
-
-    # Response type
-    if responseType == "Classification":
-        evalM = "AZutilities.evalUtilities.CA"
-        fMin = False
+    # Find the name of the Learner
+    learnerName = str(learner.__class__)[:str(learner.__class__).rfind("'")].split(".")[-1]
+    # Set the response type
+    dataInfo = getQuickDataSize(trainDataFile)
+    # returned["discreteClass"]    - Flag indicating the type of class: 1:discrete, 0:continuous, -1: unknown
+    if dataInfo["discreteClass"] == 1:
+        responseType = "Classification"
+    elif dataInfo["discreteClass"] == 0:
+        responseType = "Regression"
     else:
-        evalM = "AZutilities.evalUtilities.RMSE"
-        fMin = True
-
-    # Distributed computing available?
-    if queueType == "NoSGE":
-        np = None
-        machineFile = None
-    else:
-        np = 8
-        machineFile = "qsub" 
-
-
-    # Calculate the optimal parameters. This can take a long period of time!
-    optimizer = Appspack()
-    tunedPars = optimizer(learner=learner,\
-                    dataSet=trainDataFile,\
-                    evaluateMethod = evalM,\
-                    useParameters = pars.getParametersDict(),\
-                    findMin=fMin,\
-                    runPath = runPath,\
-                    verbose = verbose,\
-                    nExtFolds = nExtFolds, \
-                    nFolds = nFolds, \
-                    useGridSearchFirst = useGrid,\
-                    gridSearchInnerPoints = 3,\
-                    np = np,\
-                    machinefile = machineFile,\
-                    queueType = queueType)
-
-    #if verbose > 0:
-    print "====================== optimization Done ==========================="
-    print "Learner optimized flag = ", learner.optimized
-    print "Tuned parameters = ", tunedPars[1]
-    print "Best optimization result = ", tunedPars[0]
-    print "check the file optimizationLog.txt in "+runPath+" to see the intermediate results of optimizer!"
-
-    return learner, learner.optimized
-
-
-def optimizeSelectedParam(learner, learnerName ,trainDataFile, paramList, responseType, grid = False, useGrid = False, verbose = 0, queueType = "batch.q", runPath = None, nExtFolds = None, nFolds = 5):
-    """
-    Optimize the parameters in paramList. Run optimization in parallel.
-    Possible values:
-    grid: Execute on the SGE or not
-    responseType: Classification or other
-    learnerNames: RFLearner, CvSVMLearner, CvANNLearner, PLSLearner
-    queueType: batch.q or quick.q (jobs start immediatly but are terminated after 30 min)
-    runPath: If directory not provided, will run in NFS_SCRATCHDIR
-    """
+        print "WARNING!  Could not get the datase info. Data needed to be loaded in order to check the reponse type."
+        data = orange.ExampelTable(trainDataFile)
+        responseType = data.domain.classVar.varType == orange.VarTypes.Discrete and "Classification"  or "Regression"
 
     optimizer = Appspack()
 
     # Create an interface for setting optimizer parameters
     pars = AZLearnersParamsConfig.API(learnerName)
-
-    # Set all parameters to not be optimized
-    pars.setOptimizeAllParameters(False)
-
-    # Set the parameters in parameterList to be optimized
-    for parameter in paramList:
-        pars.setParameter(parameter,"optimize",True)
-
+    
+    # If no parameters passed, optimize default ones
+    if paramList:
+        # Set all parameters to not be optimized
+        pars.setOptimizeAllParameters(False)
+        # Set the parameters in parameterList to be optimized
+        for parameter in paramList:
+            pars.setParameter(parameter,"optimize",True)
+        
     # Create a directory for running appspack (if not defined it will use the present working directory)
     if not runPath:
         runPath = miscUtilities.createScratchDir(desc ="optQsubTest", baseDir = AZOC.NFS_SCRATCHDIR)
@@ -1277,12 +1230,12 @@ def optimizeSelectedParam(learner, learnerName ,trainDataFile, paramList, respon
         evalM = "AZutilities.evalUtilities.RMSE"
         fMin = True
 
-    if grid:
-        machinefile = "qsub"
-        np = 8
-    else:
+    if queueType == "NoSGE":
         machinefile = None
         np = None
+    else:
+        machinefile = "qsub"
+        np = 8
 
     # Calculate the optimal parameters. This can take a long period of time!
     tunedPars = optimizer(learner=learner,\

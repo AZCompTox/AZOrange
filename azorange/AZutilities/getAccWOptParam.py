@@ -18,6 +18,7 @@ class AccWOptParamGetter():
         self.data = None
         self.learner = None
         self.paramList = None
+        self.queueType = "NoSGE"
         self.sampler = dataUtilities.SeedDataSampler
         # Append arguments to the __dict__ member variable 
         self.__dict__.update(kwds)
@@ -29,6 +30,9 @@ class AccWOptParamGetter():
             return False
         if not self.data.domain.classVar:
             print "The data has no Class!"
+            return False
+        if self.queueType not in ["NoSGE", "batch.q", "quick.q"]
+            print "Invalid queueType"
             return False
         if not len(self.data):
             print "Data is empty"
@@ -151,34 +155,20 @@ class AccWOptParamGetter():
             models[ml] = []
             for foldN in range(self.nExtFolds):
                 if type(self.learner) == dict:
-                    try:
-                        # Find the name of the Learner
-                        self.learnerName = str(MLmethods[ml].__class__)[:str(MLmethods[ml].__class__).rfind("'")].split(".")[-1]
-                    except:
-                        print "Couldn't find the Learner Name of: ", str(MLmethods[ml])
-                        raise Exception( "Couldn't find the Learner Name of: "+ str(MLmethods[ml]))
-                    if not hasattr(AZLearnersParamsConfig,self.learnerName):
-                        print "The learner '",self.learnerName,"' is not compatible with the optimizer"
-                        raise Exception("The learner '"+str(self.learnerName)+"' is not compatible with the optimizer")
-                    #Get the parameters set by default for optimization defined in AZLearnersParamsConfig 
-                    defs = AZLearnersParamsConfig.API(self.learnerName)
-                    self.paramList = [par for par in defs.getParameterNames() if defs.getParameter(par,"optimize")]
+                    self.paramList = None
 
                 trainData = self.data.select(DataIdxs[foldN],negate=1)
                 runPath = miscUtilities.createScratchDir(desc = "AccWOptParam")
                 trainData.save(os.path.join(runPath,"trainData.tab"))
                 testData = self.data.select(DataIdxs[foldN])
 
-                paramOptUtilities.optimizeSelectedParam(
+                paramOptUtilities.getOptParam(
                     learner = MLmethods[ml], 
-                    learnerName = self.learnerName,
                     trainDataFile = os.path.join(runPath,"trainData.tab"), 
                     paramList = self.paramList, 
-                    responseType = responseType, 
-                    grid = False, 
                     useGrid = False, 
-                    verbose = 0, 
-                    queueType = "batch.q", 
+                    verbose = self.verbose, 
+                    queueType = self.queueType, 
                     runPath = runPath, 
                     nExtFolds = None, 
                     nFolds = self.nInnerFolds)
