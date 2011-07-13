@@ -1,4 +1,4 @@
-import orange
+import orange, time, pickle
 import AZOrangeConfig as AZOC
 from AZutilities import paramOptUtilities
 from AZutilities import dataUtilities
@@ -26,40 +26,57 @@ class AccWOptParamGetter():
         self.__dict__.update(kwds)
         self.learnerName = ""
 
+    def __writeResults(self, statObj):
+        if self.resultsFile and os.path.isdir(os.path.split(self.resultsFile)[0]):
+            file = open(self.resultsFile, "w")
+            pickle.dump(statObj, file)
+            file.close()
+
+
+    def __log(self, text):
+        """Adds a new line (what's in text) to the logFile"""
+        textOut = str(time.asctime()) + ": " +text
+        if self.logFile and os.path.isdir(os.path.split(self.logFile)[0]):
+            file = open(self.logFile, "a")
+            file.write(textOut+"\n")
+            file.close()
+        else:
+            print textOut
+
     def __areInputsOK(self):
         if not self.learner or (not self.paramList and type(self.learner)!=dict) or not self.nExtFolds or not self.nInnerFolds or not self.data or not self.sampler:
-            print "Missing configuration in AccWOptParamGetter object"
+            self.__log("   Missing configuration in AccWOptParamGetter object")
             return False
         if not self.data.domain.classVar:
-            print "The data has no Class!"
+            self.__log("   The data has no Class!")
             return False
         if self.queueType not in ["NoSGE", "batch.q", "quick.q"]:
-            print "Invalid queueType"
+            self.__log("   Invalid queueType")
             return False
         if not len(self.data):
-            print "Data is empty"
+            self.__log("   Data is empty")
             return False
         if len(self.data)/self.nExtFolds < 1:
-            print "Too few examples for ", self.nExtFolds, "folds."
+            self.__log("   Too few examples for " + str(self.nExtFolds) + "folds.")
             return False
         if type(self.learner)==dict and self.paramList:
-            print "WARNING: A set of learners was provided, and therefore the paramList will be ignored. Default paramneters will be oprtimized instead."
+            self.__log("   WARNING: A set of learners was provided, and therefore the paramList will be ignored. Default paramneters will be optimized instead.")
             self.paramList = None
         elif self.paramList:
             try:
                 # Find the name of the Learner
                 self.learnerName = str(self.learner.__class__)[:str(self.learner.__class__).rfind("'")].split(".")[-1]
             except:
-                print "Couldn't find the Learner Name of: ", str(a)
+                self.__log("   Couldn't find the Learner Name of: "+ str(a))
                 return False
 
             if not hasattr(AZLearnersParamsConfig,self.learnerName):
-                print "The learner '"+self.learnerName+"' is not compatible with the optimizer"
+                self.__log("   The learner '"+str(self.learnerName)+"' is not compatible with the optimizer")
                 return False
             parsAPI = AZLearnersParamsConfig.API(self.learnerName)
             for par in self.paramList: 
                 if par not in parsAPI.getParameterNames():
-                    print "Parameter "+par+" does not exist for the learner "+self.learnerName
+                    self.__log("   Parameter "+str(par)+" does not exist for the learner "+str(self.learnerName))
                     return False
         return True
 
@@ -126,12 +143,13 @@ class AccWOptParamGetter():
 
             It some error occurred, the respective values in the Dict will be None
         """
+        self.__log("Starting Calculating MLStatistics")
         statistics = {}
         if not self.__areInputsOK():
             return None
         # Set the response type
         responseType =  self.data.domain.classVar.varType == orange.VarTypes.Discrete and "Classification"  or "Regression"
-        
+        self.__log("  "+str(responseType))
 
         #Create the Train and test sets
         DataIdxs = dataUtilities.SeedDataSampler(self.data, self.nExtFolds) 
@@ -149,8 +167,11 @@ class AccWOptParamGetter():
             MLmethods[self.learner.name] = self.learner
 
         models={}
+        self.__log("Calculating Statistics for MLmethods:")
+        self.__log("  "+str([x for x in MLmethods]))
         for ml in MLmethods:
-          #try:
+          self.__log("    > "+str(ml)+"...")
+          try:
             #Var for saving each Fols result
             results[ml] = []
             exp_pred[ml] = []
@@ -175,7 +196,7 @@ class AccWOptParamGetter():
                     nExtFolds = None, 
                     nFolds = self.nInnerFolds)
                 if not MLmethods[ml].optimized:
-                    print "The learner "+str(ml)+" was not optimized."
+                    self.__log("       The learner "+str(ml)+" was not optimized.")
                     raise Exception("The learner "+str(ml)+" was not optimized.")
                 miscUtilities.removeDir(runPath) 
                 #Train the model
@@ -199,13 +220,16 @@ class AccWOptParamGetter():
             if not res:
                 raise Exception("No results available!")
             statistics[ml] = res.copy()
-          #except:
-          #  print "Learner "+ml+" failed to optimize!"
-          #  res = self.createStatObj()
-          #  statistics[ml] = res.copy()
+            self.__writeResults(res)
+            self.__log("       OK")
+          except:
+            self.__log("       Learner "+str(ml)+" failed to optimize!")
+            res = self.createStatObj()
+            statistics[ml] = res.copy()
 
-        if len(statistics) < 1:
-            print "ERROR: No statistics to return!"
+        if not statistics or len(statistics) < 1:
+            self.__log("ERROR: No statistics to return!")
+            return None
         elif len(statistics) > 1:
             #We still need to build a consensus model out of the stable models 
             #   ONLY if there are more that one model stable!
@@ -214,6 +238,7 @@ class AccWOptParamGetter():
                 if statistics[modelName]["StabilityValue"] < AZOC.QSARSTABILITYTHRESHOLD:   # Select only stable models
                     stableML[modelName] = statistics[modelName].copy()
             if len(stableML) >= 2:
+                self.__log("Found "+str(len(stableML))+" stable MLmethods out of "+str(len(statistics))+" MLmethods.")
                 if responseType == "Classification":
                     CLASS0 = str(self.data.domain.classVar.values[0])
                     CLASS1 = str(self.data.domain.classVar.values[1])
@@ -236,6 +261,7 @@ class AccWOptParamGetter():
                 #Var for saving each Fols result
                 Cresults = []
                 Cexp_pred = []
+                self.__log("Calculating the statistics for a Consensus model")
                 for foldN in range(self.nExtFolds):
                     testData = self.data.select(DataIdxs[foldN])
                     consensusClassifiers = {}
@@ -257,9 +283,13 @@ class AccWOptParamGetter():
                 res = self.createStatObj(Cresults, Cexp_pred, responseType, self.nExtFolds)
                 statistics["Consensus"] = res.copy()
                 statistics["Consensus"]["IndividualStatistics"] = stableML.copy()
+                self.__writeResults(statistics)
+            self.__log("Returned multiple ML methods statistics.")
             return statistics
                  
         #By default return the only existing statistics!
+        self.__writeResults(statistics)
+        self.__log("Returned only one ML method statistics.")
         return statistics[statistics.keys()[0]]
 
 
