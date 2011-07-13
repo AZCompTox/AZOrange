@@ -160,7 +160,7 @@ class AccWOptParamGetter():
                     self.paramList = None
 
                 trainData = self.data.select(DataIdxs[foldN],negate=1)
-                runPath = miscUtilities.createScratchDir(desc = "AccWOptParam")
+                runPath = miscUtilities.createScratchDir(baseDir = AZOC.NFS_SCRATCHDIR, desc = "AccWOptParam")
                 trainData.save(os.path.join(runPath,"trainData.tab"))
                 testData = self.data.select(DataIdxs[foldN])
 
