@@ -13,6 +13,8 @@ from pprint import pprint
 class AccWOptParamGetter():
     def __init__(self, **kwds):
         self.verbose = 0
+        self.logFile = None
+        self.resultsFile = None
         self.nExtFolds = 5
         self.nInnerFolds = 5
         self.data = None
