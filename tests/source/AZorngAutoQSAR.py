@@ -12,7 +12,7 @@ class evalUtilitiesTest(unittest.TestCase):
 
     def setUp(self):
 
-        trainDataPath1 = os.path.join(AZOC.AZORANGEHOME,"tests/source/data/phosphoTop10Train.tab")
+        trainDataPath1 = os.path.join(AZOC.AZORANGEHOME,"tests/source/data/iris2.tab")
         trainDataPath2 = os.path.join(AZOC.AZORANGEHOME,"tests/source/data/iris.tab")
         trainDataPath3 = os.path.join(AZOC.AZORANGEHOME,"tests/source/data/Reg_No_metas_Test.tab")
 
