@@ -16,7 +16,7 @@ for ML in AZOC.MLMETHODS:
 print "Available MLMETHODS:",[ml for ml in MLMETHODS]
 
 
-def getMLStatistics(trainData,savePath = None, queueType = "NoSGE", verbose = 0):
+def getMLStatistics(trainData,savePath = None, queueType = "NoSGE", verbose = 0, logFile = None):
         """
         Loop over all MLMETHODS to get their statistics
         Write to disk the full MLStatistics including the consensus model:
@@ -30,7 +30,7 @@ def getMLStatistics(trainData,savePath = None, queueType = "NoSGE", verbose = 0)
                 print "Ignored learner ",ml," since it's not compatible with this class."
                 continue
             learners[ml] = learner
-        evaluator = getAccWOptParam.AccWOptParamGetter(data = trainData, learner = learners, paramList = None, nExtFolds = AZOC.QSARNEXTFOLDS, nInnerFolds = AZOC.QSARNINNERFOLDS, queueType = queueType, verbose = verbose)
+        evaluator = getAccWOptParam.AccWOptParamGetter(data = trainData, learner = learners, paramList = None, nExtFolds = AZOC.QSARNEXTFOLDS, nInnerFolds = AZOC.QSARNINNERFOLDS, queueType = queueType, verbose = verbose, logFile = logFile, resultsFile = None)
         MLStatistics = evaluator.getAcc()
 
         if savePath and os.path.isdir(os.path.split(savePath)[0]):
