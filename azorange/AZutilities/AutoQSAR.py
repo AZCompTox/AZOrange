@@ -115,7 +115,7 @@ def buildModel(trainData, MLMethod, queueType = "NoSGE", verbose = 0):
         for ML in MLMethods:
             learners[ML] = MLMETHODS[ML](name = ML)
 
-            runPath = miscUtilities.createScratchDir(desc = "AutoQSAR")
+            runPath = miscUtilities.createScratchDir(baseDir = AZOC.NFS_SCRATCHDIR, desc = "AutoQSAR")
             trainData.save(os.path.join(runPath,"trainData.tab"))
 
             paramOptUtilities.getOptParam(
@@ -157,11 +157,11 @@ def getStatistics(dataset):
         pass
 
 if __name__ == "__main__":
-        data = orange.ExampleTable("/home/kgvf414/projects/M-Lab/paper/MLcomplementarity/data/Regression/QSARnoRef/THERM_RDK.tab")
-        model = getModel(data, verbose = 3, savePath = "./MLStat_reg_THERM_RDK.txt")
+        data = orange.ExampleTable("./dataReg.tab")
+        model = getModel(data, verbose = 3, savePath = "./MLStat_reg.txt")
         print model
 
-        data = orange.ExampleTable("/home/kgvf414/projects/M-Lab/paper/MLcomplementarity/data/Classification/LOcontempQSARsets/hivrt_RDK.tab")
-        model = getModel(data, savePath = "./MLStat_class_hivrt_RDK.txt")
+        data = orange.ExampleTable("./dataClass.tab")
+        model = getModel(data, savePath = "./MLStat_class.txt")
         print model
 
