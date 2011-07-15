@@ -263,7 +263,7 @@ def calcRsqrt(exp_pred_Val):
 
 
 def calcMCC(CM):
-    """ CM =   [[TP, FN],i
+    """ CM =   [[TP, FN],
                 [FP, TN]]
     """
     #Compute MCC = (TP x TN - FP x FN) / sqrt( (TP + FP)(TP + FN)(TN + FP)(TN + FN) )
