@@ -41,7 +41,7 @@ def getMLStatistics(trainData, savePath = None, queueType = "NoSGE", verbose = 0
                 print "Ignored learner ",ml," since it's not compatible with this class."
                 continue
             learners[ml] = learner
-        evaluator = getAccWOptParam.AccWOptParamGetter(data = trainData, learner = learners, paramList = None, nExtFolds = AZOC.QSARNEXTFOLDS, nInnerFolds = AZOC.QSARNINNERFOLDS, queueType = queueType, verbose = verbose, logFile = logFile, resultsFile = savePath)
+        evaluator = getAccWOptParam.AccWOptParamGetter(data = trainData, learner = learners, paramList = None, nExtFolds = AZOC.QSARNINNERFOLDS, nInnerFolds = AZOC.QSARNCVFOLDS, queueType = queueType, verbose = verbose, logFile = logFile, resultsFile = savePath)
         MLStatistics = evaluator.getAcc()
 
         if savePath and os.path.isdir(os.path.split(savePath)[0]):
@@ -54,31 +54,32 @@ def getMLStatistics(trainData, savePath = None, queueType = "NoSGE", verbose = 0
 
 
 def selectModel(MLStatistics, logFile = None):
-        """Return the model with highest R2/CA amongst methods with a stability less than 0.1.
-           If no methods is considered stable, select the method with the greatest R2/CA
+        """Return the model with highest Q2/CA amongst methods with a stability less than 0.1.
+           If no methods is considered stable, select the method with the greatest Q2/CA
         """
         log(logFile, "Selecting MLmethod...")
         bestModelName = None
         bestRes = None
         bestStableVal = None
         for modelName in MLStatistics:
-            if MLStatistics[modelName]["StabilityValue"] < AZOC.QSARSTABILITYTHRESHOLD:
-                valRes = max( MLStatistics[modelName]["R2"], MLStatistics[modelName]["CA"])  # One of them is always None
+            StabilityValue = MLStatistics[modelName]["StabilityValue"]
+            if (StabilityValue is not None) and (StabilityValue < AZOC.QSARSTABILITYTHRESHOLD):
+                valRes = max( MLStatistics[modelName]["Q2"], MLStatistics[modelName]["CA"])  # One of them is always None
                 if bestRes is None or valRes > bestRes:
                     bestRes = valRes
                     bestModelName = modelName
-                    bestStableVal = MLStatistics[modelName]["StabilityValue"]
-                elif valRes == bestRes and MLStatistics[modelName]["StabilityValue"] > bestStableVal:
+                    bestStableVal = StabilityValue
+                elif valRes == bestRes and StabilityValue > bestStableVal:
                     bestRes = valRes
                     bestModelName = modelName
-                    bestStableVal = MLStatistics[modelName]["StabilityValue"]
+                    bestStableVal = StabilityValue
                     
 
 
         if bestModelName is None:
             log(logFile, "  No stable models found! Selecting the one with best result still...")
             for modelName in MLStatistics:
-                valRes = max( MLStatistics[modelName]["R2"], MLStatistics[modelName]["CA"])  # One of them is always None
+                valRes = max( MLStatistics[modelName]["Q2"], MLStatistics[modelName]["CA"])  # One of them is always None
                 if bestRes is None or valRes > bestRes:
                     bestRes = valRes
                     bestModelName = modelName
@@ -87,6 +88,7 @@ def selectModel(MLStatistics, logFile = None):
             log(logFile, "  Selected the stable MLmethod: " + bestModelName)
         MLMethod = MLStatistics[bestModelName].copy()
         MLMethod["MLMethod"] = bestModelName
+        MLStatistics[bestModelName]["selected"] = True
         return MLMethod
 
 
@@ -107,10 +109,10 @@ def buildConsensus(trainData, learners, MLMethods, logFile = None):
             exprTest1 = exprTest0.replace(CLASS0,CLASS1)
             expression = [exprTest0+" >= "+exprTest1+" -> "+CLASS0," -> "+CLASS1]
         else:
-            R2sum = sum([MLMethods[ml]["R2"] for ml in MLMethods])
-            expression = "(1 / "+str(R2sum)+") * (0"
+            Q2sum = sum([MLMethods[ml]["Q2"] for ml in MLMethods])
+            expression = "(1 / "+str(Q2sum)+") * (0"
             for ml in MLMethods:
-                expression += " + "+str(MLMethods[ml]["R2"])+" * " + ml +" "
+                expression += " + "+str(MLMethods[ml]["Q2"])+" * " + ml +" "
             expression += ")" 
 
         consensusLearners = {}
