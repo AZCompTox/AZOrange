@@ -164,6 +164,7 @@ MLMETHODS = {"CvRF":{"module":"trainingMethods.AZorngRF","object":"RFLearner"},
              "CvBoost":{"module":"trainingMethods.AZorngCvBoost","object":"CvBoostLearner"},
              "PLS":{"module":"trainingMethods.AZorngPLS","object":"PLSLearner"}
                 }
-QSARNEXTFOLDS = 10
-QSARNINNERFOLDS = 5
-QSARSTABILITYTHRESHOLD = 0.1
+QSARNEXTFOLDS = 10     #Number of Folds for the outer loop where data is splitted into Esternal test and Modeling Set
+QSARNINNERFOLDS = 10   #Number of Folds to use in getAccWOptParam when data is splitted into train and test
+QSARNCVFOLDS = 5       #Number of CrossValidation folds used in getAccWOptParam when optimizing the MLmethods
+QSARSTABILITYTHRESHOLD = 0.1    #Max stability balue for a model to be considered stable
