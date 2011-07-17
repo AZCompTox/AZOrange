@@ -1,4 +1,4 @@
-import os,time,pickle
+import os,time,pickle,statc
 import AZOrangeConfig as AZOC
 import AZLearnersParamsConfig as OPTconf
 import orange
@@ -25,6 +25,13 @@ def log(logFile, text):
         else:
             print textOut
 
+def saveMLStatistics(savePath, MLStatistics, logFile=None):
+         if savePath and os.path.isdir(os.path.split(savePath)[0]):
+            file = open(savePath, "w")
+            pickle.dump(MLStatistics, file)
+            file.close()
+            log(logFile, "MLStatistics saved to: "+savePath)
+
 
 def getMLStatistics(trainData, savePath = None, queueType = "NoSGE", verbose = 0, logFile = None):
         """
@@ -44,11 +51,7 @@ def getMLStatistics(trainData, savePath = None, queueType = "NoSGE", verbose = 0
         evaluator = getAccWOptParam.AccWOptParamGetter(data = trainData, learner = learners, paramList = None, nExtFolds = AZOC.QSARNINNERFOLDS, nInnerFolds = AZOC.QSARNCVFOLDS, queueType = queueType, verbose = verbose, logFile = logFile, resultsFile = savePath)
         MLStatistics = evaluator.getAcc()
 
-        if savePath and os.path.isdir(os.path.split(savePath)[0]):
-            file = open(savePath, "w")
-            pickle.dump(MLStatistics, file)
-            file.close()
-            log(logFile, "MLStatistics saved to: "+savePath)
+        saveMLStatistics(savePath, MLStatistics, logFile)
         return MLStatistics
 
 
@@ -63,7 +66,19 @@ def selectModel(MLStatistics, logFile = None):
         bestStableVal = None
         for modelName in MLStatistics:
             StabilityValue = MLStatistics[modelName]["StabilityValue"]
-            if (StabilityValue is not None) and (StabilityValue < AZOC.QSARSTABILITYTHRESHOLD):
+            if StabilityValue is not None:
+                    if MLStatistics[modelName]["responseType"] == "Classification": 
+                        if statc.mean(MLStatistics[modelName]["foldStat"]["nTestCmpds"]) > 50:
+                            stableTH = AZOC.QSARSTABILITYTHRESHOLD_CLASS_L
+                        else:
+                            stableTH = AZOC.QSARSTABILITYTHRESHOLD_CLASS_H
+                    elif MLStatistics[modelName]["responseType"] == "Regression":
+                        if statc.mean(MLStatistics[modelName]["foldStat"]["nTestCmpds"]) > 50:
+                           stableTH = AZOC.QSARSTABILITYTHRESHOLD_REG_L
+                        else:
+                            stableTH = AZOC.QSARSTABILITYTHRESHOLD_REG_H
+            StabilityValue = MLStatistics[modelName]["StabilityValue"]
+            if StabilityValue < stableTH:
                 valRes = max( MLStatistics[modelName]["Q2"], MLStatistics[modelName]["CA"])  # One of them is always None
                 if bestRes is None or valRes > bestRes:
                     bestRes = valRes
@@ -196,6 +211,8 @@ def getModel(trainData, savePath = None, queueType = "NoSGE", verbose = 0):
             logFile = None
         MLStatistics = getMLStatistics(trainData, savePath, queueType = queueType, verbose = verbose, logFile = logFile)
         MLMethod = selectModel(MLStatistics, logFile = logFile)
+        #Save again the MLStatistics to update the selected flag
+        saveMLStatistics(savePath, MLStatistics, logFile) 
         model = buildModel(trainData, MLMethod, queueType = queueType, verbose = verbose, logFile = logFile)
         log(logFile, "-"*20)
         log(logFile, "getModel is returning: "+str(model)+"\n\n")

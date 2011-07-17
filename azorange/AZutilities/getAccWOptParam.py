@@ -9,7 +9,7 @@ from AZutilities import miscUtilities
 import orngTest, orngStat
 import os
 from pprint import pprint
-
+import statc
 
 
 
@@ -114,7 +114,7 @@ class AccWOptParamGetter():
                     return False
         return True
 
-    def createStatObj(self, results=None, exp_pred=None, responseType=None, nExtFolds=None, userAlert = ""):
+    def createStatObj(self, results=None, exp_pred=None, nTrainCmpds=None, nTestCmpds=None, responseType=None, nExtFolds=None, userAlert = ""):
         #Initialize res (statObj) for statistic results
         res = {}
         # Classification
@@ -128,7 +128,10 @@ class AccWOptParamGetter():
         res["StabilityValue"] = None
         res["userAlert"] = userAlert
         res["selected"] = False
+        res["responseType"] = False
         res["foldStat"] = {
+                "nTrainCmpds": None,
+                "nTestCmpds": None,
                 #Regression
                 "Q2"   : None,
                 "RMSE" : None,
@@ -136,8 +139,9 @@ class AccWOptParamGetter():
                 "CM"   : None,
                 "CA"   : None,
                 "MCC"  : None }
-        if results is None or exp_pred is None or self.responseType is None or nExtFolds is None:
+        if results is None or exp_pred is None or self.responseType is None or nExtFolds is None or nTestCmpds is None or nTrainCmpds is None:
             return res 
+        res["responseType"] = responseType
         #Calculate the (Q2, RMSE) or (CM, CA) results depending on Classification or regression
         if self.responseType == "Classification":
             #Compute CA
@@ -151,6 +155,8 @@ class AccWOptParamGetter():
             #Compute MCC 
             res["MCC"] = evalUtilities.calcMCC(res["CM"])
             #Compute foldStat
+            res["foldStat"]["nTrainCmpds"] = [n for n in nTrainCmpds]
+            res["foldStat"]["nTestCmpds"] = [n for n in nTestCmpds]
             res["foldStat"]["CA"] = [r[0] for r in results]
             res["foldStat"]["CM"] = [r[1] for r in results]
             res["foldStat"]["MCC"] = [evalUtilities.calcMCC(r[1]) for r in results]
@@ -162,6 +168,8 @@ class AccWOptParamGetter():
             #compute RMSE
             res["RMSE"] = evalUtilities.calcRMSE(exp_pred)
             #Compute foldStat
+            res["foldStat"]["nTrainCmpds"] = [n for n in nTrainCmpds]
+            res["foldStat"]["nTestCmpds"] = [n for n in nTestCmpds]
             res["foldStat"]["RMSE"] = [r[0] for r in results]
             res["foldStat"]["Q2"] = [r[1] for r in results]
             #Compute Stability
@@ -193,6 +201,8 @@ class AccWOptParamGetter():
         #Var for saving each Fols result
         results = {}
         exp_pred = {}
+        nTrainEx = {}
+        nTestEx = {}
         
         #Set a dict of learners
         MLmethods = {}
@@ -218,15 +228,19 @@ class AccWOptParamGetter():
             results[ml] = []
             exp_pred[ml] = []
             models[ml] = []
+            nTrainEx[ml] = []
+            nTestEx[ml] = []
+            logTxt = "" 
             for foldN in range(self.nExtFolds):
                 if type(self.learner) == dict:
                     self.paramList = None
 
                 trainData = self.data.select(DataIdxs[foldN],negate=1)
                 testData = self.data.select(DataIdxs[foldN])
+                nTrainEx[ml].append(len(trainData))
+                nTestEx[ml].append(len(testData))
                 #Test if trainsets inside optimizer will respect dataSize criterias.
                 #  if not, don't optimize, but still train the model
-                logTxt = ""
                 dontOptimize = False
                 if self.responseType != "Classification" and (len(trainData)*(1-1.0/self.nInnerFolds) < 20):
                     dontOptimize = True
@@ -237,7 +251,7 @@ class AccWOptParamGetter():
                         dontOptimize = True
 
                 if dontOptimize:
-                    logTxt = "       Fold "+str(foldN)+": Too few compounds to optimize model hyper-parameters"
+                    logTxt += "       Fold "+str(foldN)+": Too few compounds to optimize model hyper-parameters\n"
                     self.__log(logTxt)
                 else:
                     runPath = miscUtilities.createScratchDir(baseDir = AZOC.NFS_SCRATCHDIR, desc = "AccWOptParam")
@@ -271,14 +285,14 @@ class AccWOptParamGetter():
                     #Save the experimental value and correspondent predicted value
                     exp_pred[ml] += local_exp_pred
    
-            res = self.createStatObj(results[ml], exp_pred[ml], self.responseType, self.nExtFolds, logTxt)
+            res = self.createStatObj(results[ml], exp_pred[ml], nTrainEx[ml], nTestEx[ml],self.responseType, self.nExtFolds, logTxt)
             if self.verbose > 0: 
                 print "AccWOptParamGetter!Results  "+ml+":\n"
                 pprint(res)
             if not res:
                 raise Exception("No results available!")
             statistics[ml] = res.copy()
-            self.__writeResults(res)
+            self.__writeResults(statistics)
             self.__log("       OK")
           except:
             self.__log("       Learner "+str(ml)+" failed to create/optimize the model!")
@@ -294,8 +308,19 @@ class AccWOptParamGetter():
             stableML={}
             for modelName in statistics:
                 StabilityValue = statistics[modelName]["StabilityValue"]
-                if (StabilityValue is not None) and (StabilityValue < AZOC.QSARSTABILITYTHRESHOLD):   # Select only stable models
-                    stableML[modelName] = statistics[modelName].copy()
+                if StabilityValue is not None:
+                    if self.responseType == "Classification":
+                        if statc.mean(statistics[modelName]["foldStat"]["nTestCmpds"]) > 50:
+                            stableTH = AZOC.QSARSTABILITYTHRESHOLD_CLASS_L
+                        else:
+                            stableTH = AZOC.QSARSTABILITYTHRESHOLD_CLASS_H
+                    else:
+                        if statc.mean(statistics[modelName]["foldStat"]["nTestCmpds"]) > 50:
+                            stableTH = AZOC.QSARSTABILITYTHRESHOLD_REG_L
+                        else:
+                            stableTH = AZOC.QSARSTABILITYTHRESHOLD_REG_H
+                    if StabilityValue < stableTH:   # Select only stable models
+                        stableML[modelName] = statistics[modelName].copy()
             if len(stableML) >= 2:
                 self.__log("Found "+str(len(stableML))+" stable MLmethods out of "+str(len(statistics))+" MLmethods.")
                 if self.responseType == "Classification":
@@ -320,14 +345,18 @@ class AccWOptParamGetter():
                 #Var for saving each Fols result
                 Cresults = []
                 Cexp_pred = []
+                CnTrainEx = []
+                CnTestEx = []
                 self.__log("Calculating the statistics for a Consensus model")
                 for foldN in range(self.nExtFolds):
                     testData = self.data.select(DataIdxs[foldN])
+                    CnTestEx.append(len(testData))
                     consensusClassifiers = {}
                     for learnerName in stableML:
                         consensusClassifiers[learnerName] = models[learnerName][foldN]
 
                     model = AZorngConsensus.ConsensusClassifier(classifiers = consensusClassifiers, expression = expression)     
+                    CnTrainEx.append(model.NTrainEx)
                     #Test the model
                     if self.responseType == "Classification":
                         Cresults.append((evalUtilities.getClassificationAccuracy(testData, model), evalUtilities.getConfMat(testData, model) ) )
@@ -339,7 +368,7 @@ class AccWOptParamGetter():
                         #Save the experimental value and correspondent predicted value
                         Cexp_pred += local_exp_pred
 
-                res = self.createStatObj(Cresults, Cexp_pred, self.responseType, self.nExtFolds)
+                res = self.createStatObj(Cresults, Cexp_pred, CnTrainEx, CnTestEx, self.responseType, self.nExtFolds)
                 statistics["Consensus"] = res.copy()
                 statistics["Consensus"]["IndividualStatistics"] = stableML.copy()
                 self.__writeResults(statistics)
