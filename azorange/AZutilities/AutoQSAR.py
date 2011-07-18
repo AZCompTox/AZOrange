@@ -64,6 +64,7 @@ def selectModel(MLStatistics, logFile = None):
         bestModelName = None
         bestRes = None
         bestStableVal = None
+        #Select only from stable models
         for modelName in MLStatistics:
             StabilityValue = MLStatistics[modelName]["StabilityValue"]
             if StabilityValue is not None:
@@ -83,13 +84,13 @@ def selectModel(MLStatistics, logFile = None):
                         bestRes = valRes
                         bestModelName = modelName
                         bestStableVal = StabilityValue
-                    elif valRes == bestRes and StabilityValue > bestStableVal:
+                    elif valRes == bestRes and StabilityValue < bestStableVal:
                         bestRes = valRes
                         bestModelName = modelName
                         bestStableVal = StabilityValue
                     
 
-
+        # No stable models found! Selecting the one with best result still... 
         if bestModelName is None:
             log(logFile, "  No stable models found! Selecting the one with best result still...")
             for modelName in MLStatistics:
