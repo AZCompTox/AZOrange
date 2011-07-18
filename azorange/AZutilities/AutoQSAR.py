@@ -67,27 +67,26 @@ def selectModel(MLStatistics, logFile = None):
         for modelName in MLStatistics:
             StabilityValue = MLStatistics[modelName]["StabilityValue"]
             if StabilityValue is not None:
-                    if MLStatistics[modelName]["responseType"] == "Classification": 
-                        if statc.mean(MLStatistics[modelName]["foldStat"]["nTestCmpds"]) > 50:
-                            stableTH = AZOC.QSARSTABILITYTHRESHOLD_CLASS_L
-                        else:
-                            stableTH = AZOC.QSARSTABILITYTHRESHOLD_CLASS_H
-                    elif MLStatistics[modelName]["responseType"] == "Regression":
-                        if statc.mean(MLStatistics[modelName]["foldStat"]["nTestCmpds"]) > 50:
-                           stableTH = AZOC.QSARSTABILITYTHRESHOLD_REG_L
-                        else:
-                            stableTH = AZOC.QSARSTABILITYTHRESHOLD_REG_H
-            StabilityValue = MLStatistics[modelName]["StabilityValue"]
-            if StabilityValue < stableTH:
-                valRes = max( MLStatistics[modelName]["Q2"], MLStatistics[modelName]["CA"])  # One of them is always None
-                if bestRes is None or valRes > bestRes:
-                    bestRes = valRes
-                    bestModelName = modelName
-                    bestStableVal = StabilityValue
-                elif valRes == bestRes and StabilityValue > bestStableVal:
-                    bestRes = valRes
-                    bestModelName = modelName
-                    bestStableVal = StabilityValue
+                if MLStatistics[modelName]["responseType"] == "Classification": 
+                    if statc.mean(MLStatistics[modelName]["foldStat"]["nTestCmpds"]) > 50:
+                        stableTH = AZOC.QSARSTABILITYTHRESHOLD_CLASS_L
+                    else:
+                        stableTH = AZOC.QSARSTABILITYTHRESHOLD_CLASS_H
+                elif MLStatistics[modelName]["responseType"] == "Regression":
+                    if statc.mean(MLStatistics[modelName]["foldStat"]["nTestCmpds"]) > 50:
+                       stableTH = AZOC.QSARSTABILITYTHRESHOLD_REG_L
+                    else:
+                        stableTH = AZOC.QSARSTABILITYTHRESHOLD_REG_H
+                if StabilityValue < stableTH:
+                    valRes = max( MLStatistics[modelName]["Q2"], MLStatistics[modelName]["CA"])  # One of them is always None
+                    if bestRes is None or valRes > bestRes:
+                        bestRes = valRes
+                        bestModelName = modelName
+                        bestStableVal = StabilityValue
+                    elif valRes == bestRes and StabilityValue > bestStableVal:
+                        bestRes = valRes
+                        bestModelName = modelName
+                        bestStableVal = StabilityValue
                     
 
 
