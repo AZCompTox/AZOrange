@@ -176,6 +176,11 @@ def getRdkDescResult(data,descList, radius = 1):
     if not smilesName: return None
     
     myDescList = [desc.replace(rdkTag,"") for desc in descList if rdkTag in desc]
+    # remove the 'MolecularFormula' descriptor before calculating. This is a String descriptor like C4H12O2 
+    # and not a phys-chem descriptor...otherwise causes 
+    #Unexpected error: (<class 'orange.KernelException'>, KernelException("'orange.FloatVariable': 'C16H16N2O2S' is not a legal value for continuous attribute 'MolecularFormula'",), <traceback object at 0x8dbc464>)
+    if myDescList.count("MolecularFormula") > 0: myDescList.remove("MolecularFormula")
+    
     if not myDescList: return None
 
     if "FingerPrints" in myDescList:
@@ -244,7 +249,7 @@ def getRdkDescResult(data,descList, radius = 1):
              moldesc = mol.calcdesc(myDescList)
              for desc in myDescList:
                  newEx[rdkTag+desc] = moldesc[desc]
- 
+               
              #Process fingerprints
              if FingerPrints:
                  for desc in fingerPrintsAttrs:
@@ -253,7 +258,8 @@ def getRdkDescResult(data,descList, radius = 1):
                      else:
                          newEx[desc.name] = 0.0
              resData.append(newEx)
-        except: 
+        except:
+            #print "Unexpected error:", sys.exc_info()
             badCompounds += 1
     print "Compounds in original data:       ",len(data)
     print "Compounds able to calculate descs:",len(resData)
