@@ -32,6 +32,7 @@ class Appspack:
     FOLD_CROSS_VALIDATION = 1
     def __init__(self, **kwds):
         #Possible user defined Vars
+        self.logFile = ""         # An optional log file for debug
         self.externalControl = 0  #if = 1, the control of the finish of optimization must be from the caller by the 
                                   # isFinished() method
         self.useParameters = None
@@ -1005,6 +1006,16 @@ print cPickle.dumps(eval(evalMethod)(res)[0])
                         self.finishedFlag = False
         return True
 
+    def __log(self, text):
+        """Adds a new line (what's in text) to the logFile"""
+        textOut = str(time.asctime()) + ": " +text
+        if self.logFile and os.path.isdir(os.path.split(self.logFile)[0]):
+            file = open(self.logFile, "a")
+            file.write(textOut+"\n")
+            file.close()
+        else:
+            print textOut
+
     def submitQsub(self):
         """
         Submit with qsub and get the jobID
@@ -1026,6 +1037,11 @@ print cPickle.dumps(eval(evalMethod)(res)[0])
         if self.verbose > 1: print "Exit Status: ",exitCode,"\n",qsub
         try: self.qsubJobId = string.split(qsub)[2]
         except: exitCode = 1
+        self.__log("       -Submitted qsub job from appspack with ID: "+str(self.qsubJobId))
+        self.__log("           present dir:"+presentDir)
+        self.__log("           qsub running dir:"+self.runPath)
+        self.__log("           memsize:"+str(memSize))
+        self.__log("           command:"+"Command:  qsub -l mf="+str(memSize)+"M -q "+self.queueType+" "+self.qsubFile)
         return exitCode
 
     def createTempSSHkey(self):
@@ -1181,7 +1197,7 @@ echo "end mpirun"
         return True
 
 
-def getOptParam(learner, trainDataFile, paramList = None, useGrid = False, verbose = 0, queueType = "NoSGE", runPath = None, nExtFolds = None, nFolds = 5):
+def getOptParam(learner, trainDataFile, paramList = None, useGrid = False, verbose = 0, queueType = "NoSGE", runPath = None, nExtFolds = None, nFolds = 5, logFile = ""):
     """
     Optimize the parameters in paramList. If no parametres defines, optimize defauld parameters (defined in AZLearnersParmsConfig). 
     Run optimization in parallel.
@@ -1251,7 +1267,8 @@ def getOptParam(learner, trainDataFile, paramList = None, useGrid = False, verbo
                     np = np,\
                     machinefile = machinefile,\
                     verbose = verbose,\
-                    queueType = queueType)
+                    queueType = queueType,
+                    logFile = logFile)
 
     if verbose > 0:
         print "Returned: ", tunedPars

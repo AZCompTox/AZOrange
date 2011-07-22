@@ -200,10 +200,19 @@ class PLSClassifier(AZBaseClasses.AZClassifier):
             PLSFeatureVector = self.getFeatureVector(examplesImp)
             # Return the result of the prediction for one feature vector
 	    PLSOut = self.classifier.Run(PLSFeatureVector)
+            if self.verbose > 0: print "PLSOut: ",PLSOut
 	    if PLSOut.find("ERROR")>=0:
-                if self.verbose > 0: print PLSOut
+                print "Error returned by PLS:"
+                print "  PLSOut: ",PLSOut
+                print "Class:",str(self.classVar)
+                if self.classVar.varType == orange.VarTypes.Discrete:
+                    print "values = ",str(self.classVar.values)
+                else:
+                    print "Numerical Variable"
+                print "Returning '?'"
                 PLSOut = '?' #"ERROR"
 	    orngOut=string.split(PLSOut,"\t")
+            if self.verbose > 0: print "orngOut: ",orngOut
 	    #convert result to orange value
             try:
 	        value=orange.Value(self.classVar,orngOut[len(orngOut)-1])
@@ -215,7 +224,9 @@ class PLSClassifier(AZBaseClasses.AZClassifier):
                 else:
                     print "Numerical Variable"
                 print "Returned by PLS:",str(PLSOut)
-                print "Value in orange Format (Will be the last element of PLSout):",str(orngOut[len(orngOut)-1])
+                print "Value in orange Format (Would be the last element of PLSout): ",str(orngOut),"  ->  ",str(orngOut[len(orngOut)-1])
+                print "Returning '?'"
+                value=orange.Value(self.classVar,'?')
 	    score = self.getProbabilities(value)
 	    # Assure that large local variables are deleted
 	    del examplesImp
@@ -310,5 +321,18 @@ def PLSread(filePath, verbose = 0):
 
 	 
     return PLSClassifier(classifier = PLSInstance, classVar=classVar, imputeData=impData[0], varNames = varNames, NTrainEx = NTrainEx, basicStat = basicStat, verbose = verbose)
+
+
+if __name__ == "__main__":
+    data = orange.ExampleTable("../../tests/source/data/BinClass_No_metas_Train.tab")
+    learner = PLSLearner(verbose = 0)
+    PLS = learner(data)    
+    for ex in data:
+        pred = PLS(ex)
+        print pred.variable
+        print type(pred)
+        print pred
+        break
+
 
 

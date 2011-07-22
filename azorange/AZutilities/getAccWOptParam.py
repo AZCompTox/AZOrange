@@ -128,6 +128,7 @@ class AccWOptParamGetter():
         res["StabilityValue"] = None
         res["userAlert"] = userAlert
         res["selected"] = False
+        res["stable"] = False
         res["responseType"] = False
         res["foldStat"] = {
                 "nTrainCmpds": None,
@@ -172,8 +173,24 @@ class AccWOptParamGetter():
             res["foldStat"]["nTestCmpds"] = [n for n in nTestCmpds]
             res["foldStat"]["RMSE"] = [r[0] for r in results]
             res["foldStat"]["Q2"] = [r[1] for r in results]
-            #Compute Stability
+            #Compute Stability value
             res["StabilityValue"] = evalUtilities.stability(res["foldStat"]["Q2"])
+        #Evaluate stability of ML
+        StabilityValue = res["StabilityValue"]
+        if StabilityValue is not None:
+            if responseType == "Classification":
+                if statc.mean(res["foldStat"]["nTestCmpds"]) > 50:
+                    stableTH = AZOC.QSARSTABILITYTHRESHOLD_CLASS_L
+                else:
+                    stableTH = AZOC.QSARSTABILITYTHRESHOLD_CLASS_H
+            else:
+                if statc.mean(res["foldStat"]["nTestCmpds"]) > 50:
+                    stableTH = AZOC.QSARSTABILITYTHRESHOLD_REG_L
+                else:
+                    stableTH = AZOC.QSARSTABILITYTHRESHOLD_REG_H
+            if StabilityValue < stableTH:   # Select only stable models
+                res["stable"] = True
+
         return res
         
     def getAcc(self):
@@ -221,7 +238,14 @@ class AccWOptParamGetter():
             trainData = self.data.select(DataIdxs[foldN],negate=1)
             self.__checkTrainData(trainData)
 
-        for ml in MLmethods:
+        #Optional!!
+        # Order Learners so that PLS is the first
+        sortedML = [ml for ml in MLmethods]
+        if "PLS" in sortedML:
+            sortedML.remove("PLS")
+            sortedML.insert(0,"PLS")
+
+        for ml in sortedML:
           self.__log("    > "+str(ml)+"...")
           try:
             #Var for saving each Fols result
@@ -266,11 +290,18 @@ class AccWOptParamGetter():
                         queueType = self.queueType, 
                         runPath = runPath, 
                         nExtFolds = None, 
-                        nFolds = self.nInnerFolds)
-                    if not MLmethods[ml].optimized:
-                        self.__log("       The learner "+str(ml)+" was not optimized.")
+                        nFolds = self.nInnerFolds,
+                        logFile = self.logFile)
+                    if not MLmethods[ml] or not MLmethods[ml].optimized:
+                        self.__log("       WARNING: GETACCWOPTPARAM: The learner "+str(ml)+" was not optimized.")
+                        self.__log("                It will be ignored")
+                        #self.__log("                It will be set to default parameters")
+                        self.__log("                    DEBUG can be done in: "+runPath)
+                        #Set learner back to default 
+                        #MLmethods[ml] = MLmethods[ml].__class__()
                         raise Exception("The learner "+str(ml)+" was not optimized.")
-                    miscUtilities.removeDir(runPath) 
+                    else:
+                        miscUtilities.removeDir(runPath) 
                 #Train the model
                 model = MLmethods[ml](trainData)
                 models[ml].append(model)
@@ -308,19 +339,8 @@ class AccWOptParamGetter():
             stableML={}
             for modelName in statistics:
                 StabilityValue = statistics[modelName]["StabilityValue"]
-                if StabilityValue is not None:
-                    if self.responseType == "Classification":
-                        if statc.mean(statistics[modelName]["foldStat"]["nTestCmpds"]) > 50:
-                            stableTH = AZOC.QSARSTABILITYTHRESHOLD_CLASS_L
-                        else:
-                            stableTH = AZOC.QSARSTABILITYTHRESHOLD_CLASS_H
-                    else:
-                        if statc.mean(statistics[modelName]["foldStat"]["nTestCmpds"]) > 50:
-                            stableTH = AZOC.QSARSTABILITYTHRESHOLD_REG_L
-                        else:
-                            stableTH = AZOC.QSARSTABILITYTHRESHOLD_REG_H
-                    if StabilityValue < stableTH:   # Select only stable models
-                        stableML[modelName] = statistics[modelName].copy()
+                if StabilityValue is not None and statistics[modelName]["stable"]:
+                    stableML[modelName] = statistics[modelName].copy()
             if len(stableML) >= 2:
                 self.__log("Found "+str(len(stableML))+" stable MLmethods out of "+str(len(statistics))+" MLmethods.")
                 if self.responseType == "Classification":

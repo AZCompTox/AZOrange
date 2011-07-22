@@ -168,18 +168,24 @@ def buildModel(trainData, MLMethod, queueType = "NoSGE", verbose = 0, logFile = 
                 verbose = verbose,
                 queueType = queueType,
                 runPath = runPath,
-                nExtFolds = None)
+                nExtFolds = None,
+                logFile = logFile)
 
             if not learners[ML].optimized:
-                print "ERROR: AutoQSAR: The learner was not optimized."
+                print "WARNING: AutoQSAR: The learner "+str(learners[ML])+" was not optimized."
+                #print "         Using default parameters"
+                print "         Returning None"
+                print "             DEBUG can be made in: "+runPath 
+                #Setting default parameters
+                #learners[ML] = learners[ML].__class__()   
                 return None
             else:
                 print "Optimized learner ",learners[ML]           
-            miscUtilities.removeDir(runPath)
+                miscUtilities.removeDir(runPath)
 
         #Train the model
         if len(learners) == 1:
-            log(logFile, "  Building the optimized learner:"+learners.keys()[0])
+            log(logFile, "  Building the learner:"+learners.keys()[0])
             model = learners[learners.keys()[0]](trainData)
         elif len(learners) >= 1:
             model = buildConsensus(trainData,learners,MLMethods)

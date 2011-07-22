@@ -199,6 +199,8 @@ def generalCVconfMat(data, learners, nFolds = 5):
             print ("%s" + ("\t%i" * len(classes))) % ((className, ) + tuple(classConfusions))
 
 def getClassificationAccuracy(testData, classifier):
+    if not len(testData):
+        return 0.0
     correct = 0.0
     for ex in testData:
         #print str(classifier(ex)) + "->" + str(ex.getclass())
@@ -226,8 +228,10 @@ def calcRMSE(exp_pred_Val):
             if verbose > 0: print "Warning!!!!"
             if verbose > 0: print "No prediction could be made for the example idx = ",idx
             if verbose > 0: print val
-    
-    accuracy = math.sqrt(accSum/nPredEx)
+    if not nPredEx:
+        accuracy = 999999
+    else:
+        accuracy = math.sqrt(accSum/nPredEx)
     return accuracy
 
 
@@ -257,8 +261,10 @@ def calcRsqrt(exp_pred_Val):
     for val in exp_pred_Val:
         errSum = errSum + math.pow(val[0] - string.atof(str(val[1])),2)
         meanSum = meanSum + math.pow(testMean - val[0],2)
-
-    Rsqrt = 1 - errSum/meanSum
+    if not meanSum:
+        Rsqrt = -999999
+    else:
+        Rsqrt = 1 - errSum/meanSum
     return Rsqrt
 
 
@@ -308,7 +314,10 @@ def getQ2(testData, predictor):
         errSum = errSum + math.pow(ex.getclass() - string.atof(str(predictor(ex))),2)
         meanSum = meanSum + math.pow(trainMean - ex.getclass(),2)
 
-    Q2 = 1 - errSum/meanSum
+    if not meanSum:
+        Q2 = -999999
+    else:
+        Q2 = 1 - errSum/meanSum
     return Q2
 
 
