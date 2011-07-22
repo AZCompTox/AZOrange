@@ -106,7 +106,7 @@ class PLSLearner(AZBaseClasses.AZLearner):
         else:
 	    learner.SetParameter('k',self.k)
 	learner.SetParameter('precision',self.precision)	
-	learner.SetParameter('sDir',AZOC.SCRATCHDIR)
+	learner.SetParameter('sDir',scratchdir)  #AZOC.SCRATCHDIR)
 	
         # Read the Orange Formated file and Train the Algorithm
 	# TRAIN
