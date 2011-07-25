@@ -1,9 +1,10 @@
-import os,time,pickle,statc
+import commands, os,time,pickle,statc, sys
 import AZOrangeConfig as AZOC
 import AZLearnersParamsConfig as OPTconf
 import orange
 import getAccWOptParam
 from AZutilities import miscUtilities
+from AZutilities import dataUtilities
 from AZutilities import paramOptUtilities
 from trainingMethods import AZorngConsensus
 from pprint import pprint
@@ -196,7 +197,7 @@ def buildModel(trainData, MLMethod, queueType = "NoSGE", verbose = 0, logFile = 
         return model
 
 
-def getModel(trainData, savePath = None, queueType = "NoSGE", verbose = 0):
+def getModel(trainData, savePath = None, queueType = "NoSGE", verbose = 0, getAllModels = False):
         """
             Chooses the best model based on calculated MLStatistics
             trainData           Data for calculating the MLStatistics and finaly for training the selected model
@@ -219,17 +220,225 @@ def getModel(trainData, savePath = None, queueType = "NoSGE", verbose = 0):
         MLMethod = selectModel(MLStatistics, logFile = logFile)
         #Save again the MLStatistics to update the selected flag
         saveMLStatistics(savePath, MLStatistics, logFile) 
-        model = buildModel(trainData, MLMethod, queueType = queueType, verbose = verbose, logFile = logFile)
-        log(logFile, "-"*20)
-        log(logFile, "getModel is returning: "+str(model)+"\n\n")
-        return model
+        if getAllModels:
+            models = {}
+            for ml in MLStatistics:
+                models[ml] = buildModel(trainData, MLStatistics[ml], queueType = queueType, verbose = verbose, logFile = logFile)
+            log(logFile, "-"*20)
+            log(logFile, "getModel is returning all models: "+str(models)+"\n\n")
+            return models
+        else:
+            model = buildModel(trainData, MLMethod, queueType = queueType, verbose = verbose, logFile = logFile)
+            log(logFile, "-"*20)
+            log(logFile, "getModel is returning the selected model: "+str(model)+"\n\n")
+            return {MLMethod["MLMethod"]:model}
 
 
-def getStatistics(dataset):
-        pass
+def getStatistics(dataset, runningDir, queueType = "batch.q", verbose = 0, getAllModels = False):
+        #Create the Train and test sets
+        DataIdxs = dataUtilities.SeedDataSampler(dataset, AZOC.QSARNEXTFOLDS )
+        #Check data in advance so that, by chance, it will not faill at the last fold!
+        #for foldN in range(AZOC.QSARNEXTFOLDS):
+            #trainData = self.data.select(DataIdxs[foldN],negate=1)
+            #checkTrainData(trainData)
+
+        jobs = {}
+        thisDir = os.getcwd()
+        os.chdir(runningDir)
+        PID = os.getpid() 
+        print "Started getStatistics in Process with PID: "+str(PID)
+        os.system('echo "'+str(PID)+'" > '+os.path.join(runningDir,"PID"))
+        os.system('echo "started" > '+os.path.join(runningDir,"status"))
+        # Start  all Fold jobs
+        for fold in range(AZOC.QSARNEXTFOLDS):
+            job = str(fold)
+            print "Starting job for fold ",job
+            trainData = dataset.select(DataIdxs[fold],negate=1)
+            testData = dataset.select(DataIdxs[fold])
+            jobs[job] = {"job":job,"path":os.path.join(runningDir, "fold_"+job), "running":False, "failed":False, "finished":False}
+            os.system("rm -rf "+jobs[job]["path"])
+            os.system("mkdir -p "+jobs[job]["path"])
+            trainData.save(os.path.join(jobs[job]["path"],"trainData.tab"))
+            file_h = open(os.path.join(jobs[job]["path"],"run.sh"),"w")
+            file_h.write("#!/bin/tcsh\n")
+            file_h.write("source /home/palmeida/dev/AZOrange/templateProfile\n")
+            file_h.write("python "+os.path.join(jobs[job]["path"],"QsubScript.py")+"\n")
+            file_h.close()
+
+            file_h = open(os.path.join(jobs[job]["path"],"QsubScript.py"),"w")
+            file_h.write("import os\n")
+            file_h.write("from AZutilities import dataUtilities\n")
+            file_h.write("from AZutilities import AutoQSAR\n")
+            file_h.write("data = dataUtilities.DataTable('"+os.path.join(jobs[job]["path"],"trainData.tab")+"')\n")
+            file_h.write('os.system(\'echo "running" > '+os.path.join(jobs[job]["path"],"status")+' \')\n')
+            file_h.write("models = AutoQSAR.getModel(data, savePath = '"+os.path.join(jobs[job]["path"],"results.txt")+"', queueType = '"+queueType+"', getAllModels = "+str(getAllModels)+")\n")
+            file_h.write("nModelsSaved = 0\n")
+            file_h.write("for model in models:\n")
+            file_h.write("    if not models[model] is None:\n")
+            file_h.write("        models[model].write('"+os.path.join(jobs[job]["path"],"model")+"'+'_'+model)\n")
+            file_h.write('        nModelsSaved += 1')
+            file_h.write('if nModelsSaved == len([m for m in models if not models[m] is None ])')
+            file_h.write('    os.system(\'echo "finished" > '+os.path.join(jobs[job]["path"],"status")+' \')\n')
+            file_h.write("\n")
+            file_h.write('    os.system(\'echo "failed" > '+os.path.join(jobs[job]["path"],"status")+' \')\n')
+            file_h.close()
+
+            os.chdir(os.path.join(jobs[job]["path"]))
+            status, out = commands.getstatusoutput("qsub -cwd -q batch.q " + os.path.join(jobs[job]["path"],"run.sh"))
+            if status:
+                print "ERROR on Job "+str(job)+" (will be skipped)"
+                print out
+                #raise Exception("ERROR starting job for folder "+str(job))
+            # Your job 955801 ("template_run.sh") has been submitted
+            jID = out.strip().split(" ")[2]
+            print "    jID: ",jID
+            os.system('echo "'+jID+'" > '+os.path.join(jobs[job]["path"], "jID"))
+            jobs[job]["running"] = True
+            jobs[job]["jID"] = jID
+            os.chdir(runningDir)
+        os.chdir(thisDir)
+
+        #Monitor Fold jobs
+        finished = []
+        updateJobsStatus(jobs)
+        for job in jobs:
+            if jobs[job]["finished"]:
+                finished.append(job)
+        print "Jobs already finished: ",finished
+        while len(finished) < AZOC.QSARNEXTFOLDS:
+            updateJobsStatus(jobs)
+            for job in jobs:
+                if jobs[job]["finished"] and job not in finished:
+                    finished.append(job)
+                    print time.asctime()+": Finished job "+str(job)
+            os.system(' echo "'+str(len(finished))+'/'+str(AZOC.QSARNEXTFOLDS)+'" > '+os.path.join(runningDir,"status"))
+            for job in [j for j in jobs if jobs[j]["failed"]]:
+                restartJob(jobs[job])  
+            time.sleep(20)                
+
+        os.system(' echo "finished" > '+os.path.join(runningDir,"status"))
+ 
+
+
+def updateJobsStatus(jobs):
+        # read the jobs qsub  status
+        #  job-ID     prior      name       user    state        submit/start                     queue         slots ja-task-ID 
+        #['955826', '0.50586', 'run.sh', 'palmeida', 'r', '07/14/2011', '19:18:17', 'batch.q@semldxwolf.seml.astraz', '1']
+        status, out = commands.getstatusoutput("qstat")
+        qstat = {}
+        for job in out.split('\n')[2:]:
+            status = job.split()
+            qstat[status[0]] = status[4]
+
+        for job in [j for j in jobs if not jobs[j]["finished"]]:
+            statusFile = os.path.join(jobs[job]["path"],"status")
+            if os.path.isfile(statusFile):
+                st, status = commands.getstatusoutput("cat "+statusFile)
+            else:
+                status = None
+                print "WARNING! job "+job+" ha no status!"
+
+            if jobs[job]["jID"] in qstat:
+                if qstat[jobs[job]["jID"]] in ['r',"t","qw"]:
+                    jobs[job]["running"] = True
+                else:
+                    jobs[job]["running"] = False
+            else:
+                jobs[job]["running"] = False
+            if not jobs[job]["running"]:
+                if isJobProgressingOK(jobs[job]):
+                    #Test if it finished properly
+                    if not status or status == "failed":
+                        print "JOb "+job+" failed to build all models. It was flaged for restart"
+                        jobs[job]["failed"] = True
+                    elif ststus == "finished":
+                        jobs[j]["finished"] = True
+                else:
+                    print "Job "+job+" failed to build one or more models in getMLStatistics. It was flaged for restart"
+                    jobs[job]["failed"] = True
+        
+        
+def restartJob(jobObj, force = False):
+            job = jobObj["job"]
+            print "\nJob "+job+ " is being reported as failing"
+            runningJobDir = jobObj["path"]
+            thisDir = os.getcwd()
+            os.chdir(runningJobDir)
+            if not os.path.isfile("./jID"):
+                print "No job started yet for fold "+job
+                
+            else:       
+                print "Killing eventually running job"+job+"..."
+                os.system("cat jID | xargs qdel -j")
+                status, oldjID = commands.getstatusoutput("head -n 1 jID")
+                # Save results
+                print "  Backing up Job "+str(job)+"..."
+                os.system("mkdir Bkup_"+oldjID)
+                os.system("mv model_* Bkup_"+oldjID)
+                os.system("mv jID Bkup_"+oldjID)
+                os.system("mv results.* Bkup_"+oldjID)
+                os.system("mv run.sh.* Bkup_"+oldjID)
+            print "  Starting Job "+str(job)+"..."
+            jobFile = os.path.join(runningJobDir,"run.sh")
+            status, out = commands.getstatusoutput("qsub -cwd -q batch.q " + jobFile)
+            if status:
+                print "  ERROR on Job "+str(job)+" (will be skipped)"
+                print out
+                os.chdir(thisDir)
+                return
+            # Your job 955801 ("template_run.sh") has been submitted
+            jID = out.strip().split(" ")[2]
+            print "    jID: ",jID
+            os.system('echo "'+jID+'" > '+os.path.join(runningJobDir,"jID"))
+            os.system('echo "Restarted at '+str(time.asctime())+'" >> '+os.path.join(runningJobDir,"restarts.log"))
+            os.chdir(thisDir)
+
+def isJobProgressingOK(job):
+        runningJobDir = job["path"] 
+        resFile = os.path.join(runningJobDir, "results.txt")
+        if not os.path.isfile(resFile):
+            return True
+        n = 5
+        statistics = None
+        while n > 0:
+            try:
+                statFile_h = open(resFile )
+                statistics = pickle.load(statFile_h)
+                statFile_h.close()
+                n=0
+            except:
+                statistics = None
+                print "   No results file in job "+job["job"]+". Waiting 5 sec and trying again..."
+                n -=1
+                time.sleep(5)
+        if not statistics:
+            print "   Results file is missing in job "+job["job"]+". will check next time!"
+            return True
+        mlFailed = []
+        for ml in statistics:
+            if ml == "Consensus":
+                continue
+            if statistics[ml]["CA"] is None and statistics[ml]["Q2"] is None:
+                mlFailed.append(ml)
+        if mlFailed:
+            for ml in mlFailed:
+                print "MLMethod "+ml+" of job "+job["job"]+" failed"
+            return False
+        else:
+            return True
+
+
+
+
+
 
 if __name__ == "__main__":
         data = orange.ExampleTable("./dataReg.tab")
+        
+        statistics = getStatistics(data, runningDir="/home/palmeida/dev/AZOrange/azorange/AZutilities/runningJobs")
+        print "Statistics = ",statistics
+        sys.exit()
+
         model = getModel(data, savePath = "./MLStat_reg.txt")
         print model
 
