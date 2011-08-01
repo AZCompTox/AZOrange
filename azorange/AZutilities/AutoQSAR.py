@@ -1,13 +1,16 @@
-import commands, os,time,pickle,statc, sys
+import commands, os,time,pickle,statc, sys,copy
 import AZOrangeConfig as AZOC
 import AZLearnersParamsConfig as OPTconf
-import orange
+import orange,orngTest
 import getAccWOptParam
 from AZutilities import miscUtilities
+from AZutilities import evalUtilities
 from AZutilities import dataUtilities
 from AZutilities import paramOptUtilities
+from trainingMethods import AZBaseClasses
 from trainingMethods import AZorngConsensus
 from pprint import pprint
+import random
 #Create the ML methods (learners)
 MLMETHODS = {}
 for ML in AZOC.MLMETHODS:
@@ -102,7 +105,7 @@ def selectModel(MLStatistics, logFile = None):
             log(logFile, "  Selected the non-stable MLmethod: " + bestModelName)
         else:
             log(logFile, "  Selected the stable MLmethod: " + bestModelName)
-        MLMethod = MLStatistics[bestModelName].copy()
+        MLMethod = copy.deepcopy(MLStatistics[bestModelName])
         MLMethod["MLMethod"] = bestModelName
         MLStatistics[bestModelName]["selected"] = True
         return MLMethod
@@ -117,7 +120,7 @@ def buildConsensus(trainData, learners, MLMethods, logFile = None):
             CLASS1 = str(trainData.domain.classVar.values[1])
             exprTest0 = "(0"
             for ml in MLMethods:
-                exprTest0 += "+( "+ml+" == "+CLASS0+" )*"+str(MLMethods[ml]["CA"])+" "
+                exprTest0 += "+( "+ml+" == "+CLASS0+" )*"+str(MLMethods[ml]["optAcc"])+" "
             exprTest0 += ")/IF0(sum([False"
             for ml in MLMethods:
                 exprTest0 += ", "+ml+" == "+CLASS0+" "
@@ -125,10 +128,10 @@ def buildConsensus(trainData, learners, MLMethods, logFile = None):
             exprTest1 = exprTest0.replace(CLASS0,CLASS1)
             expression = [exprTest0+" >= "+exprTest1+" -> "+CLASS0," -> "+CLASS1]
         else:
-            Q2sum = sum([MLMethods[ml]["Q2"] for ml in MLMethods])
+            Q2sum = sum([MLMethods[ml]["optAcc"] for ml in MLMethods])
             expression = "(1 / "+str(Q2sum)+") * (0"
             for ml in MLMethods:
-                expression += " + "+str(MLMethods[ml]["Q2"])+" * " + ml +" "
+                expression += " + "+str(MLMethods[ml]["optAcc"])+" * " + ml +" "
             expression += ")" 
 
         consensusLearners = {}
@@ -150,7 +153,7 @@ def buildModel(trainData, MLMethod, queueType = "NoSGE", verbose = 0, logFile = 
         MLMethods = {}
         if "IndividualStatistics"  in MLMethod:                        #It is a consensus
             for ML in MLMethod["IndividualStatistics"]:
-                MLMethods[ML] = MLMethod["IndividualStatistics"][ML]
+                MLMethods[ML] = copy.deepcopy(MLMethod["IndividualStatistics"][ML])
         else:
             MLMethods[MLMethod["MLMethod"]] = MLMethod
 
@@ -162,7 +165,7 @@ def buildModel(trainData, MLMethod, queueType = "NoSGE", verbose = 0, logFile = 
             runPath = miscUtilities.createScratchDir(baseDir = AZOC.NFS_SCRATCHDIR, desc = "AutoQSAR")
             trainData.save(os.path.join(runPath,"trainData.tab"))
 
-            paramOptUtilities.getOptParam(
+            tunedPars = paramOptUtilities.getOptParam(
                 learner = learners[ML],
                 trainDataFile = os.path.join(runPath,"trainData.tab"),
                 useGrid = False,
@@ -170,20 +173,30 @@ def buildModel(trainData, MLMethod, queueType = "NoSGE", verbose = 0, logFile = 
                 queueType = queueType,
                 runPath = runPath,
                 nExtFolds = None,
-                logFile = logFile)
+                logFile = logFile,
+                getTunedPars = True)
 
+            
             if not learners[ML].optimized:
                 print "WARNING: AutoQSAR: The learner "+str(learners[ML])+" was not optimized."
                 #print "         Using default parameters"
-                print "         Returning None"
+                print "         The "+str(learners[ML])+" will not be included"
+                #print "         Returning None"
                 print "             DEBUG can be made in: "+runPath 
                 #Setting default parameters
                 #learners[ML] = learners[ML].__class__()   
-                return None
+                #return None
+                learners.pop(ML)
+                continue
             else:
-                print "Optimized learner ",learners[ML]           
+                print "Optimized learner ",learners[ML]      
+                if trainData.domain.classVar.varType == orange.VarTypes.Discrete:
+                    MLMethods[ML]["optAcc"] = tunedPars[0] 
+                else:
+                    res = orngTest.crossValidation([learners[ML]], trainData, folds=5, strat=orange.MakeRandomIndices.StratifiedIfPossible, randomGenerator = random.randint(0, 100))
+                    R2 = evalUtilities.R2(res)[0]  
+                    MLMethods[ML]["optAcc"] = R2
                 miscUtilities.removeDir(runPath)
-
         #Train the model
         if len(learners) == 1:
             log(logFile, "  Building the learner:"+learners.keys()[0])
@@ -223,6 +236,7 @@ def getModel(trainData, savePath = None, queueType = "NoSGE", verbose = 0, getAl
         if getAllModels:
             models = {}
             for ml in MLStatistics:
+                MLStatistics[ml]["MLMethod"] = ml
                 models[ml] = buildModel(trainData, MLStatistics[ml], queueType = queueType, verbose = verbose, logFile = logFile)
             log(logFile, "-"*20)
             log(logFile, "getModel is returning all models: "+str(models)+"\n\n")
@@ -234,28 +248,138 @@ def getModel(trainData, savePath = None, queueType = "NoSGE", verbose = 0, getAl
             return {MLMethod["MLMethod"]:model}
 
 
-def getStatistics(dataset, runningDir, queueType = "batch.q", verbose = 0, getAllModels = False):
+def createStatObj(results=None, exp_pred=None, nTrainCmpds=None, nTestCmpds=None, responseType=None, nExtFolds=None, userAlert = ""):
+        #Initialize res (statObj) for statistic results
+        res = {}
+        # Classification
+        res["CA"] = None
+        res["CM"] = None
+        res["MCC"] = None
+        #Regression
+        res["Q2"] = None
+        res["RMSE"] = None
+        #Both
+        res["StabilityValue"] = None
+        res["userAlert"] = userAlert
+        res["selected"] = False
+        res["stable"] = False
+        res["responseType"] = False
+        res["foldStat"] = {
+                "nTrainCmpds": None,
+                "nTestCmpds": None,
+                #Regression
+                "Q2"   : None,
+                "RMSE" : None,
+                #Classification
+                "CM"   : None,
+                "CA"   : None,
+                "MCC"  : None }
+        if not results or results is None or exp_pred is None or responseType is None or nExtFolds is None or nTestCmpds is None or nTrainCmpds is None:
+            return res
+        res["responseType"] = responseType
+        #Calculate the (Q2, RMSE) or (CM, CA) results depending on Classification or regression
+        if responseType == "Classification":
+            #Compute CA
+            res["CA"] = sum(r[0] for r in results) / nExtFolds
+            #Compute CM
+            res["CM"] = copy.deepcopy(results[0][1])                      # Get the first ConfMat
+            for r in results[1:]:
+                for Lidx,line in enumerate(r[1]):
+                    for idx,val in enumerate(line):
+                        res["CM"][Lidx][idx] = res["CM"][Lidx][idx] + val   #Add each same ConfMat position
+            #Compute MCC
+            res["MCC"] = evalUtilities.calcMCC(res["CM"])
+            #Compute foldStat
+            res["foldStat"]["nTrainCmpds"] = [n for n in nTrainCmpds]
+            res["foldStat"]["nTestCmpds"] = [n for n in nTestCmpds]
+            res["foldStat"]["CA"] = [r[0] for r in results]
+            res["foldStat"]["CM"] = [r[1] for r in results]
+            res["foldStat"]["MCC"] = [evalUtilities.calcMCC(r[1]) for r in results]
+            #Compute Stability
+            res["StabilityValue"] = evalUtilities.stability(res["foldStat"]["CA"])
+        else:
+            #compute Q2
+            res["Q2"] = evalUtilities.calcRsqrt(exp_pred)
+            #compute RMSE
+            res["RMSE"] = evalUtilities.calcRMSE(exp_pred)
+            #Compute foldStat
+            res["foldStat"]["nTrainCmpds"] = [n for n in nTrainCmpds]
+            res["foldStat"]["nTestCmpds"] = [n for n in nTestCmpds]
+            res["foldStat"]["RMSE"] = [r[0] for r in results]
+            res["foldStat"]["Q2"] = [r[1] for r in results]
+            #Compute Stability value
+            res["StabilityValue"] = evalUtilities.stability(res["foldStat"]["Q2"])
+
+        #Evaluate stability of ML
+        StabilityValue = res["StabilityValue"]
+        if StabilityValue is not None:
+            if responseType == "Classification":
+                if statc.mean(res["foldStat"]["nTestCmpds"]) > 50:
+                    stableTH = AZOC.QSARSTABILITYTHRESHOLD_CLASS_L
+                else:
+                    stableTH = AZOC.QSARSTABILITYTHRESHOLD_CLASS_H
+            else:
+                if statc.mean(res["foldStat"]["nTestCmpds"]) > 50:
+                    stableTH = AZOC.QSARSTABILITYTHRESHOLD_REG_L
+                else:
+                    stableTH = AZOC.QSARSTABILITYTHRESHOLD_REG_H
+            if StabilityValue < stableTH:   # Select only stable models
+                res["stable"] = True
+
+        return res
+
+
+
+def getStatistics(dataset, runningDir, resultsFile, queueType = "batch.q", verbose = 0, getAllModels = False):
+        """
+                runningDir           (An existing dir for creating one job dir per fold)
+                    |
+                    +---- status     (The overall status:   "started", "finished" or the progress "1/10", "2/10", ...)
+                    |
+                    +---- fold_1
+                    |
+                    +---- fold_2
+                    |
+                    .
+                    .
+                    .
+               
+            The running will be monitorixed by this method.
+            Whenever a MLMethod fails the respective fold job is restarted 
+        """
+        if dataset.domain.classVar.varType == orange.VarTypes.Discrete: 
+            responseType = "Classification"
+        else:
+            responseType = "Regression"
         #Create the Train and test sets
         DataIdxs = dataUtilities.SeedDataSampler(dataset, AZOC.QSARNEXTFOLDS )
         #Check data in advance so that, by chance, it will not faill at the last fold!
         #for foldN in range(AZOC.QSARNEXTFOLDS):
-            #trainData = self.data.select(DataIdxs[foldN],negate=1)
+            #trainData = dataset.select(DataIdxs[foldN],negate=1)
             #checkTrainData(trainData)
 
         jobs = {}
         thisDir = os.getcwd()
         os.chdir(runningDir)
-        PID = os.getpid() 
-        print "Started getStatistics in Process with PID: "+str(PID)
-        os.system('echo "'+str(PID)+'" > '+os.path.join(runningDir,"PID"))
+        #PID = os.getpid() 
+        #print "Started getStatistics in Process with PID: "+str(PID)
+        #os.system('echo "'+str(PID)+'" > '+os.path.join(runningDir,"PID"))
         os.system('echo "started" > '+os.path.join(runningDir,"status"))
         # Start  all Fold jobs
         for fold in range(AZOC.QSARNEXTFOLDS):
             job = str(fold)
             print "Starting job for fold ",job
             trainData = dataset.select(DataIdxs[fold],negate=1)
-            testData = dataset.select(DataIdxs[fold])
             jobs[job] = {"job":job,"path":os.path.join(runningDir, "fold_"+job), "running":False, "failed":False, "finished":False}
+
+            # Uncomment next 3 lines for running in finished jobs dirs
+            #st, jID = commands.getstatusoutput("cat "+os.path.join(runningDir, "fold_"+job,"jID"))
+            #jobs[job]["jID"] = jID
+            #continue
+
+
+
+
             os.system("rm -rf "+jobs[job]["path"])
             os.system("mkdir -p "+jobs[job]["path"])
             trainData.save(os.path.join(jobs[job]["path"],"trainData.tab"))
@@ -276,10 +400,10 @@ def getStatistics(dataset, runningDir, queueType = "batch.q", verbose = 0, getAl
             file_h.write("for model in models:\n")
             file_h.write("    if not models[model] is None:\n")
             file_h.write("        models[model].write('"+os.path.join(jobs[job]["path"],"model")+"'+'_'+model)\n")
-            file_h.write('        nModelsSaved += 1')
-            file_h.write('if nModelsSaved == len([m for m in models if not models[m] is None ])')
+            file_h.write('        nModelsSaved += 1\n')
+            file_h.write('if nModelsSaved == len([m for m in models if not models[m] is None ]):\n')
             file_h.write('    os.system(\'echo "finished" > '+os.path.join(jobs[job]["path"],"status")+' \')\n')
-            file_h.write("\n")
+            file_h.write('else:\n')
             file_h.write('    os.system(\'echo "failed" > '+os.path.join(jobs[job]["path"],"status")+' \')\n')
             file_h.close()
 
@@ -305,7 +429,10 @@ def getStatistics(dataset, runningDir, queueType = "batch.q", verbose = 0, getAl
             if jobs[job]["finished"]:
                 finished.append(job)
         print "Jobs already finished: ",finished
+        os.system(' echo "'+str(len(finished))+'/'+str(AZOC.QSARNEXTFOLDS)+'" > '+os.path.join(runningDir,"status"))
         while len(finished) < AZOC.QSARNEXTFOLDS:
+            print ".",
+            sys.stdout.flush() 
             updateJobsStatus(jobs)
             for job in jobs:
                 if jobs[job]["finished"] and job not in finished:
@@ -313,12 +440,96 @@ def getStatistics(dataset, runningDir, queueType = "batch.q", verbose = 0, getAl
                     print time.asctime()+": Finished job "+str(job)
             os.system(' echo "'+str(len(finished))+'/'+str(AZOC.QSARNEXTFOLDS)+'" > '+os.path.join(runningDir,"status"))
             for job in [j for j in jobs if jobs[j]["failed"]]:
-                restartJob(jobs[job])  
-            time.sleep(20)                
+                jobs[job] = restartJob(jobs[job]) 
+            time.sleep(5)                
 
+        print "All fold jobs finished!"
+        # Gather the results
+        print "Gathering results..."
+        #Var for saving each Fols result
+        results = {}
+        exp_pred = {}
+        nTrainEx = {}
+        nTestEx = {}
+        # Var for saving the statistics results
+        statistics = {}
+
+        mlMethods = [ml for ml in AZOC.MLMETHODS] + ["Consensus"] 
+        sortedJobs = [job for job in jobs]
+        sortedJobs.sort(cmp = lambda x,y:int(x)>int(y) and 1 or -1)
+        # Place for storing the selected models results
+        results["selectedML"] = []
+        exp_pred["selectedML"] = []
+        nTrainEx["selectedML"] = []
+        nTestEx["selectedML"] = []
+
+        for ml in mlMethods:   # Loop over each MLMethod
+            try:
+                #Var for saving each Fols result
+                results[ml] = []
+                exp_pred[ml] = []
+                nTrainEx[ml] = []
+                nTestEx[ml] = []
+                logTxt = ""
+
+                
+                for job in sortedJobs:   #loop over each fold
+                    modelPath = os.path.join(jobs[job]["path"], "model_"+ml)
+                    if not os.path.isdir(modelPath):
+                        print "MLMethod "+ml+" not available in fold "+job
+                        continue
+
+                    resFile = os.path.join(jobs[job]["path"], "results.txt")
+                    statFile_h = open(resFile)
+                    foldStat = pickle.load(statFile_h)
+                    statFile_h.close()
+
+                    #load model
+                    model = AZBaseClasses.modelRead(modelPath)
+                    #Test the model
+                    testData = dataset.select(DataIdxs[int(job)])
+                    nTrainEx[ml].append(model.NTrainEx)
+                    nTestEx[ml].append(len(testData))
+                    if foldStat[ml]["selected"]:
+                        nTrainEx["selectedML"].append(model.NTrainEx)
+                        nTestEx["selectedML"].append(len(testData))
+
+                    if responseType == "Classification":
+                        results[ml].append((evalUtilities.getClassificationAccuracy(testData, model), evalUtilities.getConfMat(testData, model) ) )
+                        if foldStat[ml]["selected"]:
+                            results["selectedML"].append(results[ml][-1])
+                    else:
+                        local_exp_pred = []
+                        for ex in testData:
+                            local_exp_pred.append((ex.getclass(), model(ex)))
+                        results[ml].append((evalUtilities.calcRMSE(local_exp_pred), evalUtilities.calcRsqrt(local_exp_pred) ) )
+                        #Save the experimental value and correspondent predicted value
+                        exp_pred[ml] += local_exp_pred
+                        if foldStat[ml]["selected"]:
+                            results["selectedML"].append(results[ml][-1])
+                            exp_pred["selectedML"]+= local_exp_pred
+                res = createStatObj(results[ml], exp_pred[ml], nTrainEx[ml], nTestEx[ml],responseType, len(sortedJobs), logTxt)
+                if not res:
+                    raise Exception("No results available!")
+                statistics[ml] = copy.deepcopy(res)
+                writeResults(statistics, resultsFile)
+                print "       OK",ml
+            except:
+                print "Error on MLmethod "+ml+". It will be skipped"
+        ml = "selectedML"
+        res = createStatObj(results[ml], exp_pred[ml], nTrainEx[ml], nTestEx[ml],responseType, len(sortedJobs), logTxt)
+        if not res:
+            raise Exception("No results available!")
+        statistics[ml] = copy.deepcopy(res)
+        writeResults(statistics, resultsFile)
         os.system(' echo "finished" > '+os.path.join(runningDir,"status"))
- 
+        return statistics
 
+def writeResults(statObj, resultsFile):
+        if resultsFile and os.path.isdir(os.path.split(resultsFile)[0]):
+            file = open(resultsFile, "w")
+            pickle.dump(statObj, file)
+            file.close()
 
 def updateJobsStatus(jobs):
         # read the jobs qsub  status
@@ -335,29 +546,44 @@ def updateJobsStatus(jobs):
             if os.path.isfile(statusFile):
                 st, status = commands.getstatusoutput("cat "+statusFile)
             else:
+                print "WARNING: Missing status file"
                 status = None
-                print "WARNING! job "+job+" ha no status!"
+            if not status:
+                print "WARNING! job "+job+" has no status! Will check next time"
+                continue 
+                
 
+            #print "Fold ",job," Status: ",status," ID:",jobs[job]["jID"]," Qstat",qstat
             if jobs[job]["jID"] in qstat:
-                if qstat[jobs[job]["jID"]] in ['r',"t","qw"]:
+                if 'E' not in qstat[jobs[job]["jID"]]:
                     jobs[job]["running"] = True
                 else:
                     jobs[job]["running"] = False
             else:
                 jobs[job]["running"] = False
+
+            if not isJobProgressingOK(jobs[job]):
+                print "Job "+job+" failed to build one or more models in getMLStatistics. It was flaged for restart"
+                jobs[job]["failed"] = True
+                return
             if not jobs[job]["running"]:
-                if isJobProgressingOK(jobs[job]):
                     #Test if it finished properly
-                    if not status or status == "failed":
-                        print "JOb "+job+" failed to build all models. It was flaged for restart"
+                    if status == "failed":
+                        print "Job "+job+" failed to build all models. It was flaged for restart"
                         jobs[job]["failed"] = True
-                    elif ststus == "finished":
-                        jobs[j]["finished"] = True
-                else:
-                    print "Job "+job+" failed to build one or more models in getMLStatistics. It was flaged for restart"
-                    jobs[job]["failed"] = True
-        
-        
+                    elif status == "finished":
+                        jobs[job]["finished"] = True
+                    else:
+                        wait = 3*60
+                        print "Job "+job+" seems to be finished ("+status+"). Waiting "+str(wait)+" sec. in case the flag is being updated"
+                        time.sleep(wait)
+                        st, status = commands.getstatusoutput("cat "+statusFile) 
+                        if status != "finished":
+                            print "Job "+job+" failed to build one or more  models. It was flaged for restart"
+                            jobs[job]["failed"] = True
+
+
+
 def restartJob(jobObj, force = False):
             job = jobObj["job"]
             print "\nJob "+job+ " is being reported as failing"
@@ -369,7 +595,7 @@ def restartJob(jobObj, force = False):
                 
             else:       
                 print "Killing eventually running job"+job+"..."
-                os.system("cat jID | xargs qdel -j")
+                os.system("cat jID | xargs qdel ")
                 status, oldjID = commands.getstatusoutput("head -n 1 jID")
                 # Save results
                 print "  Backing up Job "+str(job)+"..."
@@ -378,6 +604,7 @@ def restartJob(jobObj, force = False):
                 os.system("mv jID Bkup_"+oldjID)
                 os.system("mv results.* Bkup_"+oldjID)
                 os.system("mv run.sh.* Bkup_"+oldjID)
+                os.system("mv status Bkup_"+oldjID)
             print "  Starting Job "+str(job)+"..."
             jobFile = os.path.join(runningJobDir,"run.sh")
             status, out = commands.getstatusoutput("qsub -cwd -q batch.q " + jobFile)
@@ -391,14 +618,20 @@ def restartJob(jobObj, force = False):
             print "    jID: ",jID
             os.system('echo "'+jID+'" > '+os.path.join(runningJobDir,"jID"))
             os.system('echo "Restarted at '+str(time.asctime())+'" >> '+os.path.join(runningJobDir,"restarts.log"))
+            jobObj["running"] = True
+            jobObj["finished"] = False
+            jobObj["failed"] = False
+            jobObj["jID"] = jID
             os.chdir(thisDir)
+            return jobObj
+
 
 def isJobProgressingOK(job):
         runningJobDir = job["path"] 
         resFile = os.path.join(runningJobDir, "results.txt")
         if not os.path.isfile(resFile):
             return True
-        n = 5
+        n = 50
         statistics = None
         while n > 0:
             try:

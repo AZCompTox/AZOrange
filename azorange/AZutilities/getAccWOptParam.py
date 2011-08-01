@@ -1,4 +1,4 @@
-import orange, time, pickle
+import orange, time, pickle, copy
 import AZOrangeConfig as AZOC
 from AZutilities import paramOptUtilities
 from AZutilities import dataUtilities
@@ -7,7 +7,7 @@ import AZLearnersParamsConfig
 from AZutilities import evalUtilities
 from AZutilities import miscUtilities
 import orngTest, orngStat
-import os
+import os,random
 from pprint import pprint
 import statc
 
@@ -140,15 +140,15 @@ class AccWOptParamGetter():
                 "CM"   : None,
                 "CA"   : None,
                 "MCC"  : None }
-        if results is None or exp_pred is None or self.responseType is None or nExtFolds is None or nTestCmpds is None or nTrainCmpds is None:
+        if results is None or exp_pred is None or responseType is None or nExtFolds is None or nTestCmpds is None or nTrainCmpds is None:
             return res 
         res["responseType"] = responseType
         #Calculate the (Q2, RMSE) or (CM, CA) results depending on Classification or regression
-        if self.responseType == "Classification":
+        if responseType == "Classification":
             #Compute CA
-            res["CA"] = sum(r[0] for r in results) / self.nExtFolds
+            res["CA"] = sum(r[0] for r in results) / nExtFolds
             #Compute CM
-            res["CM"] = results[0][1]                      # Get the first ConfMat
+            res["CM"] = copy.deepcopy(results[0][1])                      # Get the first ConfMat
             for r in results[1:]:
                 for Lidx,line in enumerate(r[1]):
                     for idx,val in enumerate(line):
@@ -216,6 +216,7 @@ class AccWOptParamGetter():
         DataIdxs = dataUtilities.SeedDataSampler(self.data, self.nExtFolds) 
         
         #Var for saving each Fols result
+        optAcc = {}
         results = {}
         exp_pred = {}
         nTrainEx = {}
@@ -254,6 +255,7 @@ class AccWOptParamGetter():
             models[ml] = []
             nTrainEx[ml] = []
             nTestEx[ml] = []
+            optAcc[ml] = []
             logTxt = "" 
             for foldN in range(self.nExtFolds):
                 if type(self.learner) == dict:
@@ -277,11 +279,19 @@ class AccWOptParamGetter():
                 if dontOptimize:
                     logTxt += "       Fold "+str(foldN)+": Too few compounds to optimize model hyper-parameters\n"
                     self.__log(logTxt)
+                    if trainData.domain.classVar.varType == orange.VarTypes.Discrete:
+                        res = orngTest.crossValidation([MLmethods[ml]], trainData, folds=5, strat=orange.MakeRandomIndices.StratifiedIfPossible, randomGenerator = random.randint(0, 100))
+                        CA = evalUtilities.CA(res)[0]
+                        optAcc[ml].append(CA)
+                    else:
+                        res = orngTest.crossValidation([MLmethods[ml]], trainData, folds=5, strat=orange.MakeRandomIndices.StratifiedIfPossible, randomGenerator = random.randint(0, 100))
+                        R2 = evalUtilities.R2(res)[0]
+                        optAcc[ml].append(R2)
                 else:
-                    runPath = miscUtilities.createScratchDir(baseDir = AZOC.NFS_SCRATCHDIR, desc = "AccWOptParam")
+                    runPath = miscUtilities.createScratchDir(baseDir = AZOC.NFS_SCRATCHDIR, desc = "AccWOptParam", seed = id(trainData))
                     trainData.save(os.path.join(runPath,"trainData.tab"))
 
-                    paramOptUtilities.getOptParam(
+                    tunedPars = paramOptUtilities.getOptParam(
                         learner = MLmethods[ml], 
                         trainDataFile = os.path.join(runPath,"trainData.tab"), 
                         paramList = self.paramList, 
@@ -291,7 +301,8 @@ class AccWOptParamGetter():
                         runPath = runPath, 
                         nExtFolds = None, 
                         nFolds = self.nInnerFolds,
-                        logFile = self.logFile)
+                        logFile = self.logFile,
+                        getTunedPars = True)
                     if not MLmethods[ml] or not MLmethods[ml].optimized:
                         self.__log("       WARNING: GETACCWOPTPARAM: The learner "+str(ml)+" was not optimized.")
                         self.__log("                It will be ignored")
@@ -301,6 +312,13 @@ class AccWOptParamGetter():
                         #MLmethods[ml] = MLmethods[ml].__class__()
                         raise Exception("The learner "+str(ml)+" was not optimized.")
                     else:
+                        if trainData.domain.classVar.varType == orange.VarTypes.Discrete:
+                            optAcc[ml].append(tunedPars[0])
+                        else:
+                            res = orngTest.crossValidation([MLmethods[ml]], trainData, folds=5, strat=orange.MakeRandomIndices.StratifiedIfPossible, randomGenerator = random.randint(0, 100))
+                            R2 = evalUtilities.R2(res)[0]
+                            optAcc[ml].append(R2)
+
                         miscUtilities.removeDir(runPath) 
                 #Train the model
                 model = MLmethods[ml](trainData)
@@ -322,13 +340,14 @@ class AccWOptParamGetter():
                 pprint(res)
             if not res:
                 raise Exception("No results available!")
-            statistics[ml] = res.copy()
+            statistics[ml] = copy.deepcopy(res)
             self.__writeResults(statistics)
             self.__log("       OK")
           except:
             self.__log("       Learner "+str(ml)+" failed to create/optimize the model!")
             res = self.createStatObj()
-            statistics[ml] = res.copy()
+            statistics[ml] = copy.deepcopy(res)
+            self.__writeResults(statistics)
 
         if not statistics or len(statistics) < 1:
             self.__log("ERROR: No statistics to return!")
@@ -336,43 +355,51 @@ class AccWOptParamGetter():
         elif len(statistics) > 1:
             #We still need to build a consensus model out of the stable models 
             #   ONLY if there are more that one model stable!
-            stableML={}
+            #   When only one or no stable models, build a consensus based on all models
+            consensusMLs={}
             for modelName in statistics:
                 StabilityValue = statistics[modelName]["StabilityValue"]
                 if StabilityValue is not None and statistics[modelName]["stable"]:
-                    stableML[modelName] = statistics[modelName].copy()
-            if len(stableML) >= 2:
-                self.__log("Found "+str(len(stableML))+" stable MLmethods out of "+str(len(statistics))+" MLmethods.")
-                if self.responseType == "Classification":
-                    CLASS0 = str(self.data.domain.classVar.values[0])
-                    CLASS1 = str(self.data.domain.classVar.values[1])
-                    exprTest0 = "(0"
-                    for ml in stableML:
-                        exprTest0 += "+( "+ml+" == "+CLASS0+" )*"+str(stableML[ml]["CA"])+" "
-                    exprTest0 += ")/IF0(sum([False"
-                    for ml in stableML:
-                        exprTest0 += ", "+ml+" == "+CLASS0+" "
-                    exprTest0 += "]),1)"
-                    exprTest1 = exprTest0.replace(CLASS0,CLASS1)
-                    expression = [exprTest0+" >= "+exprTest1+" -> "+CLASS0," -> "+CLASS1]
-                else:
-                    Q2sum = sum([stableML[ml]["Q2"] for ml in stableML])
-                    expression = "(1 / "+str(Q2sum)+") * (0"
-                    for ml in stableML:
-                        expression += " + "+str(stableML[ml]["Q2"])+" * "+ml+" "
-                    expression += ")"
+                    consensusMLs[modelName] = copy.deepcopy(statistics[modelName])
 
+            self.__log("Found "+str(len(consensusMLs))+" stable MLmethods out of "+str(len(statistics))+" MLmethods.")
+
+            if len(consensusMLs) <= 1:   # we need more models to build a consensus!
+                consensusMLs={}
+                for modelName in statistics:
+                    consensusMLs[modelName] = copy.deepcopy(statistics[modelName])
+ 
+            if len(consensusMLs) >= 2:
                 #Var for saving each Fols result
                 Cresults = []
                 Cexp_pred = []
                 CnTrainEx = []
                 CnTestEx = []
-                self.__log("Calculating the statistics for a Consensus model")
+                self.__log("Calculating the statistics for a Consensus model based on "+str([ml for ml in consensusMLs]))
                 for foldN in range(self.nExtFolds):
+                    if self.responseType == "Classification":
+                        CLASS0 = str(self.data.domain.classVar.values[0])
+                        CLASS1 = str(self.data.domain.classVar.values[1])
+                        exprTest0 = "(0"
+                        for ml in consensusMLs:
+                            exprTest0 += "+( "+ml+" == "+CLASS0+" )*"+str(optAcc[ml][foldN])+" "
+                        exprTest0 += ")/IF0(sum([False"
+                        for ml in consensusMLs:
+                            exprTest0 += ", "+ml+" == "+CLASS0+" "
+                        exprTest0 += "]),1)"
+                        exprTest1 = exprTest0.replace(CLASS0,CLASS1)
+                        expression = [exprTest0+" >= "+exprTest1+" -> "+CLASS0," -> "+CLASS1]
+                    else:
+                        Q2sum = sum([optAcc[ml][foldN] for ml in consensusMLs])
+                        expression = "(1 / "+str(Q2sum)+") * (0"
+                        for ml in consensusMLs:
+                            expression += " + "+str(optAcc[ml][foldN])+" * "+ml+" "
+                        expression += ")"
+
                     testData = self.data.select(DataIdxs[foldN])
                     CnTestEx.append(len(testData))
                     consensusClassifiers = {}
-                    for learnerName in stableML:
+                    for learnerName in consensusMLs:
                         consensusClassifiers[learnerName] = models[learnerName][foldN]
 
                     model = AZorngConsensus.ConsensusClassifier(classifiers = consensusClassifiers, expression = expression)     
@@ -389,8 +416,8 @@ class AccWOptParamGetter():
                         Cexp_pred += local_exp_pred
 
                 res = self.createStatObj(Cresults, Cexp_pred, CnTrainEx, CnTestEx, self.responseType, self.nExtFolds)
-                statistics["Consensus"] = res.copy()
-                statistics["Consensus"]["IndividualStatistics"] = stableML.copy()
+                statistics["Consensus"] = copy.deepcopy(res)
+                statistics["Consensus"]["IndividualStatistics"] = copy.deepcopy(consensusMLs)
                 self.__writeResults(statistics)
             self.__log("Returned multiple ML methods statistics.")
             return statistics
