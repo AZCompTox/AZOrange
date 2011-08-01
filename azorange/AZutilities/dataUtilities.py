@@ -2147,16 +2147,15 @@ def getApproxMemReq(filePath):
     This number needs to be refined.)
     filePath is the location of an Orange data set on disk
     """
-    data = DataTable(filePath)
-
-    nEx = len(data)
-    nAttr = len(data.domain.attributes)
+    dataInfo = getQuickDataSize(filePath)
+    nEx = dataInfo["N_EX"] 
+    nAttr = dataInfo["N_ATTR"] 
 
     memReq = int(nEx*nAttr*8*2*5*0.000001)
     if memReq < 150:
         memReq = 150
 
-    return memReq     
+    return memReq * 4 
 
 def rmClassVar(data):
     """
