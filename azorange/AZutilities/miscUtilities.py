@@ -164,11 +164,12 @@ def testInterfacelessSSH(machine, user=None, timeout = 5):
 
 
 
-def createScratchDir(desc = "", rmFirst = True, baseDir = SCRATCHDIR):
+def createScratchDir(desc = "", rmFirst = True, baseDir = SCRATCHDIR, seed = None):
     """Creates a unique scratch dir with an optional description on dir name passed with keyword desc.
        if the scratch dir exists, remove it first (if flag rmFirst is true)
        A baseDir can be specified using he parameter baseDir
        Returns the created scratchDir or None if it was not possible to create it"""
+    random.seed(seed)
     randNr = random.randint(0,10000)
     scratchdir = os.path.realpath(os.path.join(baseDir, "scratchdir"+str(desc)+str(time.time()).replace(".","")+"_"+str(randNr)))
     try:
