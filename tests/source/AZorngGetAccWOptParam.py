@@ -1,4 +1,4 @@
-from AZutilities import  getAccWOptParam
+from AZutilities import  getUnbiasedAccuracy
 from trainingMethods import AZorngRF
 from AZutilities import dataUtilities
 import unittest
@@ -21,7 +21,7 @@ class GetAccWOptParam(AZorngTestUtil.AZorngTestUtil):
         """Testing Classification problem with 3 class values"""
         learner = AZorngRF.RFLearner()
         paramList = ["nActVars"]
-        evaluator = getAccWOptParam.AccWOptParamGetter(data = self.irisData, learner = learner, paramList = paramList, nExtFolds = 3, nInnerFolds = 3)
+        evaluator = getUnbiasedAccuracy.UnbiasedAccuracyGetter(data = self.irisData, learner = learner, paramList = paramList, nExtFolds = 3, nInnerFolds = 3)
         res = evaluator.getAcc()
         self.assert_(abs(res["CA"]-0.96666666666666667) < 0.01)
 	expected =  [[50.0, 0.0, 0.0], [0.0, 48.0, 2.0], [0.0, 3.0, 47.0]]
@@ -34,7 +34,7 @@ class GetAccWOptParam(AZorngTestUtil.AZorngTestUtil):
         """Testing Classification problem with 2 class values"""
         learner = AZorngRF.RFLearner()
         paramList = ["nActVars"]
-        evaluator = getAccWOptParam.AccWOptParamGetter(data = self.iris2Data, learner = learner, paramList = paramList, nExtFolds = 3, nInnerFolds = 3)
+        evaluator = getUnbiasedAccuracy.UnbiasedAccuracyGetter(data = self.iris2Data, learner = learner, paramList = paramList, nExtFolds = 3, nInnerFolds = 3)
         res = evaluator.getAcc()
         self.assertEqual(round(res["CA"],5),round(0.96666666666666667,5))
         self.assertEqual(res["CM"],  [[98.0, 2.0], [3.0, 47.0]])
@@ -43,7 +43,7 @@ class GetAccWOptParam(AZorngTestUtil.AZorngTestUtil):
         """Testing Regression problem"""
         learner = AZorngRF.RFLearner()
         paramList = ["nActVars"]
-        evaluator = getAccWOptParam.AccWOptParamGetter(data = self.irisContData, learner = learner, paramList = paramList ,nExtFolds = 3, nInnerFolds = 3)
+        evaluator = getUnbiasedAccuracy.UnbiasedAccuracyGetter(data = self.irisContData, learner = learner, paramList = paramList ,nExtFolds = 3, nInnerFolds = 3)
         res = evaluator.getAcc()
         expectedRes0 = [0.27741430697239661, 0.27945999999999999, 0.276116805384, 0.277488734272]  # [InHouse, Ubuntu, Ubuntu 64 bits]
         expectedRes1 = [0.97464488216654444, 0.97420405774, 0.974887867109, 0.97510044677]        # [InHouse, Ubuntu, Ubuntu 64 bits]

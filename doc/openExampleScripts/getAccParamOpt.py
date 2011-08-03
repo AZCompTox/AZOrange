@@ -1,5 +1,5 @@
 import sys
-from AZutilities import  getAccWOptParam
+from AZutilities import  getUnbiasedAccuracy
 from trainingMethods import AZorngRF
 from AZutilities import dataUtilities
 from AZutilities import getCinfonyDesc
@@ -30,7 +30,7 @@ def getDesc(trainDataFile):
 def getAccParamOpt(trainData, AZOrangeLearner, paramList):
 
     # Parameter optimization and accuracy assessment
-    evaluator = getAccWOptParam.AccWOptParamGetter(data = trainData, learner = AZOrangeLearner, paramList = paramList, nExtFolds = 5, nInnerFolds = 5)
+    evaluator = getUnbiasedAccuracy.UnbiasedAccuracyGetter(data = trainData, learner = AZOrangeLearner, paramList = paramList, nExtFolds = 5, nInnerFolds = 5)
 
     # Calculate a results object
     result = evaluator.getAcc()
