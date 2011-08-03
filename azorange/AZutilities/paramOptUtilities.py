@@ -1290,7 +1290,7 @@ def getOptParam(learner, trainDataFile, paramList = None, useGrid = False, verbo
     if getTunedPars:
         return tunedPars
     else:
-        return learner
+        return learner, learner.optimized
 
 
 
