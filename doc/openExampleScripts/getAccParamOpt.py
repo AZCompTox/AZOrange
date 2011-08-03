@@ -1,4 +1,4 @@
-import sys
+import sys,orange
 from AZutilities import  getUnbiasedAccuracy
 from trainingMethods import AZorngRF
 from AZutilities import dataUtilities
@@ -17,7 +17,8 @@ def getDesc(trainDataFile):
     trainData = getCinfonyDesc.getCinfonyDescResults(sarData, rdkDescs)
 
     # Deselect the SMILES attribute
-    attrList = ["SMILES"]
+    attrList = [attr.name for attr in trainData.domain.attributes if attr.varType == orange.Variable.String]
+    
     trainData = dataUtilities.attributeDeselectionData(trainData, attrList)
      
     # Save the trainData set
