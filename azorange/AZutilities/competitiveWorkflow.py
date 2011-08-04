@@ -162,7 +162,7 @@ def buildModel(trainData, MLMethod, queueType = "NoSGE", verbose = 0, logFile = 
             log(logFile, "  Optimizing MLmethod: "+ML)
             learners[ML] = MLMETHODS[ML](name = ML)
 
-            runPath = miscUtilities.createScratchDir(baseDir = AZOC.NFS_SCRATCHDIR, desc = "competitiveWorkflow")
+            runPath = miscUtilities.createScratchDir(baseDir = AZOC.NFS_SCRATCHDIR, desc = "competitiveWorkflow_BuildModel")
             trainData.save(os.path.join(runPath,"trainData.tab"))
 
             tunedPars = paramOptUtilities.getOptParam(
@@ -703,34 +703,54 @@ def isJobProgressingOK(job):
                 
 
 
-
-
+def competitiveWorkflow(data, modelSavePath = None, statisticsSavePath = None, runningDir = AZOC.NFS_SCRATCHDIR):
+    """
+        modelSavePath and statisticsSavePath are going to be created and cannot exist
+    """
+    if (modelSavePath and os.path.exists(modelSavePath)) or (statisticsSavePath and os.path.exists(statisticsSavePath)):
+        print "ERROR: modelSavePath or statisticsSavePath already exists."
+        return {}
+    runPath = miscUtilities.createScratchDir(baseDir = os.path.realpath(runningDir), desc = "competitiveWorkflow")
+    statistics = getStatistics(data, runPath, os.path.join(runPath,"statistics.pkl"), getAllModels = False)
+    model = getModel(data, savePath = os.path.join(runPath,"modelStat.pkl"))
+    if model and len(model)>=1:
+        if modelSavePath:
+            model[model.keys()[0]].write(modelSavePath)
+    else:
+        print "ERROR: No model was returned!"
+    if statistics:
+        if statisticsSavePath:
+            writeResults(statistics, statisticsSavePath)
+    else:
+        print "ERROR: No statistics were returned!"
+    return {"model":model, "statistics":statistics} 
 
 
 if __name__ == "__main__":
-        data = orange.ExampleTable(os.path.realpath("./dataReg.tab"))
-       
+        dataReg = orange.ExampleTable(os.path.realpath("./dataReg.tab"))
+        dataClass = orange.ExampleTable(os.path.realpath("./dataClass.tab"))       
+
+        res = competitiveWorkflow(dataClass)
+        print "Results :  ",res
+        res = competitiveWorkflow(dataReg,"./model", "./stat.pkl")
+        print "Results :  ",res
+        sys.exit()
+
+
+
         statistics = getStatistics(data, os.path.realpath("./runningJobs1"), os.path.realpath("./result1.pkl"), getAllModels = False)
         print "Statistics = ",statistics
-
 
         statistics = getStatistics(data, os.path.realpath("./runningJobs2"), os.path.realpath("./results2.pkl"), getAllModels = True)
         print "Statistics = ",statistics
 
-
-        data = orange.ExampleTable(os.path.realpath("./dataClass.tab"))
-
-
         statistics = getStatistics(data, os.path.realpath("./runningJobs3"), os.path.realpath("./result3.pkl"), getAllModels = False)
         print "Statistics = ",statistics
         
-        
         statistics = getStatistics(data, os.path.realpath("./runningJobs4"), os.path.realpath("./results4.pkl"), getAllModels = True)
         print "Statistics = ",statistics
-
-
-
         sys.exit()
+
 
         model = getModel(data, savePath = "./MLStat_reg.pkl")
         print model
