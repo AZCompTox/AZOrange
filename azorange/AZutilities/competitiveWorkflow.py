@@ -703,7 +703,7 @@ def isJobProgressingOK(job):
                 
 
 
-def competitiveWorkflow(data, modelSavePath = None, statisticsSavePath = None, runningDir = AZOC.NFS_SCRATCHDIR):
+def competitiveWorkflow(data, modelSavePath = None, statisticsSavePath = None, runningDir = AZOC.NFS_SCRATCHDIR, queueType = "NoSGE"):
     """
         modelSavePath and statisticsSavePath are going to be created and cannot exist
     """
@@ -711,8 +711,8 @@ def competitiveWorkflow(data, modelSavePath = None, statisticsSavePath = None, r
         print "ERROR: modelSavePath or statisticsSavePath already exists."
         return {}
     runPath = miscUtilities.createScratchDir(baseDir = os.path.realpath(runningDir), desc = "competitiveWorkflow")
-    statistics = getStatistics(data, runPath, os.path.join(runPath,"statistics.pkl"), getAllModels = False)
-    model = getModel(data, savePath = os.path.join(runPath,"modelStat.pkl"))
+    statistics = getStatistics(data, runPath, os.path.join(runPath,"statistics.pkl"), queueType = queueType, getAllModels = False)
+    model = getModel(data, savePath = os.path.join(runPath,"modelStat.pkl"), queueType = queueType)
     if model and len(model)>=1:
         if modelSavePath:
             model[model.keys()[0]].write(modelSavePath)
@@ -730,9 +730,9 @@ if __name__ == "__main__":
         dataReg = orange.ExampleTable(os.path.realpath("./dataReg.tab"))
         dataClass = orange.ExampleTable(os.path.realpath("./dataClass.tab"))       
 
-        res = competitiveWorkflow(dataClass)
+        res = competitiveWorkflow(dataClass, queueType = "batch.q")
         print "Results :  ",res
-        res = competitiveWorkflow(dataReg,"./model", "./stat.pkl")
+        res = competitiveWorkflow(dataReg,"./model", "./stat.pkl", queueType = "batch.q")
         print "Results :  ",res
         sys.exit()
 
