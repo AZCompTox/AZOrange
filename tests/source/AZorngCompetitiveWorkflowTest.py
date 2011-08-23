@@ -24,7 +24,7 @@ class competitiveWFTest(AZorngTestUtil.AZorngTestUtil):
         self.Dtest_data =  dataUtilities.DataTable(discTestDataPath)
 
         
-    def no_testClass_Serial(self):
+    def testClass_Serial(self):
         """Test classification in serial mode
         """
         res = competitiveWorkflow.competitiveWorkflow(self.Dtrain_data)
