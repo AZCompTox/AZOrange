@@ -5,7 +5,7 @@ import os
 import time
 import AZOrangeConfig as AZOC
 import AZorngTestUtil
-
+import pprint
 
 class competitiveWFTest(AZorngTestUtil.AZorngTestUtil):
 
@@ -24,7 +24,7 @@ class competitiveWFTest(AZorngTestUtil.AZorngTestUtil):
         self.Dtest_data =  dataUtilities.DataTable(discTestDataPath)
 
         
-    def testClass_Serial(self):
+    def no_testClass_Serial(self):
         """Test classification in serial mode
         """
         res = competitiveWorkflow.competitiveWorkflow(self.Dtrain_data)
