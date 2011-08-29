@@ -1080,12 +1080,19 @@ print cPickle.dumps(eval(evalMethod)(res)[0])
 
     def getIsQsubRunning(self):
 
-        exitCode, qstat = commands.getstatusoutput("qstat")
-        if self.qsubJobId: 
-            idx = string.find(qstat, self.qsubJobId)
-            if idx != -1: isRunning = True
-            else: isRunning = False
-        else: isRunning = False
+        status, out = commands.getstatusoutput("qstat")
+        qstat = {}
+        for job in out.split('\n')[2:]:
+            status = job.split()
+            qstat[status[0]] = status[4]
+
+        if str(self.qsubJobId) in qstat:
+            if 'E' not in qstat[self.qsubJobId]:
+                isRunning = True
+            else:
+                isRunning = False
+        else:
+            isRunning = False
         return isRunning
 
 
@@ -1197,7 +1204,7 @@ echo "end mpirun"
         return True
 
 
-def getOptParam(learner, trainDataFile, paramList = None, useGrid = False, verbose = 0, queueType = "NoSGE", runPath = None, nExtFolds = None, nFolds = 5, logFile = ""):
+def getOptParam(learner, trainDataFile, paramList = None, useGrid = False, verbose = 0, queueType = "NoSGE", runPath = None, nExtFolds = None, nFolds = 5, logFile = "", getTunedPars = False):
     """
     Optimize the parameters in paramList. If no parametres defines, optimize defauld parameters (defined in AZLearnersParmsConfig). 
     Run optimization in parallel.
@@ -1219,7 +1226,7 @@ def getOptParam(learner, trainDataFile, paramList = None, useGrid = False, verbo
         responseType = "Regression"
     else:
         print "WARNING!  Could not get the datase info. Data needed to be loaded in order to check the reponse type."
-        data = orange.ExampelTable(trainDataFile)
+        data = dataUtilities.DataTable(trainDataFile)
         responseType = data.domain.classVar.varType == orange.VarTypes.Discrete and "Classification"  or "Regression"
 
     optimizer = Appspack()
@@ -1280,7 +1287,10 @@ def getOptParam(learner, trainDataFile, paramList = None, useGrid = False, verbo
         print runPath
         print "check the file optimizationLog.txt to see the intermediate results of optimizer!"
 
-    return learner
+    if getTunedPars:
+        return tunedPars
+    else:
+        return learner, learner.optimized
 
 
 

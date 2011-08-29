@@ -17,11 +17,9 @@ if __name__ == "__main__":
     # Full path to train data file (with descriptors) in Orange format
     #trainDataFile = "/home/jonna/projects/M-Lab/scfbmPaper/data/trainData.tab"
     trainDataFile = sys.argv[1]
-    responseType = "Classification"
 
     # Define which AZOrange learner to use by instantiating the learner object
     AZOrangeLearner = AZorngRF.RFLearner()
-    learnerName = "RFLearner"
 
     # Without access to a distributed computational environment set to 'NoSGE'
     queueType = 'NoSGE'
@@ -34,7 +32,7 @@ if __name__ == "__main__":
 
     # Get a learner object with optimized parameters (default settings)
     print "Optimizing model hyper-parameters"
-    optLearner, isOptimized = paramOptUtilities.optimize(AZOrangeLearner, learnerName, trainDataFile, responseType, verbose = 0, queueType = queueType, runPath = runPath)
+    optLearner, isOptimized = paramOptUtilities.getOptParam(AZOrangeLearner, trainDataFile, verbose = 0, queueType = queueType, runPath = runPath)
 
     print "Parameters successfully optimized?"
     print isOptimized

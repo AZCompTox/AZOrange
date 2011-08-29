@@ -1,5 +1,5 @@
-import sys
-from AZutilities import  getAccWOptParam
+import sys,orange
+from AZutilities import  getUnbiasedAccuracy
 from trainingMethods import AZorngRF
 from AZutilities import dataUtilities
 from AZutilities import getCinfonyDesc
@@ -17,7 +17,8 @@ def getDesc(trainDataFile):
     trainData = getCinfonyDesc.getCinfonyDescResults(sarData, rdkDescs)
 
     # Deselect the SMILES attribute
-    attrList = ["SMILES"]
+    attrList = [attr.name for attr in trainData.domain.attributes if attr.varType == orange.Variable.String]
+    
     trainData = dataUtilities.attributeDeselectionData(trainData, attrList)
      
     # Save the trainData set
@@ -30,7 +31,7 @@ def getDesc(trainDataFile):
 def getAccParamOpt(trainData, AZOrangeLearner, paramList):
 
     # Parameter optimization and accuracy assessment
-    evaluator = getAccWOptParam.AccWOptParamGetter(data = trainData, learner = AZOrangeLearner, paramList = paramList, nExtFolds = 5, nInnerFolds = 5)
+    evaluator = getUnbiasedAccuracy.UnbiasedAccuracyGetter(data = trainData, learner = AZOrangeLearner, paramList = paramList, nExtFolds = 5, nInnerFolds = 5)
 
     # Calculate a results object
     result = evaluator.getAcc()

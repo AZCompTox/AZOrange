@@ -10,7 +10,7 @@
 #
 from OWWidget import *
 import OWGUI
-from AZutilities import  getAccWOptParam
+from AZutilities import  getUnbiasedAccuracy
 from AZutilities import  evalUtilities
 import time
 import warnings
@@ -434,10 +434,10 @@ class OWAZTestOptLearners(OWWidget):
             paramList = []
             for paramIdx in self.SelectedParams:
                 paramList.append(self.paramsLabels[paramIdx])
-            #print "getAccWOptParam command: "
+            #print "getUnbiasedAccuracy command: "
             #for x in (self.data,l.learner, paramList, self.nOuterFolds,self.nInnerFolds):
             #    print x
-            l.evaluator = getAccWOptParam.AccWOptParamGetter(data = self.data, learner = l.learner, paramList = paramList, nExtFolds = self.nOuterFolds, nInnerFolds = self.nInnerFolds)
+            l.evaluator = getUnbiasedAccuracy.UnbiasedAccuracyGetter(data = self.data, learner = l.learner, paramList = paramList, nExtFolds = self.nOuterFolds, nInnerFolds = self.nInnerFolds)
             l.results = l.evaluator.getAcc()
             pb.advance()
 
