@@ -336,7 +336,7 @@ class ConsensusClassifierTest(AZorngTestUtil.AZorngTestUtil):
         self.assertEqual(len(Loaded.domain),len(self.irisData.domain))
         self.assertEqual(len(Loaded.imputeData) , len(Loaded.domain))
         self.assertEqual(len(Loaded.basicStat), len(Loaded.domain))
-        self.assertEqual(Loaded.NTrainEx, len(self.irisData) - int(0.2 * len(self.irisData)))
+        self.assertEqual(Loaded.NTrainEx, len(self.irisData))
 
         miscUtilities.removeDir(scratchdir)
 
