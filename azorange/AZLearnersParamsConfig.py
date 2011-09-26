@@ -126,6 +126,9 @@ AZSVMLearner = {'kernel_type' : ["types.IntType", "values", "[0 , 1 , 2 , 3]",['
                    'degree' : ["types.FloatType", "values",  "miscUtilities.Range(0,10,0.5)",[],str(AZOrangeConfig.SVMDEFAULTDICT["degree"]),False,True,"From 0 to 10 with increments of 0.5"],\
                   }
 
+#CvBayes parameters
+CvBayesLearner = {'scale' : ["types.BooleanType", "values", "[0 , 1]",["False","True"],str(AZOrangeConfig.CVBAYESDEFAULTDICT["scale"]),False,False,"False and True"],\
+}
 
 # CvSVM parameters
 """
