@@ -1434,7 +1434,7 @@ def horizontalMerge(dataAin, dataBin, varAin, varBin):
             etBreduced.append(orange.Example(domBreduced, exBDK))
      
     # Rename the classVar to use so that it does not get renamed by fixDuplicatedNames
-    ClassTag = "@CLASS@"
+    ClassTag = "@@CLASS@@"
     if classVarName:
         if not classVarIsA and classVarName in etBreduced.domain:
             etBreduced.domain[classVarName].name = classVarName + ClassTag
