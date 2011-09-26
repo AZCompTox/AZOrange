@@ -1,4 +1,4 @@
-
+import pickle
 import orange
 import AZBaseClasses
 from AZutilities import dataUtilities
@@ -193,7 +193,7 @@ class CvANNLearner(AZBaseClasses.AZLearner):
         nIter = classifier.train(mat, responses, CV_sample_weights, None, params, scaleFlag, seed,self.stopUPs,valMat,valResponses)
         model = CvANNClassifier(seed = seed, classifier = classifier, classVar = self.trainData.domain.classVar,
                         imputeData=self.imputer.defaults, verbose = self.verbose, varNames = CvMatices["varNames"],
-                        nIter = nIter, basicStat = self.basicStat, NTrainEx = len(self.trainData))
+                        nIter = nIter, basicStat = self.basicStat, NTrainEx = len(self.trainData), parameters = self.parameters)
         return model
 
 
@@ -350,7 +350,8 @@ class CvANNClassifier(AZBaseClasses.AZClassifier):
             varNamesFile.write(str(self.NTrainEx)+"\n")
             varNamesFile.write(str(self.basicStat)+"\n")
             varNamesFile.close()
-
+            #Save the parameters
+            self._saveParameters(os.path.join(thePath,"parameters.pkl"))
         except:
             if self.verbose > 0: print "ERROR: Could not save model to ", path
             return False
@@ -387,8 +388,15 @@ def CvANNread(path, verbose = 0):
             if verbose > 0: print "WARNING: The model loaded was probably saved with azorange version 0.2.1 or lower"
             varNames = [attr.name for attr in impData.domain.attributes]
             #thisVer = False
+        # Read the parameters
+        if os.path.isfile(os.path.join(thePath,"parameters.pkl")):
+            fileh = open(os.path.join(thePath,"parameters.pkl"),"r")
+            parameters = pickle.load(fileh)
+            fileh.close()
+        else:
+            parameters = {} 
 
-        return CvANNClassifier(classifier = loadedann, imputeData=impData[0], classVar = impData.domain.classVar, verbose = verbose, loadedModel = True, varNames = varNames, NTrainEx = NTrainEx, basicStat = basicStat)
+        return CvANNClassifier(classifier = loadedann, imputeData=impData[0], classVar = impData.domain.classVar, verbose = verbose, loadedModel = True, varNames = varNames, NTrainEx = NTrainEx, basicStat = basicStat, parameters = parameters)
     except:
         if verbose > 0: print "ERROR: Could not read model from ", path
 

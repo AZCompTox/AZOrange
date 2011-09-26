@@ -4,6 +4,7 @@ from AZutilities import dataUtilities
 import AZOrangeConfig as AZOC
 import os
 from opencv import ml,cv
+import pickle
 
 class CvBoostLearner(AZBaseClasses.AZLearner):
     """
@@ -141,7 +142,7 @@ class CvBoostLearner(AZBaseClasses.AZLearner):
         #Train the model
         if self.verbose: self.printParams(params)
         classifier.train(mat, ml.CV_ROW_SAMPLE, responses, None, None, varTypes, missingDataMask, params, False)
-        return CvBoostClassifier(classifier = classifier, classVar = self.trainData.domain.classVar, imputeData=impData, verbose = self.verbose, varNames = CvMatrices["varNames"], nIter = None, basicStat = self.basicStat, NTrainEx = len(trainingData))
+        return CvBoostClassifier(classifier = classifier, classVar = self.trainData.domain.classVar, imputeData=impData, verbose = self.verbose, varNames = CvMatrices["varNames"], nIter = None, basicStat = self.basicStat, NTrainEx = len(trainingData), parameters = self.parameters)
 
 class CvBoostClassifier(AZBaseClasses.AZClassifier):
     def __new__(cls, name = "CvBoost classifier", **kwds):
@@ -157,7 +158,6 @@ class CvBoostClassifier(AZBaseClasses.AZClassifier):
         self.name = name
         self.domain = None        
         self.ExFix = dataUtilities.ExFix()
-
         if self.imputeData:
             '''Create the imputer: the imputer needs the imputeData to exists allong it's life time'''
             try:
@@ -276,7 +276,8 @@ class CvBoostClassifier(AZBaseClasses.AZClassifier):
             varNamesFile.write(str(self.NTrainEx)+"\n")
             varNamesFile.write(str(self.basicStat)+"\n")
             varNamesFile.close()
-
+            #Save the parameters
+            self._saveParameters(os.path.join(thePath,"parameters.pkl"))
         except:
             if self.verbose > 0: print "ERROR: Could not save model to ", path
             return False
@@ -307,8 +308,15 @@ def CvBoostread(path, verbose = 0):
             NTrainEx = eval(lines[1].strip())
             basicStat = eval(lines[2].strip())
         varNamesFile.close()
+        # Read the parameters
+        if os.path.isfile(os.path.join(thePath,"parameters.pkl")):
+            fileh = open(os.path.join(thePath,"parameters.pkl"),"r")
+            parameters = pickle.load(fileh)
+            fileh.close()
+        else:
+            parameters = {} 
 
-        return CvBoostClassifier(classifier = loadedboost, imputeData=impData[0], classVar = impData.domain.classVar, verbose = verbose, loadedModel = True, varNames = varNames, NTrainEx = NTrainEx, basicStat = basicStat)
+        return CvBoostClassifier(classifier = loadedboost, imputeData=impData[0], classVar = impData.domain.classVar, verbose = verbose, loadedModel = True, varNames = varNames, NTrainEx = NTrainEx, basicStat = basicStat, parameters = parameters)
     except:
         if verbose > 0: print "ERROR: Could not read model from ", path
 

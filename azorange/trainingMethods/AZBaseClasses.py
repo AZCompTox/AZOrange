@@ -2,9 +2,149 @@
 AZBaseClasses
 Base Classes for AZ methods.
 """
+import imp
 import orange
 import types,os
 from AZutilities import dataUtilities
+import pickle
+#from trainingMethods import AZorngConsensus 
+
+def getCorrespondingLearner(modelPath, getParameters = True):
+    """ Determines what is the learner used to build the model in modelPath.
+        if the Learner is to be optimized, one can set getParameters = False so that the model does not have to be loaded (if it would be needed when there is no parameters.pkl for loading)
+        It allows the caller to do not have to load the necessary training method(s)
+        It loads the necessary learner module(s) and returns the Learner with parameters set like the corresponding one.
+        
+        Internal getCorrespondingLearner variables:
+                if single model in modelPath:
+                                ex.:  "learners":  {"RF": <RFLearner 'RF learner'>}   
+                                      "parameters" : {"RF":{"nActVars":5, "maxDepth":20}}
+                                    
+                if consensus model in modelPath and expression is present:
+                               ex.:  "learners":  {"RF": <RFLearner 'RF learner'> , 
+                                                    "SVM":<RFLearner 'CvSVM learner'>, 
+                                                    "Consensus":<ConsensusLearner 'Consensus learner'>, 
+                                                    ...} 
+                                      "Cexpression" : ['RF == POS and SVM == POS->POS', '->NEG']
+                                      "parameters" : {"RF":{"nActVars":5, "maxDepth":20},
+                                                      "CvSVM": {"C":2, "svm_type":"RBF"},
+                                                      ...}  
+                                    
+                if consensus model in modelPath and NO expression is present  (for Backcompatibility):
+                               ex.:  "learners":  {"RF": <RFLearner 'RF learner'> , 
+                                                    "CvSVM":<RFLearner 'CvSVM learner'>, 
+                                                    "Consensus":<ConsensusLearner 'Consensus learner'>, 
+                                                    ...} 
+                                      "Cexpression" : []
+                                      "parameters" : {"RF":{"nActVars":5, "maxDepth":20},
+                                                      "CvSVM": {"C":2, "svm_type":"RBF"},
+                                                      ...}
+                                     
+
+    """
+    learners = {}
+    Cexpression = []
+    parameters = {}
+
+    learnersDict = {}
+    theLearner = None
+
+    modelType = modelRead(modelFile=modelPath, retrunClassifier = False)
+    exec "from trainingMethods import AZorng" + modelType
+    if modelType != "Consensus":
+        learners[modelType] = eval("AZorng"+modelType+"."+modelType+"Learner()")        
+        if getParameters:
+            if os.path.isfile(os.path.join(modelPath,"parameters.pkl")):
+                fileh = open(os.path.join(modelPath,"parameters.pkl"))
+                parameters[modelType] = pickle.load(fileh)
+                fileh.close()
+            else:
+                model = modelRead(modelPath)
+                parameters[modelType] = model.parameters
+        else:
+            parameters[modelType] = {}
+        for par in parameters[modelType]:
+            learners[modelType].setattr(par, parameters[modelType][par])
+        theLearner = learners[modelType]
+    else:
+        if os.path.isfile(os.path.join(modelPath,"learnerDict.pkl")) and (os.path.isfile(os.path.join(modelPath,"expression.pkl")) or os.path.isfile(os.path.join(modelPath,"expressionList.pkl"))):
+            if os.path.isfile(os.path.join(modelPath,"expression.pkl")):
+                fh = open(os.path.join(modelPath,"expression.pkl"))
+            else:
+                fh = open(os.path.join(modelPath,"expressionList.pkl"))
+            Cexpression = pickle.load(fh)
+            fh.close()
+
+            fh = open(os.path.join(modelPath,"learnerDict.pkl"))
+            learnersDict = pickle.load(fh)
+            fh.close()
+        if not Cexpression or not learnersDict:  # Trivial Consensus Model
+            modelPaths = [dir for dir in os.listdir(modelPath) if "C" in dir and ".model" in dir]
+            for modelP in modelPaths:
+                mType = modelRead(modelFile=os.path.join(modelPath,modelP), retrunClassifier = False)
+                exec "from trainingMethods import AZorng" + mType
+                learners[mType] = eval("AZorng"+mType+"."+mType+"Learner()") 
+                if getParameters:
+                    if os.path.isfile(os.path.join(modelPath,modelP,"parameters.pkl")):
+                        fileh = open(os.path.join(modelPath,modelP,"parameters.pkl"))
+                        parameters[mType] = pickle.load(fileh)
+                        fileh.close()
+                    else:
+                        model = modelRead(os.path.join(modelPath,modelP))
+                        parameters[mType] = model.parameters
+                else:
+                    parameters[mType] = {}
+            for l in learners:
+                for par in parameters[l]:
+                    learners[l].setattr(par, parameters[l][par])
+            exec "from trainingMethods import AZorngConsensus"
+            theLearner = AZorngConsensus.ConsensusLearner(learners = [learners[l] for l in learners])
+        else:                                   # advanced Consensus model
+            for modelName in learnersDict:
+                modelP = "C"+str(learnersDict[modelName])+".model"
+                mType = modelRead(modelFile=os.path.join(modelPath,modelP), retrunClassifier = False)
+                exec "from trainingMethods import AZorng" + mType
+                learners[modelName] = eval("AZorng"+mType+"."+mType+"Learner()")            
+                if getParameters:
+                    if os.path.isfile(os.path.join(modelPath,modelP,"parameters.pkl")):
+                        fileh = open(os.path.join(modelPath,modelP,"parameters.pkl"))
+                        parameters[mType] = pickle.load(fileh)
+                        fileh.close()
+                    else:
+                        model = modelRead(os.path.join(modelPath,modelP))
+                        parameters[modelName] = model.parameters
+                else:
+                    parameters[modelName] = {}
+            for l in learners:
+                for par in parameters[l]:
+                    learners[l].setattr(par, parameters[l][par])
+            exec "from trainingMethods import AZorngConsensus"
+            theLearner = AZorngConsensus.ConsensusLearner(learners = learners, expression = Cexpression)
+
+
+    return theLearner
+
+def getModelDomain(modelPath):
+    """
+    Looks for the domain used to train the model. 
+    If looks for the file ImputeData.tab where it extracts the model domain
+    If it does not exist, it loads the model and get the parameters from the variable domain
+    if can't do it, returns None
+    """
+    try:
+        filePath = os.path.join(modelPath, "ImputeData.tab")
+        if os.path.isfile(filePath):
+            impData = dataUtilities.DataTable(filePath)
+            return impData.domain
+        else:
+            model = modelRead(modelPath)
+            return model.domain
+    except:
+        print "ERROR: Can't find the domain of the model in ", modelPath
+        return None
+
+ 
+
 
 def modelRead(modelFile=None,verbose = 0,retrunClassifier = True):
     """Get the type of model saved in 'modelPath' and loads the respective model
@@ -81,8 +221,9 @@ class AZLearner(orange.Learner):
     def __new__(cls, trainingData = None, name = "AZ learner", **kwds):
         self = orange.Learner.__new__(cls, **kwds)
         self.__dict__.update(kwds)
-	self.name = name
+        self.name = name
         self.basicStat = None
+        self.parameters = {}
         return self
       
     def isCompatible(self, classVar):
@@ -114,7 +255,17 @@ class AZLearner(orange.Learner):
                 self.basicStat[attr.name] = None
             else:       
                 self.basicStat[attr.name] = {"min":basicStat[attr].min, "max":basicStat[attr].max, "avg":basicStat[attr].avg}
-            
+        # Gather all the learner parameters to be stored along with the classifier 
+        # Find the name of the Learner
+        learnerName = str(self.__class__)[:str(self.__class__).rfind("'")].split(".")[-1] 
+        self.parameters = {}
+        if learnerName != "ConsensusLearner":
+            # Load the AZLearnersParamsConfig.py from the AZORANGEHOME!
+            AZOLearnersConfig = imp.load_source("AZLearnersParamsConfig", os.path.join(os.environ["AZORANGEHOME"],'azorange',"AZLearnersParamsConfig.py"))
+            pars = AZOLearnersConfig.API(learnerName)
+            if pars:
+                for par in pars.getParameterNames():
+                    self.parameters[par] = getattr(self,par)
         return True
 
     def setattr(self, name, value):
@@ -195,8 +346,9 @@ class AZClassifier(object):
     Here we can add methods that are commun to all Classifiers that derivates from this class
     """
     def __new__(cls,name = "AZ classifier", **kwds):
-	self = object.__new__(cls)
-        self.__dict__ = kwds
+        self = object.__new__(cls)
+        self.parameters = {}
+        self.__dict__.update(kwds)
         self.examplesFixedLog = {}
         self.name = name
         self.classifier = None
@@ -207,7 +359,13 @@ class AZClassifier(object):
         self.basicStat = None
         self.NTrainEx = 0
         return self
-        
+
+
+    def _saveParameters(self, path):
+        fileh = open(path, 'w') 
+        pickle.dump(self.parameters,fileh)
+        fileh.close()
+ 
     def _updateDFVExtremes(self, DFV):
         if DFV < self._DFVExtremes["min"]:
             self._DFVExtremes["min"] = DFV
@@ -277,7 +435,8 @@ class AZClassifier(object):
             localEx[var] = ex[var] + step
             localPred = self(localEx,returnDFV = True)[1]
             ResUp = (localPred, step)
-            #print "%6s%6s" % ( round(step,2),round(localPred,2)),
+            # Print used for testing significance
+            #print "%10s%10s" % ( round(step,2),round(localPred,2)),
             #single direction step:
             return ResUp
             # double direction steps: 
@@ -317,7 +476,8 @@ class AZClassifier(object):
             #    grad = (abs(res) - abs(gradRef))/step
             #else:
             grad = (res-gradRef)/step
-            #print  "%6s" % (round(grad,2)),
+            # Print used for testing significance
+            #print  "%10s" % (round(grad,2)),
             if grad == 0:
                 continue
             if grad > 0:

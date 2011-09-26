@@ -1,3 +1,4 @@
+import pickle
 import orange
 import AZBaseClasses
 from AZutilities import dataUtilities
@@ -74,7 +75,7 @@ class CvBayesLearner(AZBaseClasses.AZLearner):
         #Train the model
         #CvNormalBayesClassifier::train(const CvMat* _train_data, const CvMat* _responses, const CvMat* _var_idx =0, const CvMat* _sample_idx=0, bool update=false)
         classifier.train(mat, responses, None, None, False)
-        return CvBayesClassifier(classifier = classifier, classVar = trainingData.domain.classVar, imputeData=impData, verbose = self.verbose, varNames = CvMatrices["varNames"], nIter = None, basicStat = self.basicStat, NTrainEx = len(trainingData), scalizer = self.scalizer)
+        return CvBayesClassifier(classifier = classifier, classVar = trainingData.domain.classVar, imputeData=impData, verbose = self.verbose, varNames = CvMatrices["varNames"], nIter = None, basicStat = self.basicStat, NTrainEx = len(trainingData), scalizer = self.scalizer, parameters = self.parameters)
 
 class CvBayesClassifier(AZBaseClasses.AZClassifier):
     def __new__(cls, name = "CvBayes classifier", **kwds):
@@ -217,7 +218,8 @@ class CvBayesClassifier(AZBaseClasses.AZClassifier):
             varNamesFile.write(str(self.NTrainEx)+"\n")
             varNamesFile.write(str(self.basicStat)+"\n")
             varNamesFile.close()
-
+            #Save the parameters
+            self._saveParameters(os.path.join(thePath,"parameters.pkl"))
         except:
             if self.verbose > 0: print "ERROR: Could not save model to ", path
             return False
@@ -255,8 +257,14 @@ def CvBayesread(path, verbose = 0):
             NTrainEx = eval(lines[1].strip())
             basicStat = eval(lines[2].strip())
         varNamesFile.close()
-
-        return CvBayesClassifier(classifier = loadedbayes, imputeData=impData[0], classVar = impData.domain.classVar, verbose = verbose, loadedModel = True, varNames = varNames, NTrainEx = NTrainEx, basicStat = basicStat, scalizer = scalizer)
+        # Read the parameters
+        if os.path.isfile(os.path.join(thePath,"parameters.pkl")):
+            fileh = open(os.path.join(thePath,"parameters.pkl"),"r")
+            parameters = pickle.load(fileh)
+            fileh.close()
+        else:
+            parameters = {} 
+        return CvBayesClassifier(classifier = loadedbayes, imputeData=impData[0], classVar = impData.domain.classVar, verbose = verbose, loadedModel = True, varNames = varNames, NTrainEx = NTrainEx, basicStat = basicStat, scalizer = scalizer, parameters = parameters)
     except:
         if verbose > 0: print "ERROR: Could not read model from ", path
 

@@ -5,6 +5,7 @@ The OpenCV RF models should be usable just like any other learner or classifier 
 """
 import string
 import os
+import pickle
 #import time
 
 ##scPA
@@ -215,7 +216,7 @@ class RFLearner(AZBaseClasses.AZLearner):
         #attributeInfo = dataUtilities.DataTable(trainData.domain)
         # place the impute data as the first example of this data
         #attributeInfo.append(self.imputer.defaults)
-        return RFClassifier(classifier = self.learner, classVar = impData.domain.classVar, imputeData=impData, verbose = self.verbose, varNames = CvMatrices["varNames"],thisVer=True,useBuiltInMissValHandling = self.useBuiltInMissValHandling, varImportance = varImportance, basicStat = self.basicStat, NTrainEx = len(trainingData))
+        return RFClassifier(classifier = self.learner, classVar = impData.domain.classVar, imputeData=impData, verbose = self.verbose, varNames = CvMatrices["varNames"],thisVer=True,useBuiltInMissValHandling = self.useBuiltInMissValHandling, varImportance = varImportance, basicStat = self.basicStat, NTrainEx = len(trainingData), parameters = self.parameters)
 
 
     def setParameters(self, trainingData):
@@ -523,7 +524,8 @@ class RFClassifier(AZBaseClasses.AZClassifier):
                 varNamesFile.write(str(self.NTrainEx)+"\n") 
                 varNamesFile.write(str(self.basicStat)+"\n") 
                 varNamesFile.close()
-
+                #Save the parameters
+                self._saveParameters(os.path.join(dirPath,"parameters.pkl"))
                 # Save the model
                 self.classifier.save(filePath)
         except:            
@@ -543,6 +545,13 @@ def RFread(dirPath,verbose = 0):
     basicStat = None 
     # This assures that all related files will be inside a folder
     loadedRFclassifier = ml.CvRTrees()
+    # Read the parameters
+    if os.path.isfile(os.path.join(dirPath,"parameters.pkl")):
+        fileh = open(os.path.join(dirPath,"parameters.pkl"),"r")
+        parameters = pickle.load(fileh)
+        fileh.close()
+    else:
+        parameters = {}
     if os.path.isfile(os.path.join(dirPath,"model.rf")):
         #New format
         filePath = os.path.join(dirPath,"model.rf") 
@@ -609,7 +618,7 @@ def RFread(dirPath,verbose = 0):
         if verbose > 0: print "ERROR: It was not possible to load the impute data or the varNames."
         return None
     ##ecPA   also added , imputeData=impData to nexti call 
-    return RFClassifier(classifier = loadedRFclassifier, classVar = classVar, imputeData=impData, verbose = verbose, varNames = varNames, thisVer=thisVer, useBuiltInMissValHandling = useBuiltInMissValHandling, NTrainEx = NTrainEx, basicStat = basicStat)
+    return RFClassifier(classifier = loadedRFclassifier, classVar = classVar, imputeData=impData, verbose = verbose, varNames = varNames, thisVer=thisVer, useBuiltInMissValHandling = useBuiltInMissValHandling, NTrainEx = NTrainEx, basicStat = basicStat, parameters = parameters)
 
 
 if __name__ == "__main__":

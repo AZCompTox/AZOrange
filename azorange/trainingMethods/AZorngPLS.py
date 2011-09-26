@@ -6,6 +6,7 @@ The aim is to be able to use PLS just like any other learning algorithm in Orang
 import string
 import os
 import time
+import pickle 
 
 import pls
 import orange
@@ -126,7 +127,7 @@ class PLSLearner(AZBaseClasses.AZLearner):
 	    print "The directory " + scratchdir + " was not deleted because DEBUG flag is ON"
 	del trainData
         impData=self.imputer.defaults
-        return PLSClassifier(classifier = learner, name = "Classifier of " + self.name, classVar = trainingData.domain.classVar, imputeData=impData, verbose = self.verbose, varNames = [attr.name for attr in trainingData.domain.attributes], NTrainEx = len(trainingData), basicStat = self.basicStat)#learner.GetClassVarName())#
+        return PLSClassifier(classifier = learner, name = "Classifier of " + self.name, classVar = trainingData.domain.classVar, imputeData=impData, verbose = self.verbose, varNames = [attr.name for attr in trainingData.domain.attributes], NTrainEx = len(trainingData), basicStat = self.basicStat, parameters = self.parameters)#learner.GetClassVarName())#
 
 
 class PLSClassifier(AZBaseClasses.AZClassifier):
@@ -282,7 +283,8 @@ class PLSClassifier(AZBaseClasses.AZClassifier):
                 varNamesFile.write(str(self.NTrainEx)+"\n")
                 varNamesFile.write(str(self.basicStat)+"\n")
                 varNamesFile.close()
-
+                #Save the parameters
+                self._saveParameters(os.path.join(filePath,"parameters.pkl"))
         except:            
                 if self.verbose > 0: print "ERROR: Could not save model to ", path
                 return False
@@ -318,9 +320,14 @@ def PLSread(filePath, verbose = 0):
     else:
             if verbose > 0: print "WARNING: The model loaded was saved with an old azorange version."
             varNames = [attr.name for attr in impData.domain.attributes]
-
-	 
-    return PLSClassifier(classifier = PLSInstance, classVar=classVar, imputeData=impData[0], varNames = varNames, NTrainEx = NTrainEx, basicStat = basicStat, verbose = verbose)
+    # Read the parameters
+    if os.path.isfile(os.path.join(filePath,"parameters.pkl")):
+        fileh = open(os.path.join(filePath,"parameters.pkl"),"r")
+        parameters = pickle.load(fileh)
+        fileh.close()
+    else:
+        parameters = {} 
+    return PLSClassifier(classifier = PLSInstance, classVar=classVar, imputeData=impData[0], varNames = varNames, NTrainEx = NTrainEx, basicStat = basicStat, verbose = verbose, parameters = parameters)
 
 
 if __name__ == "__main__":
