@@ -1,6 +1,6 @@
 AZOrange is a customization for the open source software Orange. 
 
-Installation (Using Ubuntu Lucid Lynx 10.04):
+Installation (Using Ubuntu Natty Narwhal 11.04  64bits):
 ===============================================================================
 1) Install all available system updates
 2) Download the latest version of AZOrange from http://github.com/AZCompTox/AZOrange/downloads 
@@ -12,8 +12,7 @@ Installation (Using Ubuntu Lucid Lynx 10.04):
        ./prepareUbuntu4AZO.sh
 6) Create/configure a setup.ini file from a template (inside the <installDir>/AZOrange/install dir):
        cp setup.ini.ubuntu setup.ini
-            (edit the setup.ini to configure accordingly to your system. For 64 bits OS disable ftm by commenting the respective line with ";":
-             ;ftm = http://wwwkramer.in.tum.de/projects/ftm.tar.gz,0.1  )
+            (edit the setup.ini to configure accordingly to your system.)
 7) Edit the setup.ini to configure the destination install dir:
        installDir = YourDesiredInstallFullPath
 8) Start the installation scripts (inside the <installDir>/AZOrange/install dir):

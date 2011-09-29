@@ -6,7 +6,7 @@ repoInteraction = yes
 ;repository is the URL for the Git Repository
 ;For developers with read and right access, change the URL to the SSH or HTTP form:  git@github.com:AZCompTox/AZOrange.git 
 ;  or     https://UserName@github.com/AZCompTox/AZOrange.git
-repository = git@github.com:johan-westin-work/AZOrange.git
+repository = git@github.com:AZCompTox/AZOrange.git
 
 [Paths]
 ;Always use full paths. 
@@ -100,7 +100,7 @@ cinfony = http://cinfony.googlecode.com/files/cinfony-1.0.tar.gz,1.0
 rdkit = http://rdkit.googlecode.com/files/RDKit_2011_03_2.tgz,2011.03
 ;rdkit = http://rdkit.googlecode.com/files/RDKit_Q42009_1.tar.gz,Q42009_2
 cdk = http://switch.dl.sourceforge.net/project/cdk/cdk/1.2.7/cdk-1.2.7.jar,1.2.7
-ftm = http://wwwkramer.in.tum.de/projects/ftm.tar.gz,0.1
+;ftm = http://wwwkramer.in.tum.de/projects/ftm.tar.gz,0.1
 
 [FeedBack]
 ;For sending reports to multiple accounts, separate them by comma
