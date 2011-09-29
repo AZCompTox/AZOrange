@@ -301,7 +301,7 @@ class ConsensusClassifierTest(AZorngTestUtil.AZorngTestUtil):
         self.assertEqual(len(Loaded.domain),len(self.irisData.domain))
         self.assertEqual(len(Loaded.imputeData) , len(Loaded.domain))
         self.assertEqual(len(Loaded.basicStat), len(Loaded.domain)) 
-        self.assertEqual(Loaded.NTrainEx, 0.8*len(self.irisData))
+        self.assertEqual(Loaded.NTrainEx, len(self.irisData))
         for ex in self.irisData:
             predictionsL.append(Loaded(ex))
 
@@ -324,6 +324,7 @@ class ConsensusClassifierTest(AZorngTestUtil.AZorngTestUtil):
             predictions.append(classifier(ex))
 
         scratchdir = miscUtilities.createScratchDir(desc="ConsensusSaveLoadTest")
+        print scratchdir
         classifier.write(os.path.join(scratchdir,"./CM.model"))
 
         # Assert
@@ -370,7 +371,7 @@ class ConsensusClassifierTest(AZorngTestUtil.AZorngTestUtil):
         self.assertEqual(len(Loaded.domain),len(self.DataReg.domain))
         self.assertEqual(len(Loaded.imputeData) , len(Loaded.domain))
         self.assertEqual(len(Loaded.basicStat), len(Loaded.domain))
-        self.assertEqual(Loaded.NTrainEx, len(self.DataReg)*0.8)
+        self.assertEqual(Loaded.NTrainEx, len(self.DataReg))
 
         miscUtilities.removeDir(scratchdir)
  

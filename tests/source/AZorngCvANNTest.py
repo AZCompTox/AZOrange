@@ -112,7 +112,7 @@ class CvANNClassifierTest(AZorngTestUtil.AZorngTestUtil):
         def TopVarImportanceTest(data, expectNone = False):
             resA = []
             resB = []
-            CvANN = AZorngCvANN.CvANNLearner(data, stopUPs=0)
+            CvANN = AZorngCvANN.CvANNLearner(data, stopUPs=33)
 
             for ex in data:
                 resA.append(CvANN.getTopImportantVars(ex,1))
@@ -124,6 +124,7 @@ class CvANNClassifierTest(AZorngTestUtil.AZorngTestUtil):
             miscUtilities.removeDir(scratchdir) 
             for ex in data:
                 resB.append(LoadedCvANN.getTopImportantVars(ex,1))
+            
             if expectNone:
                return resA == resB == [None]*len(data)
             else:

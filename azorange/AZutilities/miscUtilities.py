@@ -203,7 +203,7 @@ def generateUniqueFile(desc = "", baseDir = SCRATCHDIR, ext = ""):
             return file
         filePath = os.path.realpath(os.path.join(baseDir, file))
         if not os.path.isfile(filePath):
-            return file
+            return filePath
 
 def removeDir(dirToRem):
     """Securely remove a directory (maily for use with scraatch dirs)

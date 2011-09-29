@@ -2,12 +2,13 @@
 Module to build install the azorange package. 
 Specific versions of dependencies are needed, eg gcc.
 """
-import sys
-import os
-import string
 import commands
-import types
+import os
+from optparse import OptionParser
+import string
+import sys
 import traceback
+import types
 
 # Needed for modules to be loaded.
 def module(command, *arguments):
@@ -55,44 +56,330 @@ def syncCPATHandINCLUDE_DIR():
 
 
 
-class installerClass:
+class Installer:
     
-    def __init__(self, rootDir, installDir, platform, modules):
-        # rootDir is the current Build dir where this script is executed!
+    ACTION_ENUM = ["build"]
+    OPEN_INSTALL_ENUM = [False, True]
+    PLATFORM_ENUM = ["workstation", "cluster", "GAS-pyX.Y"]
+    VERBOSED_LOGGING_ENUM = [False, True]
+    
+    def __init__(self, commandLineArguments):
+        # buildDir is the current Build dir where this script is executed!
         # Dirs definition
-        self.orangeInstallDir = installDir
-        self.orangeDir = os.path.join(rootDir,"orange")
-        self.azorangeDir = os.path.join(rootDir,"azorange")
-        self.orngCRSDir = os.path.join(rootDir,"orangeDependencies/src/orngCRS")
-        self.mpichDir = os.path.join(rootDir,"orangeDependencies/src/mpich-1.2.7p1")
+        self.commandLineArguments = commandLineArguments
+        self.buildDir = None
+        self.dependencies = {}
+        self.installDir = None
+        self.orangeDir = None
+        self.azorangeDir = None
+        self.orngCRSDir = None
+        self.mpichDir = None
         # The boost source path is the dir created when uncompressing the orangeDependencies/src/boost_1_34_1.tar.gz
-        self.orngBoostDir = os.path.join(rootDir,"orangeDependencies/src/boost")
-        self.APPSPackDir = os.path.join(rootDir,"orangeDependencies/src/appspack")
-        self.azFannDir = os.path.join(rootDir,"orangeDependencies/src/azFann-2.0.0")
-        self.opencvDir = os.path.join(rootDir,"orangeDependencies/src/opencv")
-        self.oasaDir = os.path.join(rootDir,"orangeDependencies/src/oasa")
-        self.cinfonyDir = os.path.join(rootDir,"orangeDependencies/src/cinfony")
-        self.rdkitDir = os.path.join(rootDir,"orangeDependencies/src/rdkit")
-        self.cdkDir = os.path.join(rootDir,"orangeDependencies/src/cdk")
-        self.ftmDir = os.path.join(rootDir,"orangeDependencies/src/ftm")
-        self.plearnDir = os.path.join(rootDir,"orangeDependencies/src/plearn")
-        self.R8Dir = os.path.join(rootDir,"orangeDependencies/src/R8/Src")
-        self.trainingDir = os.path.join(rootDir,"azorange/trainingMethods")
-        self.rootDir = rootDir
+        self.orngBoostDir = None
+        self.APPSPackDir = None
+        self.azFannDir = None
+        self.opencvDir = None
+        self.oasaDir = None
+        self.cinfonyDir = None
+        self.rdkitDir = None
+        self.cdkDir = None
+        self.ftmDir = None
+        self.plearnDir = None
+        self.R8Dir = None
+        self.ctoolsDir = None
+        self.trainingDir = None
         # dir to install all other orange dependencies packages as opencv, fann, PLearn, etc...
-        self.orangeDependenciesDir = os.path.join(installDir,"orangeDependencies")
+        self.orangeDependenciesDir = None
+
+        #Variables
+        self.buildPythonPath = None
+        self.envFile = None     # new input argument to define additional envVars needed at runtime back to the mail install script
+        self.mpiCVerOK=False    # used for MPI compatibility check
+        self.modulesToLoad = None
+        self.platform = None
+        self.logFile = None
+        self.detailsLogFile = None
+        self.verbosedLogging = False
+        
+
+    def __addLog(self,status,create=False):
+        if not ( self.logFile and self.detailsLogFile):
+            return
+
+        if create:
+            log = open(self.logFile,"w")
+            detailsLog = open(self.detailsLogFile,"w")
+            logStr = status + " (" +time.asctime() + ")\n" +"="*60
+            log.write(logStr+"\n")
+            detailsLog.write(logStr+"\n")
+            print logStr
+            log.close()
+            detailsLog.close()
+            return
+        #status can be the output of comands.getstatusoutput: (0, "something")
+        #If status is a string, it can be a new log section if started by "*" or a
+        #   simply line if started by "#"
+        log = open(self.logFile,"a")
+        detailsLog = open(self.detailsLogFile,"a")
+        if type(status) in types.StringTypes:
+            if status[0]=="#":
+                logStr = status[1:]
+            elif status[0]=="*":
+                logStr = "-"*60 + "\n"+ status[1:] + " (" + time.asctime() + ")\n"+"-"*60
+            else:
+                logStr ="-"*60 + "\n"+ status + " (" + time.asctime() + ")\n"+"-"*60
+            log.write(logStr+"\n")
+            detailsLog.write(logStr+"\n")
+            print logStr
+        else:
+            if status[0]==0:
+               if not status[1]:
+                   log.close()
+                   detailsLog.close()
+                   return
+               else:
+                   logStr = "Detail Code: OK" + "_"+str(time.time())
+                   detailsLogStr = logStr+"\n\t\t" + status[1].replace("\n","\n\t\t")
+            else:
+               self.successInstall = False
+               logStr = "ERROR: Detail Code: " + str(status[0]) + "_"+str(time.time())
+               detailsLogStr=logStr+"\n\t\t" + status[1].replace("\n","\n\t\t")
+            log.write(logStr+"\n")
+            detailsLog.write(detailsLogStr+"\n")
+            print logStr
+        log.close()
+        detailsLog.close()
+
+    
+    def __build(self):
+        """Install azorange in buildDir. """
+
+        #os.system("env")
+        #sys.exit(1)
+        if "LOADEDMODULES" in os.environ:
+            print "Loaded modules: %s"%os.environ["LOADEDMODULES"]
+        else:
+            print "No Modules loaded!"
+        print "Orange is being built in "+self.buildDir
+        
+        # Setup the correct environment.
+        self.setEnv()
+
+        # Compile ftm
+        self.compileFTM()
+
+        # Compile cinfony
+        self.compileCinfony()
+     
+        # Compile rdkit
+        self.compileRdkit()
+
+        # Compile CDK
+        self.compileCdk()
+ 
+        # Compile the Orange C++ layer
+        self.compileOrange()
+    
+        # R8 and copy the C4.5.so to the orange dir.
+        self.compileR8()
+        
+        # APPSPack.  moved to last
+        
+        # Compile and copy _orngCRS.so to the orange dir.
+        self.compileOrngCRS()
+
+        # Compile and install the opencv.
+        self.compileOpenCV()
+
+        # Compile and install the oasa.
+        self.compileOasa()
+
+        # Compile and install the azFann.
+        self.compileAZFann()
+
+        # Compile and install the ctools.
+        self.compileCtools()
+
+        # Compile and install the AZOrange C++ layer
+        self.compileAZOrange()
+
+        # APPSPack.
+        if self.platform == "workstation" or self.platform[0:3] == "GAS":
+            self.compileMPICH()
+            self.compileAPPSPack()
+
+
+
+
+        # Set the python path and install the python layer
+        self.__installPythonLayer()
+
+
+        # Copy the test directory
+        os.system("cp -r "+os.path.join(self.buildDir, "tests")+" "+self.installDir)
+        #Expand profiling Data
+        if not self.openInstall: 
+            #Dir of dataSets used by profiling tools
+            dataDir = os.path.realpath(os.path.join(self.installDir,'tests','profiling','dataSets'))
+            # Zipped file containing the full set of datasets for profiling
+            ZippedData=os.path.realpath(os.path.join(dataDir,'profilingDataSuite.tar.gz'))
+            #Dir where the original datasets are going to be unzipped
+            fullTrunkDir=os.path.join(dataDir,'fullTrunk')
+            os.system("rm -rf " + fullTrunkDir)
+            os.system("mkdir -p " + fullTrunkDir)
+            os.system("tar xfz " + ZippedData + " -C " + fullTrunkDir)
+
+
+    def __initialize(self):
+        if not os.path.exists(self.buildDir):
+            raise Exception("Invalid or none-existing buildDir.")
+        
+        if not os.path.exists(self.installDir):
+            raise Exception("Invalid or none-existing installDir.")
+
+        if not self.platform:
+            raise Exception("Missing platform.")
+
+        if not self.platform in Installer.PLATFORM_ENUM and \
+           not ( self.platform[:3] in [p[:3] for p in Installer.PLATFORM_ENUM] ):
+            
+            raise Exception("Invalid platform.")
+
+        self.orangeDir = os.path.join(self.buildDir,"orange")
+        self.azorangeDir = os.path.join(self.buildDir,"azorange")
+        self.orngCRSDir = os.path.join(self.buildDir,"orangeDependencies/src/orngCRS")
+        self.mpichDir = os.path.join(self.buildDir,"orangeDependencies/src/mpich-1.2.7p1")
+        # The boost source path is the dir created when uncompressing the orangeDependencies/src/boost_1_34_1.tar.gz
+        self.orngBoostDir = os.path.join(self.buildDir,"orangeDependencies/src/boost")
+        self.APPSPackDir = os.path.join(self.buildDir,"orangeDependencies/src/appspack")
+        self.azFannDir = os.path.join(self.buildDir,"orangeDependencies/src/azFann-2.0.0")
+        self.opencvDir = os.path.join(self.buildDir,"orangeDependencies/src/opencv")
+        self.oasaDir = os.path.join(self.buildDir,"orangeDependencies/src/oasa")
+        self.cinfonyDir = os.path.join(self.buildDir,"orangeDependencies/src/cinfony")
+        self.rdkitDir = os.path.join(self.buildDir,"orangeDependencies/src/rdkit")
+        self.cdkDir = os.path.join(self.buildDir,"orangeDependencies/src/cdk")
+        self.ftmDir = os.path.join(self.buildDir,"orangeDependencies/src/ftm")
+        self.plearnDir = os.path.join(self.buildDir,"orangeDependencies/src/plearn")
+        self.ctoolsDir = os.path.join(self.buildDir,"orangeDependencies/src/Ctools")
+        self.R8Dir = os.path.join(self.buildDir,"orangeDependencies/src/R8/Src")
+
+        self.trainingDir = os.path.join(self.buildDir,"azorange/trainingMethods")
+
+        # dir to install all other orange dependencies packages as opencv, fann, PLearn, etc...
+        self.orangeDependenciesDir = os.path.join(self.installDir,"orangeDependencies")
         #make sure .../bin is also created
         os.system("mkdir -p " + os.path.join(self.orangeDependenciesDir,"bin"))
 
         #Variables
         self.buildPythonPath = self.orangeDir+":"+self.azorangeDir
-        self.envFile = None     # new input argument to define additional envVars needed at runtime back to the mail install script
-        self.mpiCVerOK=False    # used for MPI compatibility check
-        self.modulesToLoad = modules
-        self.platform = platform
         
-        self.LoadModules()
+        self.__loadModules()
+
+
+    def __installPythonLayer(self):
+        """Once the orange/source directory is compiled, the python layer can be built using the 
+           orange/setup.py script. """
+
+        print "InstallPythonLayer"
+        # Set the python path and install the python layer
+        #setupFile = os.path.join(self.orangeDir,"setup.py")
+        os.chdir(self.orangeDir)
+        try:
+            os.system("python setup.py install --orangepath="+self.installDir)
+        except:
+            print "Error installing the orange in the installation directory."
+            sys.exit(1)
+        try:
+            os.remove(os.path.join(self.installDir,"orange","liborange.so"))
+        except:
+            print "Unable to remove orange/liborange.so"
+        savedCwd = os.getcwd()
+        try:
+            os.chdir(os.path.join(self.installDir, "orange"))
+            os.symlink("orange.so", "liborange.so")
+        except:
+            print "Failed to link liborange.so"
+            sys.exit(1)
+        os.chdir(savedCwd)
+
+        # Also copy the shared libraries that were built separately.
+        #print "Copying c45.so and _orngCRS.so to installation directory."
+        #try:
+        #    os.system("cp c45.so %s/orange/c45.so" % self.installDir)
+        #    os.system("cp _orngCRS.so %s/orange/_orngCRS.so" % self.installDir)
+        #except:
+        #    print "Error copying c45.so and/or _orngCRS.so from orange build directory to installation directory."
+
+        print "Copying trainingMethods, AZutilities and AZOrangeConfig.py to installation directory."
+        sumStatus = 0
+        try:
+            ##scPA    Changed the source and destination of these files
+            sumStatus += os.system("mkdir -p %s/azorange/trainingMethods" % self.installDir)
+            #Not included in the sumStatus because this command will generate a warning because being sipping directories.
+            os.system("cp -f ../azorange/trainingMethods/* %s/azorange/trainingMethods/" % self.installDir)
+            #Not being used... it is still empty
+            #sumStatus += os.system("cp -f ../azorange/trainingMethods/bin/* %s/azorange/trainingMethods/bin/" % self.installDir)
+            sumStatus += os.system("cp -Rf ../azorange/AZutilities %s/azorange/." % self.installDir)
+            sumStatus += os.system("cp -Rf ../azorange/statlib %s/azorange/." % self.installDir)
+            sumStatus += os.system("cp -f ../azorange/*.py %s/azorange/." % self.installDir)
+            sumStatus += os.system("cp -Rf ../azorange/bin %s/azorange/." % self.installDir)
+            if self.openInstall:
+                sumStatus += os.system("cp -Rf ../COPYING* %s/." % self.installDir)
+
+            if not self.openInstall:
+                sumStatus += os.system("cp -Rf ../doc %s/." % self.installDir)
+                sumStatus += os.system("cp -Rf ../azorange/documentation %s/azorange/." % self.installDir)
+                sumStatus += os.system("cp -f ../azorange/*.txt %s/azorange/." % self.installDir)
+                sumStatus += os.system("cp -Rf  ../exampleScripts %s/." % self.installDir)
+            #  Added the azorange to pythonpath in order to maintain the use of modules
+            #  inside it accessible by the same way
+            if "PYTHONPATH" in os.environ:
+                os.environ["PYTHONPATH"] =  self.orangeDir + "/azorange:" +  os.environ["PYTHONPATH"]
+            else:
+                os.environ["PYTHONPATH"] =  self.orangeDir + "/azorange"
+            ##ecPA
+            #print "copy env:"
+            #os.system("ls -l ")
+            #os.system("pwd")
+        except:
+            print "Error copying trainingMethods directory from orange build directory to installation directory."
+        if sumStatus:
+            print "Error copying azorange files to the install Dir."
+            sys.exit(1)
         
+
+    def __loadModules(self):
+        # Setup up the correct env using modules for each target.
+        ##scPA
+        if self.modulesToLoad:
+            sys.stdout.write("Loading module: ")
+            #Check out what vital modules define in setup.ini  are missing
+            if "LOADEDMODULES" in os.environ:
+                missingModules = [m for m in self.modulesToLoad if m not in (os.environ["LOADEDMODULES"]).split(":")]
+            else:
+                missingModules = self.modulesToLoad
+            #Load the missing modules
+            for mname in missingModules:
+                #print commands.getstatusoutput("gcc -dumpversion")
+                sys.stdout.write("    %s " % mname)
+                module("load", mname)
+                #print commands.getstatusoutput("gcc -dumpversion")
+
+            #Cheack if the needed modules were loaded correctly
+            for mname in self.modulesToLoad:
+                if mname not in (os.environ["LOADEDMODULES"]).split(":"):
+                    print "\nWARNING!! Required Module '"+mname+"' was not able to be loaded...Installation may fail!"
+        else:
+            sys.stdout.write("Not using modules!")
+        
+
+    def __logAndExecute(self, command, logOutput=False):
+        if self.verboseLogging:
+            self.__addLog("#setup - About to execute (in " + os.getcwd() + "): " + command)
+        status, output = commands.getstatusoutput(command)
+        if logOutput:
+            self.__addLog((status, "#setup - Output from command: " + str(output)))            
+        return status, output
 
 
     def __prependEnvVar(self,envName, value):
@@ -126,119 +413,6 @@ class installerClass:
             file.write(var+"="+envVars[var]+"\n")
         file.close()
 
-
-
-    def LoadModules(self):
-        # Setup up the correct env using modules for each target.
-        ##scPA
-        if self.modulesToLoad:
-            sys.stdout.write("Loading module: ")
-            #Check out what vital modules define in setup.ini  are missing
-            if "LOADEDMODULES" in os.environ:
-                missingModules = [m for m in self.modulesToLoad if m not in (os.environ["LOADEDMODULES"]).split(":")]
-            else:
-                missingModules = self.modulesToLoad
-            #Load the missing modules
-            for mname in missingModules:
-                #print commands.getstatusoutput("gcc -dumpversion")
-                sys.stdout.write("    %s " % mname)
-                module("load", mname)
-                #print commands.getstatusoutput("gcc -dumpversion")
-
-            #Cheack if the needed modules were loaded correctly
-            for mname in self.modulesToLoad:
-                if mname not in (os.environ["LOADEDMODULES"]).split(":"):
-                    print "\nWARNING!! Required Module '"+mname+"' was not able to be loaded...Installation may fail!"
-        else:
-            sys.stdout.write("Not using modules!")
-        
-
-    def installPythonLayer(self):
-        """Once the orange/source directory is compiled, the python layer can be built using the 
-           orange/setup.py script. """
-
-        print "InstallPythonLayer"
-        # Set the python path and install the python layer
-        #setupFile = os.path.join(self.orangeDir,"setup.py")
-        os.chdir(self.orangeDir)
-        try:
-            os.system("python setup.py install --orangepath="+self.orangeInstallDir)
-        except:
-            print "Error installing the orange in the installation directory."
-            sys.exit(1)
-        try:
-            os.remove(os.path.join(self.orangeInstallDir,"orange","liborange.so"))
-        except:
-            print "Unable to remove orange/liborange.so"
-        try:
-            os.symlink(os.path.join(self.orangeInstallDir,"orange","orange.so"), os.path.join(self.orangeInstallDir,"orange","liborange.so"))
-        except:
-            print "Failed to link liborange.so"
-            sys.exit(1)
-        # Also copy the shared libraries that were built separately.
-        #print "Copying c45.so and _orngCRS.so to installation directory."
-        #try:
-        #    os.system("cp c45.so %s/orange/c45.so" % self.orangeInstallDir)
-        #    os.system("cp _orngCRS.so %s/orange/_orngCRS.so" % self.orangeInstallDir)
-        #except:
-        #    print "Error copying c45.so and/or _orngCRS.so from orange build directory to installation directory."
-
-        print "Copying trainingMethods, AZutilities and AZOrangeConfig.py to installation directory."
-        sumStatus = 0
-        try:
-            ##scPA    Changed the source and destination of these files
-            sumStatus += os.system("mkdir -p %s/azorange/trainingMethods" % self.orangeInstallDir)
-            #Not included in the sumStatus because this command will generate a warning because being sipping directories.
-            os.system("cp -f ../azorange/trainingMethods/* %s/azorange/trainingMethods/" % self.orangeInstallDir)
-            #Not being used... it is still empty
-            #sumStatus += os.system("cp -f ../azorange/trainingMethods/bin/* %s/azorange/trainingMethods/bin/" % self.orangeInstallDir)
-            sumStatus += os.system("cp -Rf ../azorange/AZutilities %s/azorange/." % self.orangeInstallDir)
-            sumStatus += os.system("cp -Rf ../azorange/statlib %s/azorange/." % self.orangeInstallDir)
-            sumStatus += os.system("cp -f ../azorange/*.py %s/azorange/." % self.orangeInstallDir)
-            sumStatus += os.system("cp -Rf ../azorange/bin %s/azorange/." % self.orangeInstallDir)
-            if self.OpenInstallation:
-                sumStatus += os.system("cp -Rf ../COPYING* %s/." % self.orangeInstallDir)
-
-            if not self.OpenInstallation:
-                sumStatus += os.system("cp -Rf ../doc %s/." % self.orangeInstallDir)
-                sumStatus += os.system("cp -Rf ../azorange/documentation %s/azorange/." % self.orangeInstallDir)
-                sumStatus += os.system("cp -f ../azorange/*.txt %s/azorange/." % self.orangeInstallDir)
-                sumStatus += os.system("cp -Rf  ../exampleScripts %s/." % self.orangeInstallDir)
-            #  Added the azorange to pythonpath in order to maintain the use of modules
-            #  inside it accessible by the same way
-            if "PYTHONPATH" in os.environ:
-                os.environ["PYTHONPATH"] =  self.orangeDir + "/azorange:" +  os.environ["PYTHONPATH"]
-            else:
-                os.environ["PYTHONPATH"] =  self.orangeDir + "/azorange"
-            ##ecPA
-            #print "copy env:"
-            #os.system("ls -l ")
-            #os.system("pwd")
-        except:
-            print "Error copying trainingMethods directory from orange build directory to installation directory."
-        if sumStatus:
-            print "Error copying azorange files to the install Dir."
-            sys.exit(1)
-        
-
-    def test(self, installDir):
- 
-        print "Testing the installation!"
-        self.testsDir = os.path.join(installDir,"azorange/azorange/tests")
-
-        self.defPaths(installDir)
-        os.putenv("PYTHONPATH", self.PYTHONPATH)
-        os.putenv("LD_LIBRARY_PATH", self.LD_LIBRARY_PATH) 
-
-        # Execute in the shell to get the PYTHONPATH defined in installPythonLayer
-        print "Testing the ANN implementation!!!"
-        os.system("python "+self.testsDir+"/AZorngANNTest.py")
-        print "Testing the SVM implementation!!!"
-        os.system("python "+self.testsDir+"/AZongSVMTest.py")
-        print "Testing the RF implementation!!!"
-        os.system("python "+self.testsDir+"/AZorngRFTest.py")
-        print "Testing the PLS implementation!!!"
-        os.system("python "+self.testsDir+"/AZorngPLSTest.py")
 
     def compileCinfony(self):
         # this is only untill the cinfony functionality is implemented at InHouse
@@ -422,9 +596,9 @@ class installerClass:
             return
         mpichInstallDir = os.path.join(self.orangeDependenciesDir,os.path.split(self.mpichDir)[1])
         if self.dependencies["mpich.tar.gz"]:   # compile and install
-                # uncompress the .tar.gz in the <rootDir>/orangeDependencies/src dir, 
+                # uncompress the .tar.gz in the <buildDir>/orangeDependencies/src dir, 
                 #which will create a dir with name self.mpichDir
-                os.chdir(os.path.join(self.rootDir,"orangeDependencies/src"))
+                os.chdir(os.path.join(self.buildDir,"orangeDependencies/src"))
                 stat,out = commands.getstatusoutput("tar xfz mpich.tar.gz")
                 checkStatus(stat, out,"Error extracting 'MPICH' source files")
                 #Compile
@@ -472,9 +646,9 @@ class installerClass:
                     module("unload", gccModuleName) 
                     break
 
-        if self.GCCmoduleForAppspackMPI:
-            print "Loading module ",self.GCCmoduleForAppspackMPI
-            module("load", self.GCCmoduleForAppspackMPI)
+        if self.appsPackGccModule:
+            print "Loading module ",self.appsPackGccModule
+            module("load", self.appsPackGccModule)
 
 
         print "Compiling APPSPack."
@@ -521,10 +695,13 @@ class installerClass:
             mpiFlags = "--with-mpi-compilers"
         else:
             mpiFlags = ""
+        compileFlags = " CC=gcc CXX=g++ "
+        if self.openInstall:
+            compileFlags += " F77=gfortran "
         if self.platform[0:3] == "GAS":
-            stat, out = commands.getstatusoutput("./configure CC=gcc CXX=g++ --prefix=%s --with-blas=%s --with-lapack=%s %s" % (self.orangeDependenciesDir,os.environ["ATLAS"],os.environ["ATLAS"],mpiFlags))
+            stat, out = commands.getstatusoutput("./configure "+compileFlags+" --prefix=%s --with-blas=%s --with-lapack=%s %s" % (self.orangeDependenciesDir,os.environ["ATLAS"],os.environ["ATLAS"],mpiFlags))
         else:
-            stat, out = commands.getstatusoutput("./configure CC=gcc CXX=g++ --prefix=%s %s" % (self.orangeDependenciesDir,mpiFlags))
+            stat, out = commands.getstatusoutput("./configure "+compileFlags+" --prefix=%s %s" % (self.orangeDependenciesDir,mpiFlags))
             
         checkStatus(stat, out,"Error configuring APPSPack.")
 
@@ -550,9 +727,9 @@ class installerClass:
 
         # Compile the rest of the code with gcc 4
         # Unload the module used to compile appspack
-        if self.GCCmoduleForAppspackMPI:
-            print "Unloading module ",self.GCCmoduleForAppspackMPI
-            module("unload", self.GCCmoduleForAppspackMPI)
+        if self.appsPackGccModule:
+            print "Unloading module ",self.appsPackGccModule
+            module("unload", self.appsPackGccModule)
 
         # Load the gcc module if it was unloaded before
         if gccModuleName:
@@ -577,7 +754,7 @@ class installerClass:
 
 
     def setEnv(self):
-        print "The rootDir: ",self.rootDir
+        print "The buildDir: ",self.buildDir
         # Add nspr directory to CPATH
         if self.platform[0:3] == "GAS":
             try:
@@ -631,8 +808,8 @@ class installerClass:
             sys.exit(1)
 
     def compileOasa(self):
-        # Remove "or not self.OpenInstallation" from next test if want to install oasa in the open installation
-        if ("oasa" not in self.dependencies) or self.OpenInstallation:
+        # Remove "or not self.openInstall" from next test if want to install oasa in the open installation
+        if ("oasa" not in self.dependencies) or self.openInstall:
             print "Not using the local oasa"
             return
         oasainstallDir = os.path.join(self.orangeDependenciesDir,os.path.split(self.oasaDir)[1])
@@ -711,7 +888,7 @@ class installerClass:
                 os.chdir(self.azFannDir)
                 print "Building in:   ",self.azFannDir
                 print "Installing in: ",FANNinstallDir
-                stat, out = commands.getstatusoutput("./configure --prefix=\"" + FANNinstallDir  + "\"")
+                stat, out = commands.getstatusoutput("./configure CFLAGS=-fPIC --prefix=\"" + FANNinstallDir  + "\"")
                 checkStatus(stat, out,"Error configuring Fann.")
                 stat, out = commands.getstatusoutput("make")
                 checkStatus(stat, out,"Error compiling Fann.")
@@ -729,6 +906,27 @@ class installerClass:
         # At runtime we will neew LD_LIBRARY_PATH to include the location of new installed libs
         self.__prependEnvVar("LD_LIBRARY_PATH" , os.path.join(FANNinstallDir,"lib"))
         self.__prependEnvVar("PYTHONPATH" , os.path.join(FANNinstallDir,"lib/pyfann"))
+
+
+    def compileCtools(self):
+        print "Compiling ctools"
+        if "ctools" not  in self.dependencies or not self.dependencies["ctools"]:
+            print "Not using the local ctools"
+            return 
+
+        saveCwd = os.getcwd()
+        try: 
+            os.chdir(self.ctoolsDir)
+            installDir = os.path.join(self.orangeDependenciesDir, "bin")
+            print "Building in:   ", self.ctoolsDir
+            print "Installing in: ", installDir
+        
+            stat, out = commands.getstatusoutput("make clean")
+            checkStatus(stat, out, "Error preparing ctools.")
+            stat, out = commands.getstatusoutput("make INSTALL_DIR=\"" + installDir + "\" install")
+            checkStatus(stat, out, "Error installing ctools.")
+        finally:
+            os.chdir(saveCwd)            
 
 
     def compileAZOrange(self):
@@ -817,165 +1015,101 @@ class installerClass:
         # ECPA ======================================================================= 
         
 
-    def build(self):
-        """Install azorange in rootDir. """
-
-        #os.system("env")
-        #sys.exit(1)
-        if "LOADEDMODULES" in os.environ:
-            print "Loaded modules: %s"%os.environ["LOADEDMODULES"]
-        else:
-            print "No Modules loaded!"
-        print "Orange is being built in "+self.rootDir
-        
-        # Setup the correct environment.
-        self.setEnv()
-
-        # Compile ftm
-        self.compileFTM()
-
-        # Compile cinfony
-        self.compileCinfony()
-     
-        # Compile rdkit
-        self.compileRdkit()
-
-        # Compile CDK
-        self.compileCdk()
+    def test(self, installDir):
  
-        # Compile the Orange C++ layer
-        self.compileOrange()
-    
-        # R8 and copy the C4.5.so to the orange dir.
-        self.compileR8()
-        
-        # APPSPack.  moved to last
-        
-        # Compile and copy _orngCRS.so to the orange dir.
-        self.compileOrngCRS()
+        print "Testing the installation!"
+        self.testsDir = os.path.join(installDir,"azorange/azorange/tests")
 
-        # Compile and install the opencv.
-        self.compileOpenCV()
+        self.defPaths(installDir)
+        os.putenv("PYTHONPATH", self.PYTHONPATH)
+        os.putenv("LD_LIBRARY_PATH", self.LD_LIBRARY_PATH) 
 
-        # Compile and install the oasa.
-        self.compileOasa()
-
-        # Compile and install the azFann.
-        self.compileAZFann()
-
-        # Compile and install the AZOrange C++ layer
-        self.compileAZOrange()
-
-        # APPSPack.
-        if self.platform == "workstation" or self.platform[0:3] == "GAS":
-            self.compileMPICH()
-            self.compileAPPSPack()
+        # Execute in the shell to get the PYTHONPATH defined in installPythonLayer
+        print "Testing the ANN implementation!!!"
+        os.system("python "+self.testsDir+"/AZorngANNTest.py")
+        print "Testing the SVM implementation!!!"
+        os.system("python "+self.testsDir+"/AZongSVMTest.py")
+        print "Testing the RF implementation!!!"
+        os.system("python "+self.testsDir+"/AZorngRFTest.py")
+        print "Testing the PLS implementation!!!"
+        os.system("python "+self.testsDir+"/AZorngPLSTest.py")
 
 
+    def main(self):
+        options, args = self.__parse(self.commandLineArguments)
+        gotDir=False
+        syncCPATHandINCLUDE_DIR()
+        if options.action == "build":
+            try:
+                self.platform = options.platform
+                if self.platform == "workstation": 
+                    print "Building workstation version."
+                elif self.platform[0:3] == "GAS": 
+                    print "Building %s version." % self.platform
+                elif self.platform == "cluster": 
+                    print "Building cluster version."
+                else:
+                    print "ERROR"
+                    print "The second argument must be 'workstation', 'cluster' or 'GAS-py2.[45]'" 
+                    print "AZOrange is not being built."
+                    sys.exit(1)
+
+                try: 
+                    self.buildDir = options.builddir
+                    self.installDir = options.installdir
+                    if os.path.exists(self.buildDir) and os.path.exists(self.installDir):
+                        gotDir = True
+                except: 
+                    print "No directory is specified for the installation of AZOrange."
+                    print "AZOrange could be run from current directory."
+                    gotDir = False
+                    
+                if gotDir:
+                    if options.appspackgccmodule and options.appspackgccmodule.lower() != "none":
+                        self.appsPackGccModule = options.appspackgccmodule
+                    else:
+                        self.appsPackGccModule = None
+                    self.dependencies = eval(options.dependencies)
+                    self.detailsLogFile = options.detailslogfile
+                    self.envFile = options.envfile
+                    self.modulesToLoad = eval(options.modulestoload)
+                    self.openInstall = options.openinstall
+                    self.logFile = options.logfile
+                    self.verbosedLogging = options.verbose
+                    self.__initialize()
+                    self.__build() 
+                else:
+                    print "AZOrange is not installed because the build or install directory does not exist."
+                    sys.exit(1)
+            except: 
+                traceback.print_exc() 
+                print "AZOrange is not built."
+                sys.exit(1)
+        else:
+            print "The first argument bust be build."
+            print "Only build argument is supported and it also installs."
+            sys.exit(1)
 
 
-        # Set the python path and install the python layer
-        self.installPythonLayer()
-
-
-        # Copy the test directory
-        os.system("cp -r "+os.path.join(self.rootDir, "tests")+" "+self.orangeInstallDir)
-        #Expand profiling Data
-        if not self.OpenInstallation: 
-            #Dir of dataSets used by profiling tools
-            dataDir = os.path.realpath(os.path.join(self.orangeInstallDir,'tests','profiling','dataSets'))
-            # Zipped file containing the full set of datasets for profiling
-            ZippedData=os.path.realpath(os.path.join(dataDir,'profilingDataSuite.tar.gz'))
-            #Dir where the original datasets are going to be unzipped
-            fullTrunkDir=os.path.join(dataDir,'fullTrunk')
-            os.system("rm -rf " + fullTrunkDir)
-            os.system("mkdir -p " + fullTrunkDir)
-            os.system("tar xfz " + ZippedData + " -C " + fullTrunkDir)
+    def __parse(self, arguments):
+        opt = OptionParser(usage='%prog [options]')
+        opt.add_option('-a', '--action', default=Installer.ACTION_ENUM[0], dest='action', help='The setup action that shall be performed. One of ' + str(Installer.ACTION_ENUM) + '.')
+        opt.add_option('-b', '--builddir', dest='builddir', help='Path to the directory where the build id performed.')
+        opt.add_option('-d', '--dependencies', dest='dependencies', help='A python dictionary of dependecies which shall be compile and installed. It is disabled by providing value "{}".')
+        opt.add_option('-e', '--envfile', dest='envfile', help='Path to the file where the setup process save output environment variables.')
+        opt.add_option('-f', '--detailslogfile', default='./setupdetails.log', dest='detailslogfile', help='Path to the detailed log file.')
+        opt.add_option('-g', '--appspackgccmodule', default=None, dest='appspackgccmodule', help='gcc GAS module name to be used when compiling AppsPack with MPI support. Default is None which disable AppsPack with MPI support.')
+        opt.add_option('-i', '--installdir', dest='installdir', help='Path to the directory where the result is installed.')
+        opt.add_option('-l', '--logfile', default='./setup.log', dest='logfile', help='Path to log file.')
+        opt.add_option('-m', '--modulestoload', dest='modulestoload', help='A python array of GAS modules names that will be needed and loaded in BOTH install and run time. It is disabled by providing value "[]".')
+        opt.add_option('-p', '--platform', default=Installer.PLATFORM_ENUM[0], dest='platform', help='Type of build. One of ' + str(Installer.PLATFORM_ENUM) + '.')        
+        opt.add_option('-o', '--openinstall', default=Installer.OPEN_INSTALL_ENUM[0], dest='openinstall', help='Make an Open Source installation. One of ' + str(Installer.OPEN_INSTALL_ENUM) + '.')
+        opt.add_option('-v', '--verbose', default=Installer.VERBOSED_LOGGING_ENUM[0], dest='verbose', help='Enable verbose logging. One of ' + str(Installer.VERBOSED_LOGGING_ENUM) + '.')
+        return opt.parse_args(arguments)
 
 
 
 if __name__ == "__main__":
-    """Installation procedure for AZOrange. 
-       python setup.py build workstation/GAS/cluster build_dir install_dir
-       """
-    ##scPA
-    # Modules to load specified in the setup.ini
-
-    if len(sys.argv) < 10:
-        print "Missing input arguments. Expected 8 but got "+str(len(sys.argv))
-        sys.exit(1)
-    modulesToLoad = eval(sys.argv[5])
-    if sys.argv[6].lower() == "none":
-        envFile = None
-    else:
-        envFile = sys.argv[6]
-
-    # Only compile and install if the dependency is present in the dict passed and is set to True.
-    # If it is set to False, do not compile or install, but keep the envVars pointing to the supposed installation place
-    # If not present at all, the dependency is not to be used, it is supposed that it is already installed and loaded
-    dependencies = eval(sys.argv[7]) 
-
-    # GCC module to be used when compiling appspack MPI
-    if sys.argv[8].lower() == "none":
-        GCCmoduleForAppspackMPI = None
-    else:   
-        GCCmoduleForAppspackMPI = sys.argv[8]
-    if sys.argv[9].lower() == "true":
-        OpenInstallation = True
-    else:
-        OpenInstallation = False
-    ##ecPA
-
-    try:
-        action = sys.argv[1]
-    except: 
-        print "No action was specified for the setup script."
-        print "Building in current directory."
-        action = "build"
-
-    gotDir=False
-    ##scPA
-    syncCPATHandINCLUDE_DIR()
-    ##ecPA
-    if action == "build":
-        try:
-            platform = sys.argv[2]
-            if platform == "workstation": 
-                print "Building workstation version."
-            elif platform[0:3] == "GAS": 
-                print "Building %s version." % platform
-            elif platform == "cluster": 
-                print "Building cluster version."
-            else:
-                print "ERROR"
-                print "The second argument must be 'workstation', 'cluster' or 'GAS-py2.[45]'" 
-                print "AZOrange is not being built."
-                sys.exit(1)
-            try: 
-                buildDir=sys.argv[3]
-                installDir=sys.argv[4]
-                if os.path.exists(installDir) and os.path.exists(buildDir): gotDir = True
-            except: 
-                print "No directory is specified for the installation of AZOrange."
-                print "AZOrange could be run from current directory."
-                gotDir = False
-            if gotDir:
-                installer = installerClass(buildDir, installDir, platform, modulesToLoad)
-                installer.envFile = envFile
-                installer.dependencies = dependencies
-                installer.GCCmoduleForAppspackMPI = GCCmoduleForAppspackMPI
-                installer.OpenInstallation = OpenInstallation
-                installer.build() 
-            else:
-                print "AZOrange is not installed because the build or install directory does not exist."
-                sys.exit(1)
-        except: 
-            traceback.print_exc() 
-            print "AZOrange is not built."
-            sys.exit(1)
-    else:
-        print "The first argument bust be build."
-        print "Only build argument is supported and it also installs."
-        sys.exit(1)
-
-
+    import sys
+    installer = Installer(sys.argv[1:])
+    installer.main()

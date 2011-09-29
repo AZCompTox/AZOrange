@@ -168,22 +168,22 @@ diff -crBN orange2.0/source/orange/tabdelim.cpp orange2.0_PatchedOK/source/orang
       
       if (status == 3)
 ***************
-*** 506,512 ****
-        const char *ceni = ai->c_str();
-        if (   !*ceni
-            || !ceni[1] && ((*ceni=='?') || (*ceni=='.') || (*ceni=='~') || (*ceni=='*'))
-!           || (*ai == "NA") || (DC && (*ai == DC)) || (DK && (*ai == DK)))
-           continue;
-  
-        map<string, int>::iterator vf = di->values.lower_bound(*ai);
---- 532,538 ----
-        const char *ceni = ai->c_str();
-        if (   !*ceni
-            || !ceni[1] && ((*ceni=='?') || (*ceni=='.') || (*ceni=='~') || (*ceni=='*'))
-!           || (strToUpper(*ai) == "NA") || (strToUpper(*ai) == "N/A") || (strToUpper(*ai) == "ERROR") || (strToUpper(*ai) == "MIS_VAL") || (strToUpper(*ai) == "NAN") || (DC && (*ai == DC)) || (DK && (*ai == DK)))  //scPA  added the symbols "error", "MIS_VAL" and "NAN"     //ecPA
-           continue;
-  
-        map<string, int>::iterator vf = di->values.lower_bound(*ai);
+*** 509,515 ****
+          const char *ceni = ai->c_str();
+          if (   !*ceni
+              || !ceni[1] && ((*ceni=='?') || (*ceni=='.') || (*ceni=='~') || (*ceni=='*'))
+!             || (*ai == "NA") || (DC && (*ai == DC)) || (DK && (*ai == DK)))
+             continue;
+
+          map<string, int>::iterator vf = di->values.lower_bound(*ai);
+--- 509,515 ----
+          const char *ceni = ai->c_str();
+          if (   !*ceni
+              || !ceni[1] && ((*ceni=='?') || (*ceni=='.') || (*ceni=='~') || (*ceni=='*'))
+!             || (strToUpper(*ai) == "NA") || (strToUpper(*ai) == "N/A") || (strToUpper(*ai) == "ERROR") || (strToUpper(*ai) == "MIS_VAL") || (strToUpper(*ai) == "NAN") || (DC && (*ai == DC)) || (DK && (*ai == DK)))  //scPA  added the symbols "error", "MIS_VAL" and "NAN"     //ecPA
+             continue;
+
+          map<string, int>::iterator vf = di->values.lower_bound(*ai);
 ***************
 *** 849,855 ****
         raiseErrorWho("write", "string '%s' cannot be written to a file since it contains invalid characters", c);
@@ -254,18 +254,18 @@ diff -crBN orange2.0/source/orange/tabdelim.cpp orange2.0_PatchedOK/source/orang
                 fprintf(file, " ");
   
               if (mval.floatV == 1.0)
-!               fprintf(file, checkCtrl(var.name.c_str()));
+!               fprintf(file, checkCtrl(var.get_name().c_str()));
               else {
                 var.val2filestr(mval, st, *ex);
-                fprintf(file, "%s=%s", checkCtrl(var.name.c_str()), checkCtrl(st.c_str()));
+                fprintf(file, "%s=%s", checkCtrl(var.get_name().c_str()), checkCtrl(st.c_str()));
 --- 930,936 ----
                 fprintf(file, " ");
-  
+
               if (mval.floatV == 1.0)
-!               fprintf(file, "%s", checkCtrl(var.name.c_str()));
+!               fprintf(file, "%s", checkCtrl(var.get_name().c_str()));
               else {
                 var.val2filestr(mval, st, *ex);
-                fprintf(file, "%s=%s", checkCtrl(var.name.c_str()), checkCtrl(st.c_str()));
+                fprintf(file, "%s=%s", checkCtrl(var.get_name().c_str()), checkCtrl(st.c_str()));
 ***************
 *** 939,945 ****
         fprintf(file, "d");
@@ -305,57 +305,28 @@ diff -crBN orange2.0/source/orange/tabdelim.hpp orange2.0_PatchedOK/source/orang
   
     virtual bool readExample (TFileExampleIteratorData &, TExample &);
   
-*** orange2.0/orngAddOns.py	2010-08-26 14:18:32.000000000 +0200
---- orange2.0_PatchedOK/orngAddOns.py	2010-08-26 14:19:38.000000000 +0200
+*** orange2.0/source/makefile.defs	2010-12-14 09:27:09.305699779 +0000
+--- orange2.0_PatchedOK/source/makefile.defs	2011-01-05 11:36:03.985729333 +0000
 ***************
-*** 805,811 ****
-              try:
-                  addOn = OrangeAddOnInstalled(addOnDir)
-              except Exception, e:
-!                 print "Add-on in directory '%s' has no valid descriptor (addon.xml): %s" % (addOnDir, e)
-                  continue
-              if addOn.id in installedAddOns:
-                  print "Add-on in directory '%s' has the same ID as the addon in '%s'!" % (addOnDir, installedAddOns[addOn.id].directory)
---- 805,811 ----
-              try:
-                  addOn = OrangeAddOnInstalled(addOnDir)
-              except Exception, e:
-! #                print "Add-on in directory '%s' has no valid descriptor (addon.xml): %s" % (addOnDir, e)
-                  continue
-              if addOn.id in installedAddOns:
-                  print "Add-on in directory '%s' has the same ID as the addon in '%s'!" % (addOnDir, installedAddOns[addOn.id].directory)
-***************
-*** 832,838 ****
-          except Exception, e:
-              print "Unable to load repository list! Error: %s" % e
-      try:
-!         updateDefaultRepositories()
-      except Exception, e:
-          print "Unable to refresh default repositories: %s" % (e)
-      for r in availableRepositories:
---- 832,839 ----
-          except Exception, e:
-              print "Unable to load repository list! Error: %s" % e
-      try:
-! #        updateDefaultRepositories()
-!          pass
-      except Exception, e:
-          print "Unable to refresh default repositories: %s" % (e)
-      for r in availableRepositories:
-***************
-*** 1043,1046 ****
+*** 59,65 ****
+  	$(COMPILER) $(COMPILEOPTIONS) -c $< -o $@
   
-  addAddOnDirectoriesToPath()
   
-! loadRepositories()
-\ No newline at end of file
---- 1044,1047 ----
+! export CPATH=ppp:px:../include:../orange:$(PYTHONINCLUDE):/usr/local/include:/usr/include:$(PYTHONSITEPKGS)/numpy/core/include
   
-  addAddOnDirectoriesToPath()
+  makefile.deps:
+  	python ../pyxtract/makedep.py -n $(MODULENAME)
+--- 59,66 ----
+  	$(COMPILER) $(COMPILEOPTIONS) -c $< -o $@
   
-! loadRepositories()
-*** orange2.0/install-scripts/linux/setup.py    2007-02-20 20:20:17.000000000 +0000
---- orange2.0_PatchedOK/install-scripts/linux/setup.py  2010-05-27 14:59:32.673526075 +0100
+  
+! #export CPATH=ppp:px:../include:../orange:$(PYTHONINCLUDE):/usr/local/include:/usr/include:$(PYTHONSITEPKGS)/numpy/core/include
+! export CPATH=ppp:px:../include:../orange:$(PYTHONINCLUDE):/usr/local/include:/usr/include:$(NUMPY_INCLUDE)
+  
+  makefile.deps:
+  	python ../pyxtract/makedep.py -n $(MODULENAME)
+*** orange2.0/install-scripts/linux/setup.py	2007-02-20 21:20:17.000000000 +0100
+--- orange2.0_PatchedOK/install-scripts/linux/setup.py	2011-09-23 15:24:04.000000000 +0200
 ***************
 *** 5,11 ****
   # all kind of checks
@@ -374,7 +345,85 @@ diff -crBN orange2.0/source/orange/tabdelim.hpp orange2.0_PatchedOK/source/orang
   # got* is used to gather information of the system and print it out at the end
   gotPython = '';
 ***************
-*** 87,95 ****
+*** 37,61 ****
+  #    sys.exit(1)
+  
+  try:
+!     import qt,pyqtconfig
+  except:
+      print "NOTE: Python Qt not installed, OrangeCanvas and OrangeWidgets will not work."
+      print "You can get it at: http://www.riverbankcomputing.co.uk/pyqt/index.php"
+-     # we are using Qt 2.3 - Qt 3.3
+  
+  try:
+!     gotPyQt = pyqtconfig.Configuration().pyqt_version_str;
+  except:
+!     gotPyQt = ''
+      # any PyQt that supports Qt 2.3-3.8
+  
+  try:
+      import sipconfig
+!     tmp = "%x" % sipconfig.Configuration().qt_version
+!     gotPy = tmp.replace('0','.')
+  except:
+      print "Sipconfig not found, Qt version could not be found!"
+!     gotPy = ''
+      # depends on version of PyQt
+  
+  try:
+--- 37,60 ----
+  #    sys.exit(1)
+  
+  try:
+!     import PyQt4.QtCore
+  except:
+      print "NOTE: Python Qt not installed, OrangeCanvas and OrangeWidgets will not work."
+      print "You can get it at: http://www.riverbankcomputing.co.uk/pyqt/index.php"
+  
+  try:
+!     gotPyQt = PyQt4.QtCore.PYQT_VERSION_STR
+  except:
+!     gotPyQt = 'n/a'
+      # any PyQt that supports Qt 2.3-3.8
+  
+  try:
++     import PyQt4.pyqtconfig
+      import sipconfig
+!     gotPy = sipconfig.version_to_string(PyQt4.pyqtconfig.Configuration().qt_version)
+  except:
+      print "Sipconfig not found, Qt version could not be found!"
+!     gotPy = 'n/a'
+      # depends on version of PyQt
+  
+  try:
+***************
+*** 74,84 ****
+      gotNumPy = "n/a"
+  
+  try:
+!     import qwt
+!     gotQwt = "n/a"
+  except:
+      print "PyQwt not installed!"
+      print "You can get it at: http://pyqwt.sourceforge.net/"
+      # depends on PyQt
+      
+  if os.system("gcc --version > /dev/null 2>&1") != 0:
+--- 73,84 ----
+      gotNumPy = "n/a"
+  
+  try:
+!     import PyQt4.Qwt5 as qwt
+!     gotQwt = qwt.QWT_VERSION_STR
+  except:
+      print "PyQwt not installed!"
+      print "You can get it at: http://pyqwt.sourceforge.net/"
++     gotQwt = "n/a"
+      # depends on PyQt
+      
+  if os.system("gcc --version > /dev/null 2>&1") != 0:
+***************
+*** 87,99 ****
   
   # catching version of GCC
   try:
@@ -384,7 +433,11 @@ diff -crBN orange2.0/source/orange/tabdelim.hpp orange2.0_PatchedOK/source/orang
   except:
       print "Can not determine GCC version!"
       gotGcc = "n/a"
---- 87,95 ----
+-     # version 3.3 on
+  
+  if OrangeVer is "ADDVERSION":
+      print "Version should be added manually (edit setup.py and replace ADDVERSION)"
+--- 87,98 ----
   
   # catching version of GCC
   try:
@@ -394,6 +447,26 @@ diff -crBN orange2.0/source/orange/tabdelim.hpp orange2.0_PatchedOK/source/orang
   except:
       print "Can not determine GCC version!"
       gotGcc = "n/a"
+  
+  if OrangeVer is "ADDVERSION":
+      print "Version should be added manually (edit setup.py and replace ADDVERSION)"
+***************
+*** 218,224 ****
+          SourceDir = os.path.join("source")
+          os.chdir(SourceDir)
+          print "Compiling... this might take a while, logging into compiling.log...",
+!         make=self.makeCmd+"> ../compiling.log"
+          retval = os.system(make)
+          if retval != 0:
+              print "Compiling Orange failed... exiting!"
+--- 218,224 ----
+          SourceDir = os.path.join("source")
+          os.chdir(SourceDir)
+          print "Compiling... this might take a while, logging into compiling.log...",
+!         make=self.makeCmd+" EXCLUDE_ORANGEQT=1 > ../compiling.log"
+          retval = os.system(make)
+          if retval != 0:
+              print "Compiling Orange failed... exiting!"
 ***************
 *** 245,251 ****
           install_data.finalize_options(self)
@@ -403,7 +476,7 @@ diff -crBN orange2.0/source/orange/tabdelim.hpp orange2.0_PatchedOK/source/orang
   #            OrangeInstallLib = os.path.join(self.install_dir, "lib")
               self.data_files = [(OrangeInstallDir, OrangeLibs),
                                  (os.path.join(OrangeInstallDir,
---- 245,251 ----
+--- 244,250 ----
           install_data.finalize_options(self)
           if self.install_dir != os.path.join(self.root, sys.prefix):
               OrangeInstallDir = os.path.join(self.install_dir, "orange")
@@ -413,7 +486,7 @@ diff -crBN orange2.0/source/orange/tabdelim.hpp orange2.0_PatchedOK/source/orang
                                  (os.path.join(OrangeInstallDir,
 ***************
 *** 267,272 ****
---- 267,293 ----
+--- 266,292 ----
                   self.data_files += [(os.path.join(OrangeInstallDoc,
                                                root.split('doc/')[-1]), OrangeDocs)]
   
@@ -451,7 +524,7 @@ diff -crBN orange2.0/source/orange/tabdelim.hpp orange2.0_PatchedOK/source/orang
               fo.write(self.orangepath)
               fo.close()
               OrangeInstallDir = os.path.join(self.orangepath, "orange")
---- 405,413 ----
+--- 404,412 ----
   
           if self.orangepath != None:
               # we save orangepath for uninstallation to the file user_install
@@ -476,7 +549,7 @@ diff -crBN orange2.0/source/orange/tabdelim.hpp orange2.0_PatchedOK/source/orang
   
   # Adding each doc/* directory by itself
   for root, dirs, files in os.walk(os.path.join("doc")):
---- 469,506 ----
+--- 468,505 ----
   OrangeWidgetIcons = glob(os.path.join("OrangeWidgets", "icons", "*.png"))
   OrangeCanvasIcons = glob(os.path.join("OrangeCanvas",  "icons", "*.png"))
   OrangeCanvasPyw   = glob(os.path.join("OrangeCanvas", "orngCanvas.pyw"));
@@ -515,23 +588,3 @@ diff -crBN orange2.0/source/orange/tabdelim.hpp orange2.0_PatchedOK/source/orang
   
   # Adding each doc/* directory by itself
   for root, dirs, files in os.walk(os.path.join("doc")):
-*** orange2.0/source/makefile.defs	2010-12-14 09:27:09.305699779 +0000
---- orange2.0_PatchedOK/source/makefile.defs	2011-01-05 11:36:03.985729333 +0000
-***************
-*** 59,65 ****
-  	$(COMPILER) $(COMPILEOPTIONS) -c $< -o $@
-  
-  
-! export CPATH=ppp:px:../include:../orange:$(PYTHONINCLUDE):/usr/local/include:/usr/include:$(PYTHONSITEPKGS)/numpy/core/include
-  
-  makefile.deps:
-  	python ../pyxtract/makedep.py -n $(MODULENAME)
---- 59,66 ----
-  	$(COMPILER) $(COMPILEOPTIONS) -c $< -o $@
-  
-  
-! #export CPATH=ppp:px:../include:../orange:$(PYTHONINCLUDE):/usr/local/include:/usr/include:$(PYTHONSITEPKGS)/numpy/core/include
-! export CPATH=ppp:px:../include:../orange:$(PYTHONINCLUDE):/usr/local/include:/usr/include:$(NUMPY_INCLUDE)
-  
-  makefile.deps:
-  	python ../pyxtract/makedep.py -n $(MODULENAME)

@@ -1,19 +1,22 @@
-from AZutilities import dataUtilities
-import unittest
+import logging
 import os
 import time
+import unittest
 
 import orange
 from trainingMethods import AZorngPLS
+from AZutilities import dataUtilities
 from AZutilities import evalUtilities
 import AZOrangeConfig as AZOC
 import AZorngTestUtil
-import orngImpute
 
 
 class PLSClassifierTest(AZorngTestUtil.AZorngTestUtil):
 
     def setUp(self):
+        logging.basicConfig(level=logging.INFO)
+        self.log = logging.getLogger("PLSClassifierTest")
+
         """Creates the training and testing data set attributes. """
         contDataPath = os.path.join(AZOC.AZORANGEHOME,"tests/source/data/Reg_No_metas_Imp_Test.tab")
         contTrainDataPath = os.path.join(AZOC.AZORANGEHOME,"tests/source/data/Reg_No_metas_Imp_Train.tab")
@@ -298,9 +301,9 @@ class PLSClassifierTest(AZorngTestUtil.AZorngTestUtil):
     def testMetaDataHandleForSavingModel(self):
         """Test the handling of SaveModel for Data with Meta Atributes
         """
-        expected_AccWMetaAfter  = [0.433333333333, 0.766666666667, 0.366666666667, 0.6] #Ver 0.3 - Artifact: The extra values can be expected on other Systems:[AZInHouse, Ubuntu10.04, Ubuntu10.10, Ubuntu10.10] 
-        expected_AccNoMetaAfter = [0.545454545455, 0.533333333333, 0.442424242424, 0.551515151515] #Ver 0.3 - Artifact: The extra values can be expected on other Systems: [AZInHouse, Ubuntu10.04, Ubuntu10.10, Ubuntu10.10] 
-
+        expected_AccWMetaAfter  = [0.433333333333, 0.766666666667, 0.366666666667, 0.6, 0.5] #Ver 0.3 - Artifact: The extra values can be expected on other Systems:[AZInHouse, Ubuntu10.04, Ubuntu10.10, Ubuntu10.10] 
+        expected_AccNoMetaAfter = [0.545454545455, 0.533333333333, 0.442424242424, 0.551515151515, 0.454545454545, 0.490909090909] #Ver 0.3 - Artifact: The extra values can be expected on other Systems: [AZInHouse, Ubuntu10.04, Ubuntu10.10, Ubuntu10.10, Ubuntu11.04 64 bits] 
+        
         #Test the save of a model created from a train data with meta attributes
         self.assert_(len(self.WMetaTest.domain.getmetas())>=1,"The dataset WMetaTest should have Meta Attributes")
         plsM = AZorngPLS.PLSLearner(self.WMetaTest)
@@ -325,8 +328,13 @@ class PLSClassifierTest(AZorngTestUtil.AZorngTestUtil):
         # Test that the accuracy of the model before and after saved
         self.assertEqual(AccNoMetaBefore, AccNoMetaAfter,"NoMeta: Predictions after loading saved model were different")
         self.assertEqual(AccWMetaBefore, AccWMetaAfter, "WMeta: Predictions after loading saved model were different")
-        self.assert_(round(AccWMetaAfter,9) in [round(x,9) for x in expected_AccWMetaAfter],"Accuracy was not the expected value! Got: "+str(AccWMetaAfter)+" - "+str(AccNoMetaAfter))
-        self.assert_(round(AccNoMetaAfter,9) in [round(x,9) for x in expected_AccNoMetaAfter],"Accuracy was not the expected value!")
+        expected = [round(x,9) for x in expected_AccWMetaAfter]
+        actual = round(AccWMetaAfter,9)
+        self.log.info("")
+        self.log.info("expected=" + str(expected))
+        self.log.info("actual  =" + str(actual))
+        self.assert_( actual in expected,"Accuracy was not the expected value! Got: "+str(AccWMetaAfter)+" - "+str(AccNoMetaAfter))
+        self.assert_(round(AccNoMetaAfter,9) in [round(x,9) for x in expected_AccNoMetaAfter],"Accuracy was not the expected value! Got:"+str(AccNoMetaAfter))
  
         # Remove the scratch directory
         os.system("/bin/rm -rf "+scratchdir)

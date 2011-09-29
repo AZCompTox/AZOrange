@@ -6,7 +6,7 @@ repoInteraction = yes
 ;repository is the URL for the Git Repository
 ;For developers with read and right access, change the URL to the SSH or HTTP form:  git@github.com:AZCompTox/AZOrange.git 
 ;  or     https://UserName@github.com/AZCompTox/AZOrange.git
-repository = git://github.com/AZCompTox/AZOrange.git
+repository = git@github.com:johan-westin-work/AZOrange.git
 
 [Paths]
 ;Always use full paths. 
@@ -38,7 +38,7 @@ DetailsLogFile = ./details.log
 ;The templateProfileFile will also be always placed in root of installDir in a
 ; system installation or in the root of trunkDir in a developer installation as well as in the current dir
 TemplateProfileFile = ./templateProfile
-
+TemplateProfileFileBash = ./templateProfile.bash
 
 [Tests]
 ;Run the tests in test suite after install: Yes or No
@@ -68,7 +68,7 @@ PYTHON = /usr/bin/python%PYTHON_VER%
 ;the var names MUST be in CAPITALS!
 ;Do not use localVars within this section
 ;To use them in this setup file, place them between %% Ex: PYTHON = /usr/bin/python%PYTHON_VER% 
-PYTHON_VER = 2.6
+PYTHON_VER = 2.7
 
 [Advanced]
 ;Platform Type can be workstation or something else like for instance cluster if you want separate types of installations.
@@ -79,7 +79,7 @@ PlatformType = workstation
 
 ;If the optimizer tests are failing, it might be necessary this option
 ;gcc module to be used only when compiling appspack  
-GCCmoduleForAppspackMPI = None
+GCCmoduleForAppspackMPI = none
 
 
 [Dependencies]
@@ -91,7 +91,7 @@ GCCmoduleForAppspackMPI = None
 ;    It must be somehow already installed or being loaded by modules
 ;If the third argument * is present, the respective dependency will not be built and it will use a previous installed one.
 ;    It must already have been installed in a previous azorange full installation (without *) 
-orange = http://orange.biolab.si/svn/orange/trunk,8893
+orange = http://orange.biolab.si/svn/orange/trunk,12117
 appspack = http://software.sandia.gov/appspack/downloads/appspack-5.0.1.tar.gz,5.0.1
 boost = http://downloads.sourceforge.net/project/boost/boost/1.34.1/boost_1_34_1.tar.gz,1.34.1
 opencv = http://downloads.sourceforge.net/project/opencvlibrary/opencv-unix/2.0/OpenCV-2.0.0.tar.bz2,2.0.0

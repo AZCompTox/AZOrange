@@ -307,7 +307,7 @@ class Appspack:
         optimized = False
         if self.learner.optimized:
             optimized = True
-            raise Exeption("Learner should not be optimized already! Check method Appspack::assignTunedParameters() in paramOptUtilities.py")
+            raise Exception("Learner should not be optimized already! Check method Appspack::assignTunedParameters() in paramOptUtilities.py")
             tunedParameters = self.processAppspackResults()  # Deprecated. will not be called!
         else:
             tunedParameters = self.processIntResResults()
@@ -344,7 +344,7 @@ class Appspack:
                     setattr(self.learner, key, eval(tunedParameters[1][key]))
                 else:
                     if eval(self.parameters[key][0]) == types.BooleanType:
-                        serattr(self.learner, key, types.BooleanType(eval(tunedParameters[1][key])))
+                        setattr(self.learner, key, types.BooleanType(eval(tunedParameters[1][key])))
                     elif eval(self.parameters[key][0]) == types.IntType:
                         setattr(self.learner, key, int(float(tunedParameters[1][key])))
                     else:
@@ -1031,17 +1031,23 @@ print cPickle.dumps(eval(evalMethod)(res)[0])
 
         presentDir = os.getcwd()
         os.chdir(self.runPath)
-        if self.verbose > 1: print "Command:  qsub -l mf="+str(memSize)+"M -q "+self.queueType+" "+self.qsubFile
-        exitCode, qsub = commands.getstatusoutput("qsub -l mf="+str(memSize)+"M -q "+self.queueType+" "+self.qsubFile)
+        command = "qsub -l mf=" + str(memSize) + "M -q " + self.queueType + " " + self.qsubFile
+        if self.verbose > 1:
+            print("In dir '" + os.getcwd() + "', about to run command '" + command + "'")
+        exitCode, qsub = commands.getstatusoutput(command)
         os.chdir(presentDir)
-        if self.verbose > 1: print "Exit Status: ",exitCode,"\n",qsub
-        try: self.qsubJobId = string.split(qsub)[2]
-        except: exitCode = 1
+        if self.verbose > 1:
+            print "Exit Status: ", exitCode, "\n" , qsub
+        try:
+            self.qsubJobId = string.split(qsub)[2]
+        except:
+            exitCode = 1
         self.__log("       -Submitted qsub job from appspack with ID: "+str(self.qsubJobId))
         self.__log("           present dir:"+presentDir)
         self.__log("           qsub running dir:"+self.runPath)
         self.__log("           memsize:"+str(memSize))
         self.__log("           command:"+"Command:  qsub -l mf="+str(memSize)+"M -q "+self.queueType+" "+self.qsubFile)
+
         return exitCode
 
     def createTempSSHkey(self):
@@ -1105,7 +1111,8 @@ print cPickle.dumps(eval(evalMethod)(res)[0])
         full_hostfile = os.path.join(self.runPath, "full_hostfile")
         full_machinefile = os.path.join(self.runPath, "full_machinefile")
         appsFile = os.path.join(self.runPath, "input.apps")
-        execFile = os.path.join(os.environ["AZORANGEHOME"],"orangeDependencies/bin/appspack_mpi")
+        execFile = os.path.join(os.environ["AZORANGEHOME"], "orangeDependencies", "bin", "appspack_mpi")
+        mpitchHome = os.environ["MPICH_HOME"]
         self.qsubFile = os.path.join(self.runPath, "runQsub.sh")
 
         fid = open(self.qsubFile, "w")
@@ -1113,8 +1120,8 @@ print cPickle.dumps(eval(evalMethod)(res)[0])
 #$ -S /bin/bash
 #$ -cwd
 #$ -N appspack_mpi
-#$ -pe pe_mpich """+str(self.np)+"""
-#$ -v MPICH_HOME=/opt/az/anlg/mpich/1.2.7p1
+#$ -pe pe_mpich """ + str(self.np) + """
+#$ -v MPICH_HOME="""+ str(mpitchHome) + """
 
 exec 2>&1
 env | sort

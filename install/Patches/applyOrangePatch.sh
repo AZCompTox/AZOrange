@@ -56,8 +56,8 @@ echo "==============================================================="
 
 patch --dry-run -fs -p1 -i $iniDir/Orange2_0.patch
 STATUS=$?
-patch --dry-run -fs -p1 -i $iniDir/OrangeLayout.patch
-STATUS=`expr $? + $STATUS`
+#patch --dry-run -fs -p1 -i $iniDir/OrangeLayout.patch
+#STATUS=`expr $? + $STATUS`
 echo "Will Return Status: $STATUS"
 if [ $STATUS -ne 0  ]
 then
@@ -98,8 +98,8 @@ echo "----------------------------------------------------------"
 #Apply the AZO patch to original orange files
 patch -fs -p1 -i $iniDir/Orange2_0.patch
 STATUS=$?
-patch -fs -p1 -i $iniDir/OrangeLayout.patch
-STATUS=`expr $? + $STATUS`
+#patch -fs -p1 -i $iniDir/OrangeLayout.patch
+#STATUS=`expr $? + $STATUS`
 
 # Patch for removing duplicated files in Prototypes which would conflict with the ones in other tabs:
 rm -f OrangeWidgets/Prototypes/OWMergeData.py
