@@ -382,7 +382,7 @@ def getStatistics(dataset, runningDir, resultsFile, queueType = "NoSGE", verbose
             trainData.save(os.path.join(jobs[job]["path"],"trainData.tab"))
             file_h = open(os.path.join(jobs[job]["path"],"run.sh"),"w")
             file_h.write("#!/bin/tcsh\n")
-            file_h.write("source /home/palmeida/dev/AZOrange/templateProfile\n")
+            file_h.write("source "+os.path.join(os.environ["AZORANGEHOME"], "templateProfile") + "\n")
             file_h.write("python "+os.path.join(jobs[job]["path"],"QsubScript.py")+"\n")
             file_h.close()
 
