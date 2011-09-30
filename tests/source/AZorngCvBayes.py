@@ -387,7 +387,7 @@ class CvBayesClassifierTest(AZorngTestUtil.AZorngTestUtil):
     def test_MetaDataHandle(self):
         """Test the handling of Data with Meta Atributes
         """
-        expectedAcc = 0.33333333300000001
+        expectedAcc = 0.33333333300000001  #[0.666666667, 0.333333333]
         # Create an Bayes model
         CvBayeslearner = AZorngCvBayes.CvBayesLearner()
         Bayes = CvBayeslearner(self.NoMetaTrain)
