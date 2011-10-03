@@ -257,6 +257,14 @@ def getRsqrt(testData, predictor):
 def calcRsqrt(exp_pred_Val):
     """Calculates the Rsqrt of the predicted values in exp_pred_Val[1] against the 
         respective experimental values in exp_pred_Val[0]         
+        Input example:
+
+        [ (ExperimentalValue1, PredictedValue1),        # In respect to 1st Ex
+          (ExperimentalValue2, PredictedValue2),        # In respect to 2nd Ex
+          (ExperimentalValue3, PredictedValue3),        # In respect to 3rd Ex
+          (ExperimentalValue4, PredictedValue4),        # In respect to 4rd Ex
+          ...                                           # ...
+        ]
     """
     # Calc mean of the experimental response variable
     actualValuesList = []
