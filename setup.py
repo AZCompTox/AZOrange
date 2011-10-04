@@ -323,12 +323,15 @@ class Installer:
             sumStatus += os.system("cp -Rf ../azorange/statlib %s/azorange/." % self.installDir)
             sumStatus += os.system("cp -f ../azorange/*.py %s/azorange/." % self.installDir)
             sumStatus += os.system("cp -Rf ../azorange/bin %s/azorange/." % self.installDir)
+            sumStatus += os.system("cp -Rf ../doc %s/." % self.installDir)
+            sumStatus += os.system("cp -Rf ../azorange/documentation %s/azorange/." % self.installDir)
+            #Copy missing from orange install script.
+            sumStatus += os.system("cp -Rf ../orange/Orange %s/orange/." % self.installDir)
+
             if self.openInstall:
                 sumStatus += os.system("cp -Rf ../COPYING* %s/." % self.installDir)
 
             if not self.openInstall:
-                sumStatus += os.system("cp -Rf ../doc %s/." % self.installDir)
-                sumStatus += os.system("cp -Rf ../azorange/documentation %s/azorange/." % self.installDir)
                 sumStatus += os.system("cp -f ../azorange/*.txt %s/azorange/." % self.installDir)
                 sumStatus += os.system("cp -Rf  ../exampleScripts %s/." % self.installDir)
             #  Added the azorange to pythonpath in order to maintain the use of modules
