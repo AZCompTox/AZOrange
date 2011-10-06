@@ -485,13 +485,25 @@ class Installer:
                 os.chdir(os.path.join(self.ftmDir,"src"))
                 print "Building in:   ",self.ftmDir
                 stat, out = commands.getstatusoutput("make clean")
+
                 os.chdir(os.path.join(self.ftmDir,"src/openbabel/src"))
                 stat, out = commands.getstatusoutput("make clean")
+
+                os.chdir(os.path.join(self.ftmDir,"src/openbabel"))
+                stat, out = commands.getstatusoutput("make clean")
+
+                os.chdir(os.path.join(self.ftmDir,"src"))
+                stat, out = commands.getstatusoutput("make clean")
+
+
+                os.chdir(os.path.join(self.ftmDir,"src/openbabel/src"))
                 stat, out = commands.getstatusoutput("make")
-                checkStatus(stat, out,"Error compiling ftm/openbabel/src")
+                checkStatus(stat, out,"Error compiling ftm/src/openbabel/src")
+                
                 os.chdir(os.path.join(self.ftmDir,"src"))
                 stat, out = commands.getstatusoutput("make ftm")
-                checkStatus(stat, out,"Error compiling ftm.")
+                checkStatus(stat, out,"Error compiling ftm/src")
+
                 print "Installing in: ",ftminstallDir
                 stat, out = commands.getstatusoutput("cp "+ os.path.join(self.ftmDir,"src/ftm") +" "+ ftminstallDir)
                 checkStatus(stat, out,"Error installing ftm.")
