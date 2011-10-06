@@ -50,33 +50,6 @@ class competitiveWFTest(AZorngTestUtil.AZorngTestUtil):
         self.assert_(res["statistics"]["selectedML"]["Q2"] > 0 )
 
 
-    def no_testClass_SGE(self):
-        """Test classification in serial mode
-        """
-        res = competitiveWorkflow.competitiveWorkflow(self.Dtrain_data, queueType = "batch.q")
-        print "Results :  ",res
-        self.assert_("statistics" in res)
-        self.assert_("model" in res)
-        self.assert_("selectedML" in res["statistics"])
-        self.assert_(res["model"][res["model"].keys()[0]] is not None)
-        self.assertEqual(res["statistics"]["selectedML"]["responseType"], "Classification")
-        self.assert_(res["statistics"]["selectedML"]["CA"] > 0 )
-
-
-    def no_testReg_SGE(self):
-        """Test regression in serial mode
-        """
-        res = competitiveWorkflow.competitiveWorkflow(self.Ctrain_data, queueType = "batch.q")
-        print "Results :  ",res
-        self.assert_("statistics" in res)
-        self.assert_("model" in res)
-        self.assert_("selectedML" in res["statistics"])
-        self.assert_(res["model"][res["model"].keys()[0]] is not None)
-        self.assertEqual(res["statistics"]["selectedML"]["responseType"], "Regression")
-        self.assert_(res["statistics"]["selectedML"]["Q2"] > 0 )
-
-
-
 if __name__ == "__main__":
         suite = unittest.TestLoader().loadTestsFromTestCase(competitiveWFTest)
         unittest.TextTestRunner(verbosity=2).run(suite)
