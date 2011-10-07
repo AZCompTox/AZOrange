@@ -166,8 +166,11 @@ application/xml=AZOrange.desktop;
     
         #Start the tests if required
         if self.runTests:
-           os.system(os.path.join(self.currentDir,"runTests"))
-
+            os.system(os.path.join(self.currentDir,"runTests"))
+            status,arch = commands.getstatusoutput('uname -i')
+            if  '_64' not in arch:
+                print "AZOrange tests were done using 64 bits architecture."
+                print "In 32 bits is expected that some tests fail although does not necessarily means that there is any problem on running AZOrange."
 
     # Needed for modules to be loaded.
     def module(self,command, *arguments):
