@@ -125,6 +125,38 @@ class Installer(object):
             elif AppLaucherTarget:
                 self.__logAndExecute("ln -s " + startAPPTarget + " " + os.path.join(AppLaucherTarget,'AZOrange'))
                 self.__logAndExecute("chmod a+x " + os.path.join(AppLaucherTarget,'AZOrange'))
+            #associate Orange canvas files with AZOrange Application: Not critial if fails
+            try:
+                home = os.environ["HOME"]
+                mimeStr = """
+[Default Applications]
+application/xml=AZOrange.desktop
+
+[Added Associations]
+application/xml=AZOrange.desktop;
+                """
+                appDir =  os.path.join(home,".local/share/applications")
+                if not os.path.isfile(os.path.join(appDir,"mimeapps.list")):
+                    os.system("mkdir -p "+appDir)
+                    fileh=open(os.path.join(appDir,"mimeapps.list"),"w")
+                    fileh.write(mimeStr)
+                    fileh.close()
+                else:
+                    fileh=open(os.path.join(appDir,"mimeapps.list"),"r")
+                    lines = fileh.readlines()
+                    fileh.close()
+                    fileh=open(os.path.join(appDir,"mimeapps.list"),"w")
+                    for line in lines:
+                        if "application/xml" in line:
+                            fileh.write("application/xml=AZOrange.desktop\n")
+                        else:
+                            fileh.write(line)
+                    fileh.close()
+                cmd='sed "s|AZO_INSTALL_DIR|'+self.AZOrangeInstallDir+'|g" '+ AppLaucherTemplate + ' > ' + os.path.join(appDir,'AZOrange.desktop')
+                self.__logAndExecute(cmd)
+                self.__logAndExecute("chmod a+x " + os.path.join(appDir,'AZOrange.desktop'))
+            except:
+                print "Could not associate .ows files to AZOrange"
             self.addLog("#Installation done successfully!")
         else:
             self.addLog("#Preparation done successfully!")
