@@ -25,7 +25,7 @@ class competitiveWFTest(AZorngTestUtil.AZorngTestUtil):
 
         
 
-    def no_testClass_SGE(self):
+    def testClass_SGE(self):
         """Test classification in serial mode
         """
         res = competitiveWorkflow.competitiveWorkflow(self.Dtrain_data, queueType = "batch.q")
@@ -38,7 +38,7 @@ class competitiveWFTest(AZorngTestUtil.AZorngTestUtil):
         self.assert_(res["statistics"]["selectedML"]["CA"] > 0 )
 
 
-    def no_testReg_SGE(self):
+    def testReg_SGE(self):
         """Test regression in serial mode
         """
         res = competitiveWorkflow.competitiveWorkflow(self.Ctrain_data, queueType = "batch.q")
