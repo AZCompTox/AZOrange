@@ -1,6 +1,6 @@
 AZOrange is a customization for the open source software Orange. 
 
-Installation (Using Ubuntu Natty Narwhal 11.04  64bits):
+Installation (Using Ubuntu Natty Narwhal 11.04  64/32 bits):
 ===============================================================================
 1) Install all available system updates
 2) Download the '.tar.gz' latest version of AZOrange from http://github.com/AZCompTox/AZOrange/downloads 
@@ -27,7 +27,6 @@ Installation (Using Ubuntu Natty Narwhal 11.04  64bits):
         azorange
 
 
-
 Testing AZOrange installation
 ===============================================================================
 1) Start a tcsh shell:
@@ -39,4 +38,12 @@ Testing AZOrange installation
 4) Start the tests:
         ./runOpenTests.sh
 
+
+Docummentation
+===============================================================================
+Please refer to the paper:
+    http://www.jcheminf.com/content/3/1/28
+
+There are some examples and documentation in:
+    <installDir>/doc
 
