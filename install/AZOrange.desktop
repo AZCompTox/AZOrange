@@ -6,6 +6,6 @@ Type=Application
 Icon[en_US]=AZO_INSTALL_DIR/orange/OrangeCanvas/icons/CanvasIcon.png
 Terminal=False
 Name[en_US]=AZOrange
-Exec=AZO_INSTALL_DIR/startAZOrange
+Exec=AZO_INSTALL_DIR/startAZOrange %f
 Name=AZOrange
 Icon=AZO_INSTALL_DIR/orange/OrangeCanvas/icons/CanvasIcon.png

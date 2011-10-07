@@ -1,5 +1,5 @@
 #!/bin/tcsh
 
 source AZO_INSTALL_DIR/templateProfile
-azorange
+azorange $1 
 
