@@ -22,7 +22,7 @@ if os.path.isfile(os.path.join(AZORANGEHOME,"azorange","AZOrangeExtraConfig.py")
     from AZOrangeExtraConfig import *
 
 # These strings will automatically be identified as the smiles attribute of the data.
-SMILESNAMES = ["SMILES", "Molecule SMILES", "SMILES_", "Compound Structure", "glf_smiles", "MolSmiles", "Smiles", "Molecule Structure", "Structure", "SMILEStoPred", "SMILES_1", "smiles", "SMILEStoPred"]
+SMILESNAMES = ["SMILES", "Molecule SMILES", "SMILES_", "Compound Structure", "glf_smiles", "MolSmiles", "Smiles", "Molecule Structure", "Structure", "SMILEStoPred", "SMILES_1", "smiles"]
 AZIDNAMES = ["Compound Name", "MolName"]
 
 
