@@ -44,7 +44,7 @@ class OWCvRF(OWWidget):
 
         self.data = None
 
-	##scPA
+        ##scPA
         self.classifier = None
         self.learner = None
         ##ecPA
@@ -189,7 +189,7 @@ file name here and clicking the save button.\nPlease observe that model names sh
             self.error(0,"ERROR: It was not possible to create a learner. Check any previous errors.")
             self.send("Learner", self.learner)
             return
-	#print time.asctime(), " -> Send learner"
+        #print time.asctime(), " -> Send learner"
         self.send("Learner", self.learner)
         self.createClassifier()
         self.refreshParams()
@@ -228,22 +228,22 @@ file name here and clicking the save button.\nPlease observe that model names sh
             else:
                 self.priors = None
             self.learner.priors = self.priors
-	    #print time.asctime(), " -> self.classifier = self.learner(self.data)"
+            #print time.asctime(), " -> self.classifier = self.learner(self.data)"
             self.classifier = self.learner(self.data)
             if self.classifier:
                 self.classifier.name = self.name
             else:
                 self.classifier = None
                 self.error(0,"ERROR: It was not possible to create a classifyer. Check any previous errors.")
-     	    #print time.asctime(), " -> self.data = self.data"
+            #print time.asctime(), " -> self.data = self.data"
         else:
             self.classifier = None
-	#print time.asctime(), " -> self.send(...)"
+        #print time.asctime(), " -> self.send(...)"
         self.send("Classifier", self.classifier)
 
 
     def pbchange(self, val):
-	self.progressBarSet(val*100)
+        self.progressBarSet(val*100)
 
 
 
