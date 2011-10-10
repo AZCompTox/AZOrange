@@ -320,9 +320,10 @@ file name here and clicking the save button.")
         if self.data:
             self.classifier=self.learner(self.data)
         if self.learner:
+            self.learner.name=str(self.name)
             self.send("Learner", self.learner)
         if self.classifier:
-            self.classifier.name=self.name
+            self.classifier.name=str(self.name)
             #self.supportVectors=self.classifier.classifier.supportVectors
             self.send("Classifier", self.classifier)
         #if self.supportVectors:

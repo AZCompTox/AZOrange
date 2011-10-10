@@ -210,7 +210,7 @@ file name here and clicking the save button.\nPlease observe that model names sh
                 self.error("Could not build a Consensus learner. Please check the outpou window for more details")
                 self.learner = None
                 return
-            self.learner.name = self.name
+            self.learner.name = str(self.name)
         else:
             self.learner = None
 
@@ -218,7 +218,7 @@ file name here and clicking the save button.\nPlease observe that model names sh
         """ Output a classifier. Set to None if there is no input data.  """
         if self.data and self.learner: 
             self.classifier = self.learner(self.data)
-            self.classifier.name = self.name
+            self.classifier.name = str(self.name)
             self.info.setText(self.classifier.status)
         elif len(self.classifiers) >= 2:
             if self.data:
@@ -238,7 +238,7 @@ file name here and clicking the save button.\nPlease observe that model names sh
 
                 else:
                     self.classifier = AZorngConsensus.ConsensusClassifier(classifiers = [c.classifier for c in self.classifiers.values()], expression = None)
-                self.classifier.name = self.name
+                self.classifier.name = str(self.name)
                 self.info.setText(self.classifier.status)
             if not self.classifier:
                 self.error("Could not build a Consensus Classifier. Please check the outpou window for more details")

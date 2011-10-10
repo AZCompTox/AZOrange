@@ -183,7 +183,7 @@ file name here and clicking the save button.\nPlease observe that model names sh
                                           forestAcc = str(self.forestAcc), termCrit = str(self.termCrit), stratify = self.stratify and "true" or "false",\
                                           priors = self.priors, useBuiltInMissValHandling = bool(self.useBuiltInMissValHandling))
         if self.learner:
-            self.learner.name = self.name
+            self.learner.name = str(self.name)
         else:
             self.learner = None
             self.error(0,"ERROR: It was not possible to create a learner. Check any previous errors.")
@@ -231,7 +231,7 @@ file name here and clicking the save button.\nPlease observe that model names sh
             #print time.asctime(), " -> self.classifier = self.learner(self.data)"
             self.classifier = self.learner(self.data)
             if self.classifier:
-                self.classifier.name = self.name
+                self.classifier.name = str(self.name)
             else:
                 self.classifier = None
                 self.error(0,"ERROR: It was not possible to create a classifyer. Check any previous errors.")
