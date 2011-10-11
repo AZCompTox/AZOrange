@@ -11,7 +11,12 @@ Installation for developers (Using Ubuntu Natty Narwhal 11.04  64bits):
         ./prepareUbuntu4AZO.sh
 5) Create/configure a setup.ini file from a template (inside the <installDir>/AZOrange/install dir):
        cp setup.ini.ubuntu.dev setup.ini
-            (edit the setup.ini to configure accordingly to your system.)
+   7.1) Configure other settings if needed accordingly to your system.
+        7.2) If using Ubuntu 10.04-64bits, also make the following changes:
+             a) Change python version:
+                  PYTHON_VER = 2.6
+             b) disable ftm:
+                  ;ftm = http://wwwkramer.in.tum.de/projects/ftm.tar.gz,0.1
 6) Start the installation scripts (inside the <installDir>/AZOrange/install dir):
        python install.py
 
