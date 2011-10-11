@@ -1,0 +1,13 @@
+<?xml version="1.0" ?>
+<schema>
+	<widgets>
+		<widget caption="File" widgetName="OWFile" xPos="220" yPos="160"/>
+		<widget caption="Cinfony Descriptors" widgetName="OWCinfonyDesc" xPos="370" yPos="170"/>
+		<widget caption="Data Table" widgetName="OWDataTable" xPos="510" yPos="210"/>
+	</widgets>
+	<channels>
+		<channel enabled="1" inWidgetCaption="Cinfony Descriptors" outWidgetCaption="File" signals="[('Examples', 'Examples')]"/>
+		<channel enabled="1" inWidgetCaption="Data Table" outWidgetCaption="Cinfony Descriptors" signals="[('Examples', 'Examples')]"/>
+	</channels>
+	<settings settingsDictionary="{'Cinfony Descriptors': &quot;(dp1\nS'widgetHeight'\np2\nNsS'widgetXPosition'\np3\nNsS'widgetYPosition'\np4\nNsS'widgetShown'\np5\nNsS'savedWidgetGeometry'\np6\nNsS'widgetWidth'\np7\nNs.&quot;, 'File': &quot;(dp1\nS'widgetHeight'\np2\nI445\nsS'widgetXPosition'\np3\nI483\nsS'widgetYPosition'\np4\nI204\nsS'widgetShown'\np5\nI0\nsS'savedWidgetGeometry'\np6\nS'\\x01\\xd9\\xd0\\xcb\\x00\\x01\\x00\\x00\\x00\\x00\\x01\\xe3\\x00\\x00\\x00\\xcc\\x00\\x00\\x03\\xd4\\x00\\x00\\x02\\xab\\x00\\x00\\x01\\xe9\\x00\\x00\\x00\\xe9\\x00\\x00\\x03\\xce\\x00\\x00\\x02\\xa5\\x00\\x00\\x00\\x00\\x00\\x00'\np7\nsS'widgetWidth'\np8\nI486\nsS'localContextsVersion'\np9\n(I100\nI0\ntp10\nsS'localContexts'\np11\n(lp12\n(iOWContexts\nContext\np13\n(dp14\nS'symbolDC'\np15\nS''\nsS'symbolDK'\np16\nS''\nsS'filename'\np17\nS'/home/palmeida/dev/AZOrange/tests/source/data/mol.smi'\np18\nsS'time'\np19\nF1317976483.4106109\nsba(iOWContexts\nContext\np20\n(dp21\ng16\nS''\nsg15\nS''\nsg19\nF1317976164.7483039\nsg17\nS'/home/palmeida/dev/AZOrange/tests/source/data/Reg_No_metas_Train.tab'\np22\nsba(iOWContexts\nContext\np23\n(dp24\ng15\nS''\nsg16\nS''\nsg17\nS'/home/palmeida/dev/AZOrange/tests/source/data/iris2Test.tab'\np25\nsg19\nF1317976134.1886301\nsbasS'recentFiles'\np26\n(lp27\ng18\nag22\nag25\nas.&quot;, 'Data Table': &quot;(dp1\nS'autoCommit'\np2\nI00\nsS'widgetYPosition'\np3\nI130\nsS'showMeta'\np4\nI1\nsS'distColorRgb'\np5\n(I220\nI220\nI220\nI255\ntp6\nsS'widgetHeight'\np7\nI593\nsS'widgetXPosition'\np8\nI241\nsS'showAttributeLabels'\np9\nI1\nsS'showDistributions'\np10\nI1\nsS'widgetShown'\np11\nI0\nsS'savedWidgetGeometry'\np12\nS'\\x01\\xd9\\xd0\\xcb\\x00\\x01\\x00\\x00\\x00\\x00\\x00\\xf1\\x00\\x00\\x00\\x82\\x00\\x00\\x04\\xbe\\x00\\x00\\x02\\xf5\\x00\\x00\\x00\\xf7\\x00\\x00\\x00\\x9f\\x00\\x00\\x04\\xb8\\x00\\x00\\x02\\xef\\x00\\x00\\x00\\x00\\x00\\x00'\np13\nsS'widgetWidth'\np14\nI962\nsS'selectedSchemaIndex'\np15\nI0\nsS'colorByClass'\np16\nI01\ns.&quot;}"/>
+</schema>

@@ -184,12 +184,12 @@ file name here and clicking the save button.")
         # Output a learner regardless of whether input data is provided
         self.learner = AZorngPLS.PLSLearner(k = str(self.k), method = str(self.method), \
                         precision = str(self.precision))
-        self.learner.name = self.name
+        self.learner.name = str(self.name)
         self.send("Learner", self.learner)
         if self.dataset:
             # Impute is made on AZorngPLS.py 
             self.classifier = self.learner(self.dataset)
-            self.classifier.name = self.name
+            self.classifier.name = str(self.name)
         else:
             self.classifier = None
         self.send("Classifier", self.classifier)
@@ -201,7 +201,7 @@ file name here and clicking the save button.")
         if dataset:
             # Impute is made on AZorngPLS.py
             self.classifier = self.learner(dataset)
-            self.classifier.name = self.name
+            self.classifier.name = str(self.name)
             #print time.asctime(), "- self.dataset = dataset"
             self.dataset = dataset
         else:

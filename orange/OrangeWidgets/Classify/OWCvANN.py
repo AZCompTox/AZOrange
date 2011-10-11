@@ -257,7 +257,7 @@ file name here and clicking the save button.\nPlease observe that model names sh
                         scaleData = self.scaleData)
 
 
-        self.learner.name = self.name
+        self.learner.name = str(self.name)
         self.send("Learner", self.learner)
         self.createClassifier() 
     
@@ -290,7 +290,7 @@ file name here and clicking the save button.\nPlease observe that model names sh
         """ Output a classifier. Set to None if there is no input data.  """
         if self.data: 
             self.classifier = self.learner(self.data)
-            self.classifier.name = self.name
+            self.classifier.name = str(self.name)
         else:
             self.classifier = None
             self.data = None

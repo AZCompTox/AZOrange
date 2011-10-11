@@ -1,11 +1,11 @@
 AZOrange is a customization for the open source software Orange. 
 
-Installation (Using Ubuntu Natty Narwhal 11.04  64/32 bits):
+Installation (Using Ubuntu Natty Narwhal 11.04):
 ===============================================================================
 1) Install all available system updates
 2) Download the '.tar.gz' latest version of AZOrange from http://github.com/AZCompTox/AZOrange/downloads 
 3) Extract the code from the downloaded file:
-       tar xfz TheDownloadedFileName.tar.gz
+       tar xfz TheDownloadedFileName
 4) Step into AZCompTox-AZOrange-XXXXXXX/install
        cd AZCompTox-AZOrange-XXXXXXX/install
 5) Prepare the system with 3rd party dependencies (inside the <installDir>/AZOrange/install dir):
@@ -14,7 +14,13 @@ Installation (Using Ubuntu Natty Narwhal 11.04  64/32 bits):
        cp setup.ini.ubuntu setup.ini
 7) Edit the setup.ini to configure the destination install dir:
        installDir = YourDesiredInstallFullPath
-           (configure other settings if needed accordingly to your system.)
+   7.1) Configure other settings if needed accordingly to your system.
+        7.2) If using Ubuntu 10.04-64bits, also make the following changes:
+             a) Change python version:
+                  PYTHON_VER = 2.6
+             b) disable ftm:
+                  ;ftm = http://wwwkramer.in.tum.de/projects/ftm.tar.gz,0.1
+           
 8) Start the installation scripts (inside the <installDir>/AZOrange/install dir):
        python install.py
 9) After successful installation, there will be 3 ways of starting AZOrange:

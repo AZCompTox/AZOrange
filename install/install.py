@@ -46,7 +46,9 @@ class Installer(object):
         startInstallTime = time.time()
     
         # Check for some important requirements
-        self.addLog("*Requirements")
+        self.addLog("*Requirements and System Info")
+        st,out = commands.getstatusoutput('python -c "import distutils.sysconfig; print distutils.sysconfig.get_python_inc()"; uname -a; lsb_release -a')
+        self.addLog('#'+out) 
         if not os.path.isfile("/bin/tcsh"):
             self.addLog("#/bin/tcsh is missing. tcsh is required for azorange to work properly.")
             self.successInstall = False

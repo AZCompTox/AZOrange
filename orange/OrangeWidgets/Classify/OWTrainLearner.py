@@ -130,7 +130,7 @@ class OWTrainLearner(OWWidget):
 
 	# Impute shall be made on learner python layer 
         self.classifier = self.learner(self.dataset)
-        self.classifier.name = self.name
+        self.classifier.name = str(self.name)
         self.send("Classifier", self.classifier)
 
 

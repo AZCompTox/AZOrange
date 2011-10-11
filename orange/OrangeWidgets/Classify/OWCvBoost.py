@@ -204,7 +204,7 @@ file name here and clicking the save button.\nPlease observe that model names sh
         print "Parameters sent to Learner:"
         self.printLearnerPars()
         self.learner = AZorngCvBoost.CvBoostLearner(boost_type = self.boost_type, weak_count = self.weak_count, split_criteria = self.split_criteria, weight_trim_rate = self.weight_trim_rate, max_depth = self.max_depth, use_surrogates = self.use_surrogates)
-        self.learner.name = self.name
+        self.learner.name = str(self.name)
         self.send("Learner", self.learner)
         self.learn()
 
@@ -213,7 +213,7 @@ file name here and clicking the save button.\nPlease observe that model names sh
         if self.data and self.learner:
             try:
                 self.classifier = self.learner(self.data)
-                self.classifier.name = self.name
+                self.classifier.name = str(self.name)
             except Exception, (errValue):
                 self.classifier = None
                 self.error(str(errValue))

@@ -232,14 +232,25 @@ class AZLearner(orange.Learner):
 
  
     def __call__(self, trainingData = None, weight = None): 
+        self.basicStat = None
         if not trainingData:
             print "AZBaseClasses ERROR: Missing training data!"
-            self.basicStat = None
             return False
         elif dataUtilities.findDuplicatedNames(trainingData.domain):
             print "AZBaseClasses ERROR: Duplicated names found in the training data. Please use the method dataUtilities.DataTable() when loading a dataset in order to fix the duplicated names and avoid this error."
-            self.basicStat = None
             return False
+        elif not trainingData.domain.classVar:
+            print "AZBaseClasses ERROR: No class attribute found in training data!"
+            return False
+        elif not len(trainingData):
+            print "AZBaseClasses ERROR: No examples in training data!"
+            return False
+        elif not len(trainingData.domain.attributes):
+            print "AZBaseClasses ERROR: No attributes in training data!"
+            return False
+
+
+
         possibleMetas = dataUtilities.getPossibleMetas(trainingData, checkIndividuality = True)
         if possibleMetas:
             msg="\nAZBaseClasses ERROR: Detected attributes that should be considered meta-attributes:"
