@@ -269,7 +269,7 @@ def calcRsqrt(exp_pred_Val):
     # Calc mean of the experimental response variable
     actualValuesList = []
     for val in exp_pred_Val:
-        actualValuesList.append(val[0].value)
+        actualValuesList.append(val[0])
     testMean = statc.mean(actualValuesList)
 
     errSum = 0.0
