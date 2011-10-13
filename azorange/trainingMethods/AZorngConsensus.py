@@ -359,10 +359,10 @@ class ConsensusClassifier(AZBaseClasses.AZClassifier):
                             predicted = logicalRes
                             break
                     except SyntaxError, (errno, strerror):
-                        print "Syntax Error! Check your custom logical expression: ", strerror
+                        print "Syntax Error!\n Learner names must be isolated with spaces for ex. use ( RF == SVM ) and not (RF==SVM).\nCheck your custom logical expression: ", strerror
                         return None
-                    except Exception, (errno, strerror):
-                        print "Exception: Check your custom logical expression: ", strerror
+                    except Exception:#, (errno, strerror):
+                        print "Exception: Check your custom logical expression.\n Learner names must be isolated with spaces for ex. use ( RF == SVM ) and not (RF==SVM)."
                         return None
 
                 self._isRealProb = False
@@ -435,7 +435,7 @@ class ConsensusClassifier(AZBaseClasses.AZClassifier):
     def _lexRegressionExp(self, exp):
         STRING = 1
         exprList = list(token[STRING] for token
-                        in generate_tokens(StringIO(exp).readline)
+                        in generate_tokens(StringIO(str(exp.replace('\x00',''))).readline)
                         if token[STRING])
         return exprList
 

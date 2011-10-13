@@ -77,6 +77,9 @@ class OWConsensus(OWWidget):
         OWGUI.lineEdit(self.controlArea, self, 'name', box='Learner/Classifier Name', \
                        tooltip='Name to be used by other widgets to identify your learner/classifier.<br>This should be a unique name!')
 
+        info = OWGUI.widgetBox(self.controlArea, "Constituting Consensus Learners", addSpace = True, orientation=0)
+        self.learnerInfo = OWGUI.widgetLabel(info, '')
+
         OWGUI.lineEdit(self.controlArea, self, 'expr', box='Expression', \
                        tooltip='Expression')
 
@@ -192,19 +195,27 @@ file name here and clicking the save button.\nPlease observe that model names sh
 
     def createLearner(self):
         # Output a learner regardless of whether input data is provided
+        myLearnersText = ""
         if len(self.learners) >= 2:
-            expression = str(self.expr).strip().split(",") 
+            # Get names of learners used in the consensus
+            for idx,l in enumerate(self.learners.values()):
+                myLearnersText = myLearnersText + l.name+"\n"
+            self.learnerInfo.setText(myLearnersText)
+            # Assure that the expression uses the defined learner names
+            expression = str(self.expr.replace('\x00','')).strip().split(",")
             if len(expression) <= 1:
-                expression = str(self.expr).strip()
+                expression = str(self.expr.replace('\x00','')).strip()
             else:
                 expression = [e.strip() for e in expression]
+
             if expression:
                 learners = {}
-                for idx,l in enumerate(self.learners.values()):
-                    learners["Learner_"+str(idx)] = l
+                for l in self.learners.values():
+                    learners[str(l.name)] = l.learner
                 self.learner = AZorngConsensus.ConsensusLearner(learners = learners, expression = expression)
 
             else:
+                learners = [l.learner for l in self.learners.values()]
                 self.learner = AZorngConsensus.ConsensusLearner(learners = [l.learner for l in self.learners.values()])
             if not self.learner:
                 self.error("Could not build a Consensus learner. Please check the outpou window for more details")
@@ -225,9 +236,9 @@ file name here and clicking the save button.\nPlease observe that model names sh
                 self.warning("When using classifiers as inputs, data must be disconnected!")
                 self.classifier = None
             else:
-                expression = str(self.expr).strip().split(",")
+                expression = str(self.expr.replace('\x00','')).strip().split(",")
                 if len(expression) <= 1:
-                    expression = str(self.expr).strip()
+                    expression = str(self.expr.replace('\x00','')).strip()
                 else:
                     expression = [e.strip() for e in expression]
                 if expression:
