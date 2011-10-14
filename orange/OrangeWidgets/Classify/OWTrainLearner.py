@@ -79,10 +79,7 @@ class OWTrainLearner(OWWidget):
         else:
             startfile=os.getcwd()
 
-        for x in dir():
-            if "Modal" in x:
-                print x
-        filename = QFileDialog.getSaveFileName(self, "Save Model", self.modelFile)
+        filename = QFileDialog.getSaveFileName(self, "Save Model", startfile)
         if filename:
             self.modelFile = str(filename)
 
