@@ -441,6 +441,7 @@ def getSMILESAttr(data):
 
 def getMolFromSmiles(SMILES):
     """ Create Chem-Mol from SMILES being more forgiven with SMILES standards"""
+    # TODO: Should be used a clean tool to standerdize the SMILES
     # 1) Try the usual way by setting sanitize flag
     chemMol = rdk.Chem.MolFromSmiles(SMILES,True)
     # 2) Try to unset the sanitize flag. It often helps

@@ -5,6 +5,7 @@ import time
 from AZutilities import dataUtilities
 from AZutilities import SimBoostedQSAR
 import AZOrangeConfig as AZOC
+from AZutilities import extraUtilities
 
 class evalUtilitiesTest(unittest.TestCase):
 
@@ -18,7 +19,7 @@ class evalUtilitiesTest(unittest.TestCase):
 
     def test_SimDesc_standard_smiles(self):
         actives = []
-        for ex in self.activesData:
+        for ex in self.smiData:
             actives.append(str(ex["SMILES"].value))
         newData = SimBoostedQSAR.getSimDescriptors(actives, self.smiData, self.methods)
         for ex in newData[0:5]:
@@ -28,7 +29,8 @@ class evalUtilitiesTest(unittest.TestCase):
 
     def test_SimDesc_non_standard_smiles(self):
         actives = []
-        for ex in self.smiData:
+        extraUtilities.StandardizeSMILES(self.activesData, smiAttr = "SMILES", cName="MOLNAME")
+        for ex in self.activesData:
             actives.append(str(ex["SMILES"].value))
         newData = SimBoostedQSAR.getSimDescriptors(actives, self.smiData, self.methods)
         for ex in newData[0:5]:
