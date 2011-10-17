@@ -1,4 +1,3 @@
-smiles Molecule name
 N1([CH@@](CCC1)C(=O)[O-])C(=O)CC[CH@@](NC(=O)[CH@@](NC(=O)OCc(cccc1)c1)CCCC[NH3+])C(=O)[O-] COO_23A
 N1([CH@@](CCC1)C(=O)N[CH@](CCC(=O)N([CH@@](CC1)C(=O)[O-])C1)C(=O)[O-])C(=O)OCc(cccc1)c1 COO_23E
 N1([CH@@](CCC1)C(=O)[O-])C(=O)CC[CH@@](NC(=O)[CH@@](NC(=O)OCc(cccc1)c1)C)C(=O)[O-] COO_23J
