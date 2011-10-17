@@ -219,9 +219,9 @@ def orng_sim_rdk_topo_fps(smile_active, train_instance):
         if not smilesName: return None
         smile_train = str(train_instance[smilesName].value)
         
-        molAct = rdk.Chem.MolFromSmiles(smile_active)
-        molTrain = rdk.Chem.MolFromSmiles(smile_train)
-        
+        molAct = getMolFromSmiles(smile_active)
+        molTrain = getMolFromSmiles(smile_train)
+
         if not molAct: return None
         if not molTrain: return None
         
@@ -242,8 +242,8 @@ def orng_sim_rdk_MACCS_keys(smile_active, train_instance):
         if not smilesName: return None
         smile_train = str(train_instance[smilesName].value)
         
-        molAct = rdk.Chem.MolFromSmiles(smile_active)
-        molTrain = rdk.Chem.MolFromSmiles(smile_train)
+        molAct = getMolFromSmiles(smile_active)
+        molTrain = getMolFromSmiles(smile_train)
     
         if not molAct: return None
         if not molTrain: return None
@@ -264,8 +264,8 @@ def orng_sim_rdk_morgan_fps(smile_active, train_instance):
         if not smilesName: return None
         smile_train = str(train_instance[smilesName].value)
         
-        molAct = rdk.Chem.MolFromSmiles(smile_active)
-        molTrain = rdk.Chem.MolFromSmiles(smile_train)
+        molAct = getMolFromSmiles(smile_active)
+        molTrain = getMolFromSmiles(smile_train)
     
         if not molAct: return None
         if not molTrain: return None
@@ -286,8 +286,8 @@ def orng_sim_rdk_morgan_features_fps(smile_active, train_instance):
         if not smilesName: return None
         smile_train = str(train_instance[smilesName].value)
         
-        molAct = rdk.Chem.MolFromSmiles(smile_active)
-        molTrain = rdk.Chem.MolFromSmiles(smile_train)
+        molAct = getMolFromSmiles(smile_active)
+        molTrain = getMolFromSmiles(smile_train)
     
         if not molAct: return None
         if not molTrain: return None
@@ -308,8 +308,8 @@ def orng_sim_rdk_atompair_fps(smile_active, train_instance):
         if not smilesName: return None
         smile_train = str(train_instance[smilesName].value)
         
-        molAct = rdk.Chem.MolFromSmiles(smile_active)
-        molTrain = rdk.Chem.MolFromSmiles(smile_train)
+        molAct = getMolFromSmiles(smile_active)
+        molTrain = getMolFromSmiles(smile_train)
     
         if not molAct: return None
         if not molTrain: return None
@@ -351,8 +351,8 @@ def sim_rdk_topo_fps(smiA, smisT):
                 input are a smiles string and a list of smiles strings
                 returned is a list of similarities
         """
-        fp_A = Pairs.GetAtomPairFingerprint(rdk.Chem.MolFromSmiles(smiA))
-        fps_T = [Pairs.GetAtomPairFingerprint(rdk.Chem.MolFromSmiles(y)) for y in smisT]
+        fp_A = Pairs.GetAtomPairFingerprint(getMolFromSmiles(smiA))
+        fps_T = [Pairs.GetAtomPairFingerprint(getMolFromSmiles(y)) for y in smisT]
         
         sim_vector = []
         for t in fps_T:
@@ -368,8 +368,8 @@ def sim_rdk_topo_fps(smiA, smisT):
                 input are a smiles string and a list of smiles strings
                 returned is a list of similarities
         """
-        fp_A = FingerprintMols.FingerprintMol(rdk.Chem.MolFromSmiles(smiA))
-        fps_T = [FingerprintMols.FingerprintMol(rdk.Chem.MolFromSmiles(y)) for y in smisT]
+        fp_A = FingerprintMols.FingerprintMol(getMolFromSmiles(smiA))
+        fps_T = [FingerprintMols.FingerprintMol(getMolFromSmiles(y)) for y in smisT]
         
         sim_vector = []
         for t in fps_T:
@@ -385,8 +385,8 @@ def sim_rdk_MACCS_keys(smiA, smisT):
                 input are a smiles string and a list of smiles strings
                 returned is a list of similarities
         """
-        fp_A = rdk.Chem.MACCSkeys.GenMACCSKeys(rdk.Chem.MolFromSmiles(smiA))
-        fps_T = [rdk.Chem.MACCSkeys.GenMACCSKeys(rdk.Chem.MolFromSmiles(y)) for y in smisT]
+        fp_A = rdk.Chem.MACCSkeys.GenMACCSKeys(getMolFromSmiles(smiA))
+        fps_T = [rdk.Chem.MACCSkeys.GenMACCSKeys(getMolFromSmiles(y)) for y in smisT]
         
         sim_vector = []
         for t in fps_T:
@@ -400,8 +400,8 @@ def sim_rdk_morgan_fps(smiA, smisT):
                 input are a smiles string and a list of smiles strings
                 returned is a list of similarities
         """
-        fp_A = rdk.AllChem.GetMorganFingerprint(rdk.Chem.MolFromSmiles(smiA),2)
-        fps_T = [rdk.AllChem.GetMorganFingerprint(rdk.Chem.MolFromSmiles(y),2) for y in smisT]
+        fp_A = rdk.AllChem.GetMorganFingerprint(getMolFromSmiles(smiA),2)
+        fps_T = [rdk.AllChem.GetMorganFingerprint(getMolFromSmiles(y),2) for y in smisT]
         
         sim_vector = []
         for t in fps_T:
@@ -437,3 +437,16 @@ def getSMILESAttr(data):
         return None
     else:       
         return smilesName
+
+
+def getMolFromSmiles(SMILES):
+    """ Create Chem-Mol from SMILES being more forgiven with SMILES standards"""
+    # 1) Try the usual way by setting sanitize flag
+    chemMol = rdk.Chem.MolFromSmiles(SMILES,True)
+    # 2) Try to unset the sanitize flag. It often helps
+    if not chemMol:
+        chemMol = rdk.Chem.MolFromSmiles(SMILES,False)
+    return chemMol
+
+
+ 
