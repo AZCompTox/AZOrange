@@ -98,7 +98,7 @@ class OWSimBoostedQSAR(OWWidget):
         filename = str(QFileDialog.getOpenFileName(self,"Open Data File",startfile, 'Smiles files (*.smi)'))
         if filename:
             self.activesFile = str(filename)
-
+            self.loadActives() 
 
     def destroy(self, dw = 1, dsw = 1):
 	self.linksOut.clear()

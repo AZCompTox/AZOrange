@@ -18,6 +18,14 @@ AZORANGEHOME = os.environ["AZORANGEHOME"]
 SCRATCHDIR = "/tmp"
 NFS_SCRATCHDIR = os.path.join(os.environ["HOME"],"AZO_NFS_scratchDir")
 
+# Configurable parameters that can be overwriten by AZOrangeExtraConfig.py
+#cinfonyToolkits = ["cdk","rdk","obabel","webel"]        # NOT so stable!!
+#cinfonyToolkits = ["rdk","obabel","webel"]              # Testing Stability!!
+cinfonyToolkits = ["rdk","webel"]
+OWParamOptExecEnvs = [("Local serial", 0)]
+ 
+
+# Get config from AZOrangeExtraConfig.py if it exists
 if os.path.isfile(os.path.join(AZORANGEHOME,"azorange","AZOrangeExtraConfig.py")):
     from AZOrangeExtraConfig import *
 

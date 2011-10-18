@@ -6,12 +6,15 @@ import string
 
 import orange
 from AZutilities import dataUtilities
+
+#import userDefined Utilites if it exists
+if os.path.isfile(os.path.join( os.environ["AZORANGEHOME"], "azorange","AZutilities","extraUtilities.py")):
+    from AZutilities import extraUtilities
+ 
 import AZOrangeConfig as AZOC
 
 
-#toolkitsEnabled = ["cdk","rdk","obabel","webel"]        # NOT so stable!!
-#toolkitsEnabled = ["rdk","obabel","webel"]              # Testing Stability!!
-toolkitsEnabled = ["rdk","webel"]                        # Stable
+toolkitsEnabled = AZOC.cinfonyToolkits   
 
 if "cdk" in toolkitsEnabled:
     try: 
@@ -276,7 +279,12 @@ def getCinfonyDescResults(origData,descList,radius=1):
     # Standardize SMILES
     for ex in data:
         ex["origSmiles"] = ex[smilesName].value
-    #TODO: Call here some method to standardize the attribute smilesName in place having the attr origSmiles as ID
+    #TODO: Create a method in dataUtilities to standardize the attribute smilesName in place having the attr origSmiles as ID
+    if "AZutilities.extraUtilities" in sys.modules and hasattr(extraUtilities, "StandardizeSMILES"):
+         # Call a method for standardizing the SMILES in Data.
+         # The method is expected to change the attribute defined as smiAttr in data object
+         #                                 +->Data     +-> SMILES attribuite name     +->Compound Name or attribute to act as an ID"
+         extraUtilities.StandardizeSMILES(data,      smiAttr = smilesName,           cName="origSmiles") 
     results = []
 
     # Calculate available descriptors
