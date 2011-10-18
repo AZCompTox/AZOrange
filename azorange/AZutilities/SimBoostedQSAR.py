@@ -174,9 +174,9 @@ def getSimDescriptors(InActives, InData, methods, active_ids = None, pharmacopho
                                                 
         if cleanedData:      
             #Remove the fixed SMILES and revert to the Original SMILES           
-            newData = dataUtilities.attributeDeselectionData(newdata,[SMILESattr])
-            newData.domain["OrigSMI_ID"].name = SMILESattr
-        return newData
+            newdata = dataUtilities.attributeDeselectionData(newdata,[SMILESattr])
+            newdata.domain["OrigSMI_ID"].name = SMILESattr
+        return newdata
 
 def azo_pharmacophore_az_inhouse(active_id, train_instance, pharmacophore_file):
         """ calculate the pharmacophore fingerprint similarity using the AZ inhouse calculated pharmacophore fp

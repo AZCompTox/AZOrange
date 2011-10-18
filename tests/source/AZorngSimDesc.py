@@ -5,7 +5,6 @@ import time
 from AZutilities import dataUtilities
 from AZutilities import SimBoostedQSAR
 import AZOrangeConfig as AZOC
-from AZutilities import extraUtilities
 
 class evalUtilitiesTest(unittest.TestCase):
 
