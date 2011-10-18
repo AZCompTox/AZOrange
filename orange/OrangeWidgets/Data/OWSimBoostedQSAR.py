@@ -46,7 +46,7 @@ class OWSimBoostedQSAR(OWWidget):
             self.warning("No Methods Selected!")
         else:
             self.progressSteps = 100
-            self.progress = QProgressDialog("Calculating SimBoosted descriptors", "Cancel", 0, self.progressSteps , None, Qt.Dialog )
+            self.progress = QProgressDialog("Calculating similarity descriptors", "Cancel", 0, self.progressSteps , None, Qt.Dialog )
             self.progress.setWindowModality(Qt.WindowModal)
             self.progress.setMinimumDuration(0)
             self.progress.forceShow()
@@ -108,10 +108,10 @@ class OWSimBoostedQSAR(OWWidget):
 
     def defineGUI(self):
         # methods Selection
-        self.methodsListBox = OWGUI.listBox(self.controlArea, self, "selectedMethods", "methodsList", box = "Slected Methods", selectionMode = QListWidget.ExtendedSelection) 
+        self.methodsListBox = OWGUI.listBox(self.controlArea, self, "selectedMethods", "methodsList", box = "Select Chemical Similarity Methods", selectionMode = QListWidget.ExtendedSelection) 
         # Set location of model file
         boxFile = OWGUI.widgetBox(self.controlArea, "Path for loading Actives", addSpace = True, orientation=0)
-        L1 = OWGUI.lineEdit(boxFile, self, "activesFile", labelWidth=80,  orientation = "horizontal", tooltip = "Actives must be specified in a SMI file")
+        L1 = OWGUI.lineEdit(boxFile, self, "activesFile", labelWidth=80,  orientation = "horizontal", tooltip = "Actives must be specified in a .smi file")
         L1.setMinimumWidth(200)
         button = OWGUI.button(boxFile, self, '...', callback = self.browseFile, disabled=0,tooltip = "Browse for a file to load the Actives")
         button.setMaximumWidth(25)
