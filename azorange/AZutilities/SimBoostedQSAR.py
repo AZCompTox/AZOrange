@@ -10,11 +10,11 @@ from rdkit.Chem.Fingerprints import FingerprintMols
 from rdkit.Chem.AtomPairs import Pairs
 import AZOrangeConfig as AZOC
 
-methods = { "Rdk Topo fps"               :'rdk_topo_fps',
-            "Rdk MACCS keys"             :'rdk_MACCS_keys',
-            "Rdk Morgam fps"             :'rdk_morgan_fps',
-            "Rdk Morgan Features fps"    :'rdk_morgan_features_fps',
-            "Rdk Atom Pair fps"          :'rdk_atompair_fps'
+methods = { "RDKit Topological"               :'rdk_topo_fps',
+            "RDKit MACCS keys"             :'rdk_MACCS_keys',
+            "RDKit Circular Connectivity"             :'rdk_morgan_fps',
+            "RDKit Circular Feature"    :'rdk_morgan_features_fps',
+            "RDKit Atom Pairs"          :'rdk_atompair_fps'
             #"AZO-pharmacophore fps"    :'azo_pharmacophore_fps'
 } 
 
