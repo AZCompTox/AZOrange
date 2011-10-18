@@ -81,7 +81,12 @@ class OWConsensus(OWWidget):
         self.learnerInfo = OWGUI.widgetLabel(info, '')
 
         OWGUI.lineEdit(self.controlArea, self, 'expr', box='Expression', \
-                       tooltip='Expression')
+                       tooltip='Expression used to combine the constituting models.\n \
+Example Classification; \nSVM == POS or PLS == POS or RF == POS -> POS, -> NEG\n \
+This expression will predict POS if any of the 3 classifiers predict POS.\n \
+Example Regression; \n(SVM+RF+ANN)/3.0\n \
+This expression will give an average prediction.\n \
+Please note the the denominator needs to be a float!')
 
         # Apply the settings and send the learner to the output channel
         OWGUI.button(self.controlArea, self,"&Apply settings", callback=self.applySettings)
