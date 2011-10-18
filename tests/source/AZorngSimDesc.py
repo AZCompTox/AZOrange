@@ -15,26 +15,22 @@ class evalUtilitiesTest(unittest.TestCase):
         activesDataPath = os.path.join(AZOC.AZORANGEHOME,"tests/source/data/ace_fmc.smi")
         self.smiData = dataUtilities.loadSMI(smiDataPath)
         self.activesData = dataUtilities.loadSMI(activesDataPath)
-        self.methods = SimBoostedQSAR.methods.values()[0:2]
+        self.methods = SimBoostedQSAR.methods.values()[0:1]
 
     def test_SimDesc_standard_smiles(self):
         actives = []
         for ex in self.smiData:
             actives.append(str(ex["SMILES"].value))
         newData = SimBoostedQSAR.getSimDescriptors(actives, self.smiData, self.methods)
-        for ex in newData[0:5]:
-            print ex
         self.assertEqual(len(newData),len(self.smiData))
         self.assertEqual(newData.has_missing_values(),0)
 
     def test_SimDesc_non_standard_smiles(self):
         actives = []
-        extraUtilities.StandardizeSMILES(self.activesData, smiAttr = "SMILES", cName="MOLNAME")
         for ex in self.activesData:
+        #for ex in self.smiData:
             actives.append(str(ex["SMILES"].value))
         newData = SimBoostedQSAR.getSimDescriptors(actives, self.smiData, self.methods)
-        for ex in newData[0:5]:
-            print ex
         self.assertEqual(len(newData),len(self.smiData))
         self.assertEqual(newData.has_missing_values(),0)
 

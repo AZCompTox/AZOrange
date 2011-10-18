@@ -3,12 +3,18 @@
                         TUM - I12 (wwwkramer.in.tum.de/girschic)
         dependencies:
 """
+import os,sys
 import orange
 from cinfony import rdk
 from rdkit import DataStructs
 from rdkit.Chem.Fingerprints import FingerprintMols
 from rdkit.Chem.AtomPairs import Pairs
 import AZOrangeConfig as AZOC
+from AZutilities import dataUtilities
+#import userDefined Utilites if it exists
+if os.path.isfile(os.path.join( os.environ["AZORANGEHOME"], "azorange","AZutilities","extraUtilities.py")):
+    from AZutilities import extraUtilities
+    
 
 methods = { "Rdk Topo fps"               :'rdk_topo_fps',
             "Rdk MACCS keys"             :'rdk_MACCS_keys',
@@ -18,7 +24,7 @@ methods = { "Rdk Topo fps"               :'rdk_topo_fps',
             #"AZO-pharmacophore fps"    :'azo_pharmacophore_fps'
 } 
 
-def getSimDescriptors(actives, data, methods, active_ids = None, pharmacophore_file = None, callBack = None):
+def getSimDescriptors(InActives, InData, methods, active_ids = None, pharmacophore_file = None, callBack = None):
         """ calculates similarity descriptors for a training set (orange object) using the 
                 given similarity methods against the given actives
                 Possible method strings in methods are the names of the sim_* methods below,
@@ -28,6 +34,39 @@ def getSimDescriptors(actives, data, methods, active_ids = None, pharmacophore_f
                 the callBack function shall return True of False which will indicate to this method if the process it to be continued or Not.
                    e.g. if callBack(25) == False it indicates the caller want's to stop the process of calculating descriptors                 
         """
+        # Pre-process input Data tto standardize the SMILES
+        SMILESattr = getSMILESAttr(InData)
+        
+        if not SMILESattr:
+            return None
+
+        #TODO: Create a method in dataUtilities to standardize the attribute smilesName in place having the attr origSmiles as ID
+        if "AZutilities.extraUtilities" in sys.modules and hasattr(extraUtilities, "StandardizeSMILES"):
+            # Call a method for standardizing the SMILES in Data.
+            # The method is expected to change the attribute defined as smiAttr in data object
+            cleanedData = True
+            # Process InData
+            tmpDomain =  orange.Domain([orange.StringVariable("OrigSMI_ID")]+[attr for attr in InData.domain])
+            data = orange.ExampleTable(tmpDomain,InData)
+            #    Fill the OrigSMI_ID
+            for ex in data:
+                ex["OrigSMI_ID"] = ex[SMILESattr]
+            extraUtilities.StandardizeSMILES(data, smiAttr = SMILESattr, cName="OrigSMI_ID")
+            # Process  Input actives
+            activesDomain = orange.Domain([orange.StringVariable("OrigSMI_ID"), orange.StringVariable("SMILES")],0) 
+            activesData = orange.ExampleTable(activesDomain)
+            for act in InActives:
+                activesData.append([act,act])
+            extraUtilities.StandardizeSMILES(activesData, smiAttr = "SMILES", cName="OrigSMI_ID")
+            #print activesData.domain
+            actives = []
+            for ex in activesData:
+                actives.append(str(ex["SMILES"].value))
+        else:
+            data = InData
+            actives = InActives  
+            cleanedData = False
+
         # adjust the header
         atts = []
         for m in methods:
@@ -132,9 +171,12 @@ def getSimDescriptors(actives, data, methods, active_ids = None, pharmacophore_f
                                                 if not callBack((100*stepsDone)/nTotalSteps): return None
 
                                 att_idx += 1
-                                                                
-        return newdata
-        
+                                                
+        if cleanedData:      
+            #Remove the fixed SMILES and revert to the Original SMILES           
+            newData = dataUtilities.attributeDeselectionData(newdata,[SMILESattr])
+            newData.domain["OrigSMI_ID"].name = SMILESattr
+        return newData
 
 def azo_pharmacophore_az_inhouse(active_id, train_instance, pharmacophore_file):
         """ calculate the pharmacophore fingerprint similarity using the AZ inhouse calculated pharmacophore fp
