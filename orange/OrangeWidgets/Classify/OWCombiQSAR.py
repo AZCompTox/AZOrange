@@ -14,6 +14,9 @@ import OWGUI
 import orange
 import AZOrangeConfig as AZOC
 from AZutilities import competitiveWorkflow
+import pprint
+
+
 class OWCombiQSAR(OWWidget):
 
     def __init__(self, parent=None, signalManager = None, name='QSAR model'):
