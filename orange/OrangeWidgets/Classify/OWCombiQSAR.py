@@ -1,8 +1,8 @@
 from AZutilities import dataUtilities
 from AZutilities import miscUtilities
 """
-<name>Combi QSAR</name>
-<description>QSAR</description>
+<name>Combi-QSAR</name>
+<description>Widget to automatically select the most accurate AZOrange machine learning algorithm (with optimized model hyper-parameters) and to calculated an unbiased assessemnt of the expected generalization accuracy of the resulting QSAR model. For a detailed description, please see the Poster; http://svn.seml.astrazeneca.net/trac/CC-AZ-Orange/browser/trunk/doc/AZOrangeOpenTox.pdf </description>
 <icon>icons/CombiQSAR.png</icon>
 <contact>Pedro Rafael Almeida</contact>
 <priority>8</priority>
@@ -19,7 +19,7 @@ import pprint
 
 class OWCombiQSAR(OWWidget):
 
-    def __init__(self, parent=None, signalManager = None, name='QSAR model'):
+    def __init__(self, parent=None, signalManager = None, name='Combi-QSAR model'):
         OWWidget.__init__(self, parent, signalManager, name)
 
         # Define the input and output channels
@@ -27,7 +27,7 @@ class OWCombiQSAR(OWWidget):
         self.outputs = [("Classifier", orange.Classifier)]
 
         self.queueTypes = ["NoSGE","batch.q","quick.q"] 
-        self.outputModes = ["model","statistics"]
+        self.outputModes = ["Model and statistics (unbiased wrt model selection)","Statistics for all available algorithms. Please note, no model selection."]
 
         self.name = name
 	self.dataset = None
@@ -111,13 +111,13 @@ class OWCombiQSAR(OWWidget):
                                              callback=self.changeOutputMode)
 
         # Queue radio buttons
-        self.queueBox = OWGUI.radioButtonsInBox(self.controlArea, self, "queueType", box="Queue type",
+        self.queueBox = OWGUI.radioButtonsInBox(self.controlArea, self, "queueType", box="Execution Mode",
                                              btnLabels=self.queueTypes,
                                              callback=None)
 
         # Set location of statistics file
         boxFile = OWGUI.widgetBox(self.controlArea, "Path for saving the statistics results", addSpace = True, orientation=0)
-        L1 = OWGUI.lineEdit(boxFile, self, "statPath", labelWidth=80,  orientation = "horizontal", tooltip = "Path for saving the statistics file")
+        L1 = OWGUI.lineEdit(boxFile, self, "statPath", labelWidth=80,  orientation = "horizontal", tooltip = "Please use full path to results file to be created.")
         L1.setMinimumWidth(200)
         button = OWGUI.button(boxFile, self, '...', callback = self.browseFile, disabled=0,tooltip = "Choose the dir where to save.")
         button.setMaximumWidth(25)
