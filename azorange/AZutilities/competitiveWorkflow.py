@@ -55,7 +55,8 @@ def getMLStatistics(trainData, savePath = None, queueType = "NoSGE", verbose = 0
                 print "Ignored learner ",ml," since it's not compatible with this class."
                 continue
             learners[ml] = learner
-        evaluator = getUnbiasedAccuracy.UnbiasedAccuracyGetter(data = trainData, learner = learners, paramList = None, nExtFolds = AZOC.QSARNINNERFOLDS, nInnerFolds = AZOC.QSARNCVFOLDS, queueType = queueType, verbose = verbose, logFile = logFile, resultsFile = savePath)
+        # Forced queueType to NoSGE so that appspack do not fload the cluster
+        evaluator = getUnbiasedAccuracy.UnbiasedAccuracyGetter(data = trainData, learner = learners, paramList = None, nExtFolds = AZOC.QSARNINNERFOLDS, nInnerFolds = AZOC.QSARNCVFOLDS, queueType = "NoSGE", verbose = verbose, logFile = logFile, resultsFile = savePath)
         MLStatistics = evaluator.getAcc(callBack = callBack)
 
         saveMLStatistics(savePath, MLStatistics, logFile)
