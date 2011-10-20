@@ -7,7 +7,7 @@ from AZutilities import miscUtilities
 <contact>Pedro Rafael Almeida</contact>
 <priority>8</priority>
 """
-import string
+import string,time
 
 from OWWidget import *
 import OWGUI
@@ -39,8 +39,11 @@ class OWCombiQSAR(OWWidget):
         self.modelFile = ""
         self.statPath = ""
         self.lastPath = os.getcwd()
-
-
+       
+        #progressBar
+        self.last_pDone = 0
+        self.startTime = 0
+        self.dT_ppBuffer = []
 
         self.defineGUI()
 
@@ -212,11 +215,15 @@ class OWCombiQSAR(OWWidget):
             return
 
         progressSteps = 100
-        self.progress = QProgressDialog("Running Combi-QSAR.\nThis may take a while. Please wait....", "Cancel", 0, progressSteps , None, Qt.Dialog )
+        self.progress = QProgressDialog("Running Combi-QSAR\nThis may take a while. Please wait....", "Cancel", 0, progressSteps , None, Qt.Dialog )
         self.progress.setWindowModality(Qt.WindowModal)
         self.progress.setMinimumDuration(0)
         self.progress.forceShow()
         self.progress.setValue(0)
+ 
+        self.startTime = time.time()
+        self.dT_ppBuffer = []
+        self.last_pDone = 0
 
         if self.outputSel != 0:
             self.getModel()
@@ -227,10 +234,30 @@ class OWCombiQSAR(OWWidget):
 
 
     def advance(self, pDone):
+        now = time.time()
+        LowPassFilterBuffer = 2
         if self.progress.wasCanceled():
             return False
+        if pDone > self.last_pDone:
+            dT_pp = (now - self.startTime)/((pDone - self.last_pDone)  * 1.0)
+            self.dT_ppBuffer.append(dT_pp)
+            self.startTime = now
+            if len(self.dT_ppBuffer) >= LowPassFilterBuffer:
+                estTime = (sum(self.dT_ppBuffer[-LowPassFilterBuffer:])/(1.0 * LowPassFilterBuffer)) * (100.0 - pDone)
+                if estTime < 120:# < 2 min, count in sec
+                    strEstTime = str(int(round(estTime)))+" sec."
+                elif estTime < 7200: # 2 Hours, count in min
+                    strEstTime = str(int(round(estTime/60)))+" min."
+                elif estTime < 172800: # 2 Days, count in hours
+                    strEstTime = str(round(estTime/3600),1)+" hours"
+                else: #count in days
+                    strEstTime = str(round(estTime/86400),1)+" days"
+
+                self.progress.setLabelText("Running Combi-QSAR\nEstimated time left: "+strEstTime)
         self.progress.setValue(pDone)
+        self.last_pDone = pDone
         return True
+
 
     def getModel(self):
         self.warning(0)

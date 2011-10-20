@@ -6,7 +6,7 @@ from AZutilities import dataUtilities
 <contact>Pedro Rafael Almeida</contact>
 <priority>14</priority>
 """
-import string
+import string,time
 
 from OWWidget import *
 import OWGUI
@@ -27,6 +27,10 @@ class OWSimBoostedQSAR(OWWidget):
         self.methods = SimBoostedQSAR.methods
         self.methodsList = SimBoostedQSAR.methods.keys()
         self.selectedMethods = []
+
+        self.last_pDone = 0
+        self.startTime = 0
+        self.dT_ppBuffer = []
 
         self.outData = None
 	self.dataset = None
@@ -55,6 +59,9 @@ class OWSimBoostedQSAR(OWWidget):
             #set the selected methods
             methods = [SimBoostedQSAR.methods[self.methodsList[mIdx]] for mIdx in self.selectedMethods]
 
+            self.startTime = time.time()
+            self.dT_ppBuffer = []
+            self.last_pDone = 0
             self.outData = SimBoostedQSAR.getSimDescriptors(self.actives, self.dataset, methods, callBack = self.advance)
                 
             self.progress.close()
@@ -64,9 +71,29 @@ class OWSimBoostedQSAR(OWWidget):
         self.send("Examples", self.outData)
 
     def advance(self, pDone):
+        now = time.time()
+        LowPassFilterBuffer = 10
         if self.progress.wasCanceled():
             return False
+        if pDone > self.last_pDone:
+            dT_pp = (now - self.startTime)/((pDone - self.last_pDone)  * 1.0)
+            self.dT_ppBuffer.append(dT_pp)
+            self.startTime = now
+            if len(self.dT_ppBuffer) >= LowPassFilterBuffer:
+                estTime = (sum(self.dT_ppBuffer[-LowPassFilterBuffer:])/(1.0 * LowPassFilterBuffer)) * (100.0 - pDone)
+                if estTime < 120:# < 2 min, count in sec
+                    strEstTime = str(int(round(estTime)))+" sec."
+                elif estTime < 7200: # 2 Hours, count in min
+                    strEstTime = str(int(round(estTime/60)))+" min."
+                elif estTime < 172800: # 2 Days, count in hours
+                    strEstTime = str(round(estTime/3600),1)+" hours"
+                else: #count in days
+                    strEstTime = str(round(estTime/86400),1)+" days"
+
+
+                self.progress.setLabelText("Calculating similarity descriptors\nEstimated time left: "+strEstTime)
         self.progress.setValue(pDone) 
+        self.last_pDone = pDone
         return True
 
     def loadActives(self):
