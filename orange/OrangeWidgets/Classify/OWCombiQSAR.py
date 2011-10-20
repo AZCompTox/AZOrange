@@ -235,7 +235,7 @@ class OWCombiQSAR(OWWidget):
 
     def advance(self, pDone):
         now = time.time()
-        LowPassFilterBuffer = 2
+        LowPassFilterBuffer = 1
         if self.progress.wasCanceled():
             return False
         if pDone > self.last_pDone:
