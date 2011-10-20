@@ -370,7 +370,7 @@ def getStatistics(dataset, runningDir, resultsFile, queueType = "NoSGE", verbose
         os.system('echo "started" > '+os.path.join(runningDir,"status"))
         # Start  all Fold jobs
         stepsDone = 0
-        nTotalSteps = AZOC.QSARNEXTFOLDS + ((len(AZOC.MLMETHODS)+1) * AZOC.QSARNEXTFOLDS)
+        nTotalSteps = AZOC.QSARNEXTFOLDS 
         for fold in range(AZOC.QSARNEXTFOLDS):
             job = str(fold)
             print "Starting job for fold ",job
@@ -558,9 +558,6 @@ def getStatistics(dataset, runningDir, resultsFile, queueType = "NoSGE", verbose
                         if foldStat[ml]["selected"]:
                             results["selectedML"].append(results[ml][-1])
                             exp_pred["selectedML"]+= local_exp_pred
-                    if callBack:
-                        stepsDone += 1
-                        if not callBack((100*stepsDone)/nTotalSteps): return None
 
                 res = createStatObj(results[ml], exp_pred[ml], nTrainEx[ml], nTestEx[ml],responseType, len(sortedJobs), logTxt)
                 if not res:
