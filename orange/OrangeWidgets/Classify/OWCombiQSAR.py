@@ -27,16 +27,21 @@ class OWCombiQSAR(OWWidget):
         self.outputs = [("Classifier", orange.Classifier)]
 
         self.queueTypes = ["NoSGE","batch.q","quick.q"] 
-        self.outputModes = ["Model and statistics (unbiased wrt model selection)","Statistics for all available algorithms. Please note, no model selection."]
-
+        self.outputModes = ["Statistics for all available algorithms. Please note, no model selection.", "Model and statistics (unbiased wrt model selection)"]
         self.name = name
 	self.dataset = None
 	self.classifier = None
-        self.modelFile = ""
-
-        self.statPath = ""
+        self.statistics = ""
         self.queueType = 0
         self.outputSel = 0
+
+        #Paths
+        self.modelFile = ""
+        self.statPath = ""
+        self.lastPath = os.getcwd()
+
+
+
         self.defineGUI()
 
     def setWindowTitle(self, caption):
@@ -58,6 +63,19 @@ class OWCombiQSAR(OWWidget):
 
         
 
+    def saveStat(self):
+        self.warning(0)
+        self.error(0)
+        if not self.statistics:
+            self.warning("No statisitcs to save yet!")
+            return
+        filename = self.browseFile(mode = "file")
+        if filename:
+            fileH = open(filename,"w")
+            fileH.write(self.statistics)
+            fileH.close()
+
+
     def saveModel(self):
         self.warning(0)
         if self.classifier and self.modelFile and self.dataset:
@@ -76,19 +94,38 @@ class OWCombiQSAR(OWWidget):
             else:
                 self.warning("ERROR: Unexpected error!")
 
-    def browseFile(self):
+    def setStatSaveDir(self):
+        self.statPath = self.browseFile(mode = "dir")
+
+    def setModelSavePath(self):
+        self.modelFile = self.browseFile(mode = "file")
+
+    def browseFile(self, var="", mode = "file"):
         # Possible modes:
-        var = os.path.realpath(str(self.modelFile))
+        #dir   -  Browse for save  dir
+        #file  -  Browse for save file
+        if var:
+            var = os.path.realpath(str(var))
         if os.path.isdir(var):
             startfile = var
         elif os.path.isdir(os.path.split(var)[0]):
             startfile = os.path.split(var)[0]
+        elif os.path.isdir(self.lastPath):
+            startfile = self.lastPath
+        elif os.path.isdir(os.path.split(self.lastPath)[0]):
+            startfile = os.path.split(self.lastPath)[0]
         else:
             startfile=os.getcwd()
 
-        filename = QFileDialog.getSaveFileName(self, "Save Model", startfile)
-        if filename:
-            self.modelFile = str(filename)
+        fileDialog = QFileDialog(self)
+
+        if mode == "dir":
+            filename = fileDialog.getExistingDirectory(self,"Select save location",startfile,QFileDialog.ShowDirsOnly)
+        else: #file
+            filename = str(fileDialog.getSaveFileName(self,"Select save Path",startfile))
+        if str(filename):
+            self.lastPath = str(filename)
+        return str(filename)
 
 
     def destroy(self, dw = 1, dsw = 1):
@@ -116,10 +153,10 @@ class OWCombiQSAR(OWWidget):
                                              callback=None)
 
         # Set location of statistics file
-        boxFile = OWGUI.widgetBox(self.controlArea, "Path for saving the statistics results", addSpace = True, orientation=0)
+        boxFile = OWGUI.widgetBox(self.controlArea, "Path for saving the results", addSpace = True, orientation=0)
         L1 = OWGUI.lineEdit(boxFile, self, "statPath", labelWidth=80,  orientation = "horizontal", tooltip = "Please use full path to results file to be created.")
         L1.setMinimumWidth(200)
-        button = OWGUI.button(boxFile, self, '...', callback = self.browseFile, disabled=0,tooltip = "Choose the dir where to save.")
+        button = OWGUI.button(boxFile, self, '...', callback = self.setStatSaveDir, disabled=0,tooltip = "Choose the dir where to save.")
         button.setMaximumWidth(25)
 
         
@@ -131,7 +168,7 @@ class OWCombiQSAR(OWWidget):
         self.boxFile = OWGUI.widgetBox(self.controlArea, "Path for saving Model", addSpace = True, orientation=0)
         self.L1 = OWGUI.lineEdit(self.boxFile, self, "modelFile", labelWidth=80,  orientation = "horizontal", tooltip = "Once a model is created (connect this widget with a data widget), \nit can be saved by giving a file name here and clicking the save button.")
         self.L1.setMinimumWidth(200)
-        self.button = OWGUI.button(self.boxFile, self, '...', callback = self.browseFile, disabled=0,tooltip = "Choose the dir where to save. After chosen, add a name for the model file!")
+        self.button = OWGUI.button(self.boxFile, self, '...', callback = self.setModelSavePath, disabled=0,tooltip = "Choose the dir where to save. After chosen, add a name for the model file!")
         self.button.setMaximumWidth(25)
 
         # Save the model
@@ -141,14 +178,22 @@ class OWCombiQSAR(OWWidget):
         # Statistics show
         statBox = OWGUI.widgetBox(self.mainArea, "Statistics", addSpace = True, orientation=0)
         self.statInfo = OWGUI.widgetLabel(statBox, '')
+        
+        # Save the model
+        OWGUI.button(self.mainArea, self,"&Save statistics", callback=self.saveStat)
+
+
+
 
         self.changeOutputMode()
 	self.adjustSize()
 
+
+
     def changeOutputMode(self):
         self.warning(0)
         self.error(0)
-        if self.outputSel != 0:
+        if self.outputSel == 0:
             state = False
         else:
             state = True
@@ -166,33 +211,49 @@ class OWCombiQSAR(OWWidget):
             self.warning("Missing input data")
             return
 
-        progressSteps = 2
-        progress = QProgressDialog("Running Combi-QSAR.\nThis may take a while. Please wait....", str(), 0, progressSteps , None, Qt.Dialog )
-        progress.setWindowModality(Qt.WindowModal)
-        progress.setMinimumDuration(0)
-        progress.forceShow()
-        progress.setValue(1)
+        progressSteps = 100
+        self.progress = QProgressDialog("Running Combi-QSAR.\nThis may take a while. Please wait....", "Cancel", 0, progressSteps , None, Qt.Dialog )
+        self.progress.setWindowModality(Qt.WindowModal)
+        self.progress.setMinimumDuration(0)
+        self.progress.forceShow()
+        self.progress.setValue(0)
 
-        if self.outputSel == 0:
+        if self.outputSel != 0:
             self.getModel()
         else:   
             self.getStatistics()
-        progress.close()
 
+        self.progress.close()
+
+
+    def advance(self, pDone):
+        if self.progress.wasCanceled():
+            return False
+        self.progress.setValue(pDone)
+        return True
 
     def getModel(self):
         self.warning(0)
         """Get the model and send it to the output"""
-        #if not os.path.isdir(str(self.statPath)):
-        #    statPath = None
-        #else:
-        #    statPath = os.path.join(str(self.statPath),"modelStat.pkl")
-        statPath = None
+        if not os.path.isdir(str(self.statPath)):
+            statPath = None
+            modelPath = None
+        else:
+            statPath = os.path.join(str(self.statPath),"statistics.pkl")
+            modelPath = os.path.join(str(self.statPath),"Model")
         
+        res = competitiveWorkflow.competitiveWorkflow(self.dataset, modelSavePath = modelPath, statisticsSavePath = statPath, runningDir = AZOC.NFS_SCRATCHDIR, queueType = self.queueTypes[self.queueType], callBack = self.advance)
+ 
+        if not res:
+            self.error("Errors occurred. Please check the output window.")
+            self.send("Classifier", None)
+            return
+        self.classifier = res["model"]
+        statistics = res["statistics"] 
 
-        model = competitiveWorkflow.getModel(self.dataset, savePath = statPath, queueType = self.queueTypes[self.queueType], verbose = 0, getAllModels = False)
-        
-        self.classifier = model[model.keys()[0]] 
+        self.statistics = pprint.pformat(statistics)
+        self.statInfo.setText(self.statistics)
+
         self.classifier.name = str(self.name)
         self.send("Classifier", self.classifier)
 
@@ -205,10 +266,11 @@ class OWCombiQSAR(OWWidget):
         else:
             statPath =  os.path.join(str(self.statPath),"statistics.pkl")
         runPath = miscUtilities.createScratchDir(desc = "CombiQSAR")
-        statistics = competitiveWorkflow.getStatistics(self.dataset, runPath, statPath, queueType = self.queueTypes[self.queueType], getAllModels = False)
+        statistics = competitiveWorkflow.getStatistics(self.dataset, runPath, statPath, queueType = self.queueTypes[self.queueType], getAllModels = False, callBack = self.advance)
 
-        print pprint.pformat(statistics)
-        self.statInfo.setText(pprint.pformat(statistics))
+        self.statistics = pprint.pformat(statistics)
+        self.statInfo.setText(self.statistics)
+
         self.send("Classifier", None)
 
 

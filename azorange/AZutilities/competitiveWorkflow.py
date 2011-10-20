@@ -30,6 +30,9 @@ def log(logFile, text):
             print textOut
 
 def saveMLStatistics(savePath, MLStatistics, logFile=None):
+         if not MLStatistics:
+             print "No statistics to save"
+             return
          if savePath and os.path.isdir(os.path.split(savePath)[0]):
             file = open(savePath, "w")
             pickle.dump(MLStatistics, file)
@@ -37,7 +40,7 @@ def saveMLStatistics(savePath, MLStatistics, logFile=None):
             log(logFile, "MLStatistics saved to: "+savePath)
 
 
-def getMLStatistics(trainData, savePath = None, queueType = "NoSGE", verbose = 0, logFile = None):
+def getMLStatistics(trainData, savePath = None, queueType = "NoSGE", verbose = 0, logFile = None, callBack = None):
         """
         Loop over all MLMETHODS to get their statistics
         Write to disk the full MLStatistics including the consensus model:
@@ -53,7 +56,7 @@ def getMLStatistics(trainData, savePath = None, queueType = "NoSGE", verbose = 0
                 continue
             learners[ml] = learner
         evaluator = getUnbiasedAccuracy.UnbiasedAccuracyGetter(data = trainData, learner = learners, paramList = None, nExtFolds = AZOC.QSARNINNERFOLDS, nInnerFolds = AZOC.QSARNCVFOLDS, queueType = queueType, verbose = verbose, logFile = logFile, resultsFile = savePath)
-        MLStatistics = evaluator.getAcc()
+        MLStatistics = evaluator.getAcc(callBack = callBack)
 
         saveMLStatistics(savePath, MLStatistics, logFile)
         return MLStatistics
@@ -210,7 +213,7 @@ def buildModel(trainData, MLMethod, queueType = "NoSGE", verbose = 0, logFile = 
         return model
 
 
-def getModel(trainData, savePath = None, queueType = "NoSGE", verbose = 0, getAllModels = False):
+def getModel(trainData, savePath = None, queueType = "NoSGE", verbose = 0, getAllModels = False, callBack = None):
         """
             Chooses the best model based on calculated MLStatistics
             trainData           Data for calculating the MLStatistics and finaly for training the selected model
@@ -229,7 +232,7 @@ def getModel(trainData, savePath = None, queueType = "NoSGE", verbose = 0, getAl
             file.close()
         else:
             logFile = None
-        MLStatistics = getMLStatistics(trainData, savePath, queueType = queueType, verbose = verbose, logFile = logFile)
+        MLStatistics = getMLStatistics(trainData, savePath, queueType = queueType, verbose = verbose, logFile = logFile, callBack = callBack)
         MLMethod = selectModel(MLStatistics, logFile = logFile)
         #Save again the MLStatistics to update the selected flag
         saveMLStatistics(savePath, MLStatistics, logFile) 
@@ -330,7 +333,7 @@ def createStatObj(results=None, exp_pred=None, nTrainCmpds=None, nTestCmpds=None
 
 
 
-def getStatistics(dataset, runningDir, resultsFile, queueType = "NoSGE", verbose = 0, getAllModels = False):
+def getStatistics(dataset, runningDir, resultsFile, queueType = "NoSGE", verbose = 0, getAllModels = False, callBack = None):
         """
                 runningDir           (An existing dir for creating one job dir per fold)
                     |
@@ -366,6 +369,8 @@ def getStatistics(dataset, runningDir, resultsFile, queueType = "NoSGE", verbose
         #os.system('echo "'+str(PID)+'" > '+os.path.join(runningDir,"PID"))
         os.system('echo "started" > '+os.path.join(runningDir,"status"))
         # Start  all Fold jobs
+        stepsDone = 0
+        nTotalSteps = AZOC.QSARNEXTFOLDS + ((len(AZOC.MLMETHODS)+1) * AZOC.QSARNEXTFOLDS)
         for fold in range(AZOC.QSARNEXTFOLDS):
             job = str(fold)
             print "Starting job for fold ",job
@@ -434,7 +439,9 @@ def getStatistics(dataset, runningDir, resultsFile, queueType = "NoSGE", verbose
                         print "Job "+job+" FAILED"    
                     else:
                         print "Finished Job "+str(job)+" with success"
-                    
+                if callBack:
+                     stepsDone += 1
+                     if not callBack((100*stepsDone)/nTotalSteps): return None    
             else:
                 status, out = commands.getstatusoutput("qsub -cwd -q batch.q " + os.path.join(jobs[job]["path"],"run.sh"))
                 if status:
@@ -477,6 +484,9 @@ def getStatistics(dataset, runningDir, resultsFile, queueType = "NoSGE", verbose
                 for job in jobs:
                     if jobs[job]["finished"] and job not in finished:
                         finished.append(job)
+                        if callBack:
+                            stepsDone += 1
+                            if not callBack((100*stepsDone)/nTotalSteps): return None
                         print time.asctime()+": Finished job "+str(job)
                 os.system(' echo "'+str(len(finished))+'/'+str(AZOC.QSARNEXTFOLDS)+'" > '+os.path.join(runningDir,"status"))
                 for job in [j for j in jobs if jobs[j]["failed"]]:
@@ -548,6 +558,10 @@ def getStatistics(dataset, runningDir, resultsFile, queueType = "NoSGE", verbose
                         if foldStat[ml]["selected"]:
                             results["selectedML"].append(results[ml][-1])
                             exp_pred["selectedML"]+= local_exp_pred
+                    if callBack:
+                        stepsDone += 1
+                        if not callBack((100*stepsDone)/nTotalSteps): return None
+
                 res = createStatObj(results[ml], exp_pred[ml], nTrainEx[ml], nTestEx[ml],responseType, len(sortedJobs), logTxt)
                 if not res:
                     raise Exception("No results available!")
@@ -703,7 +717,7 @@ def isJobProgressingOK(job):
                 
 
 
-def competitiveWorkflow(data, modelSavePath = None, statisticsSavePath = None, runningDir = AZOC.NFS_SCRATCHDIR, queueType = "NoSGE"):
+def competitiveWorkflow(data, modelSavePath = None, statisticsSavePath = None, runningDir = AZOC.NFS_SCRATCHDIR, queueType = "NoSGE", callBack = None):
     """
         modelSavePath and statisticsSavePath are going to be created and cannot exist
     """
@@ -711,8 +725,8 @@ def competitiveWorkflow(data, modelSavePath = None, statisticsSavePath = None, r
         print "ERROR: modelSavePath or statisticsSavePath already exists."
         return {}
     runPath = miscUtilities.createScratchDir(baseDir = os.path.realpath(runningDir), desc = "competitiveWorkflow")
-    statistics = getStatistics(data, runPath, os.path.join(runPath,"statistics.pkl"), queueType = queueType, getAllModels = False)
-    model = getModel(data, savePath = os.path.join(runPath,"modelStat.pkl"), queueType = queueType)
+    statistics = getStatistics(data, runPath, os.path.join(runPath,"statistics.pkl"), queueType = queueType, getAllModels = False, callBack = callBack)
+    model = getModel(data, savePath = os.path.join(runPath,"modelStat.pkl"), queueType = queueType, callBack = callBack)
     if model and len(model)>=1:
         if modelSavePath:
             model[model.keys()[0]].write(modelSavePath)

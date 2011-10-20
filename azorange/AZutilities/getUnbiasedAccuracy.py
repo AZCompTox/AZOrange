@@ -193,7 +193,7 @@ class UnbiasedAccuracyGetter():
 
         return res
         
-    def getAcc(self):
+    def getAcc(self, callBack = None):
         """ For regression problems, it returns the RMSE and the Q2 
             For Classification problems, it returns CA and the ConfMat
             The return is made in a Dict: {"RMSE":0.2,"Q2":0.1,"CA":0.98,"CM":[[TP, FP],[FN,TN]]}
@@ -246,6 +246,8 @@ class UnbiasedAccuracyGetter():
             sortedML.remove("PLS")
             sortedML.insert(0,"PLS")
 
+        stepsDone = 0
+        nTotalSteps = len(sortedML) * self.nExtFolds  
         for ml in sortedML:
           self.__log("    > "+str(ml)+"...")
           try:
@@ -333,7 +335,11 @@ class UnbiasedAccuracyGetter():
                     results[ml].append((evalUtilities.calcRMSE(local_exp_pred), evalUtilities.calcRsqrt(local_exp_pred) ) )
                     #Save the experimental value and correspondent predicted value
                     exp_pred[ml] += local_exp_pred
+                if callBack:
+                     stepsDone += 1
+                     if not callBack((100*stepsDone)/nTotalSteps): return None
    
+
             res = self.createStatObj(results[ml], exp_pred[ml], nTrainEx[ml], nTestEx[ml],self.responseType, self.nExtFolds, logTxt)
             if self.verbose > 0: 
                 print "UnbiasedAccuracyGetter!Results  "+ml+":\n"
