@@ -275,7 +275,7 @@ class OWCombiQSAR(OWWidget):
             self.error("Errors occurred. Please check the output window.")
             self.send("Classifier", None)
             return
-        self.classifier = res["model"]
+        self.classifier = res["model"][res["model"].keys()[0]]
         statistics = res["statistics"] 
 
         self.statistics = pprint.pformat(statistics)
