@@ -86,9 +86,9 @@ class OWSimBoostedQSAR(OWWidget):
                 elif estTime < 7200: # 2 Hours, count in min
                     strEstTime = str(int(round(estTime/60)))+" min."
                 elif estTime < 172800: # 2 Days, count in hours
-                    strEstTime = str(round(estTime/3600),1)+" hours"
+                    strEstTime = str(round(estTime/3600,1))+" hours"
                 else: #count in days
-                    strEstTime = str(round(estTime/86400),1)+" days"
+                    strEstTime = str(round(estTime/86400,1))+" days"
 
 
                 self.progress.setLabelText("Calculating similarity descriptors\nEstimated time left: "+strEstTime)
