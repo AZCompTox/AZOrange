@@ -315,7 +315,7 @@ def createStatObj(results=None, exp_pred=None, nTrainCmpds=None, nTestCmpds=None
 
         # Save selectedMLs if passed
         if foldSelectedML:
-            res["foldStat"]["selectedML"] = [ml for ml in foldSelectedML]
+            res["foldStat"]["foldSelectedML"] = [ml for ml in foldSelectedML]
 
         #Evaluate stability of ML
         StabilityValue = res["StabilityValue"]
