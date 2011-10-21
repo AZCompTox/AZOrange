@@ -14,8 +14,10 @@ import OWGUI
 import orange
 import AZOrangeConfig as AZOC
 from AZutilities import competitiveWorkflow
-import pprint
 
+#DEBUG
+#import pickle
+#from trainingMethods import AZBaseClasses
 
 class OWCombiQSAR(OWWidget):
 
@@ -24,16 +26,18 @@ class OWCombiQSAR(OWWidget):
 
         # Define the input and output channels
         self.inputs = [("Classified Examples", ExampleTable, self.setData)]
-        self.outputs = [("Classifier", orange.Classifier)]
+        self.outputs = [("Classifier", orange.Classifier), ("Examples", ExampleTable)]
 
         self.queueTypes = ["NoSGE","batch.q","quick.q"] 
         self.outputModes = ["Statistics for all available algorithms. Please note, no model selection.", "Model and statistics (unbiased wrt model selection)"]
         self.name = name
 	self.dataset = None
 	self.classifier = None
-        self.statistics = ""
+        self.statInfo = ""
+        self.statistics = None
         self.queueType = 0
         self.outputSel = 0
+        self.isClassDiscrete = None
 
         #Paths
         self.modelFile = ""
@@ -66,18 +70,19 @@ class OWCombiQSAR(OWWidget):
 
         
 
-    def saveStat(self):
+    def saveStat(self, file2save = None):
         self.warning(0)
         self.error(0)
         if not self.statistics:
             self.warning("No statisitcs to save yet!")
             return
-        filename = self.browseFile(mode = "file")
+        if file2save:
+            filename = file2save
+        else:
+            filename = self.browseFile(mode = "file")
+        print filename 
         if filename:
-            fileH = open(filename,"w")
-            fileH.write(self.statistics)
-            fileH.close()
-
+            self.statistics.save(filename)
 
     def saveModel(self):
         self.warning(0)
@@ -180,7 +185,7 @@ class OWCombiQSAR(OWWidget):
         
         # Statistics show
         statBox = OWGUI.widgetBox(self.mainArea, "Statistics", addSpace = True, orientation=0)
-        self.statInfo = OWGUI.widgetLabel(statBox, '')
+        self.statInfoBox = OWGUI.widgetLabel(statBox, '')
         
         # Save the model
         OWGUI.button(self.mainArea, self,"&Save statistics", callback=self.saveStat)
@@ -231,6 +236,8 @@ class OWCombiQSAR(OWWidget):
             self.getStatistics()
 
         self.progress.close()
+        if self.statistics and os.path.isdir(str(self.statPath)): 
+            self.saveStat(os.path.join(str(self.statPath),"statistics.txt"))
 
 
     def advance(self, pDone):
@@ -258,9 +265,80 @@ class OWCombiQSAR(OWWidget):
         self.last_pDone = pDone
         return True
 
+    def createStatData(self,statistics): 
+        specialVars = [orange.StringVariable("Method"), orange.FloatVariable("Fold")]
+        classificationVars = [   
+                        orange.FloatVariable("CA"),
+                        orange.FloatVariable("MCC"),
+                        orange.FloatVariable("truePOS"),
+                        orange.FloatVariable("trueNEG"),
+                        orange.FloatVariable("falsePOS"),
+                        orange.FloatVariable("falseNEG")  ]
+
+        regressionVars = [   
+                        orange.FloatVariable("Q2"),
+                        orange.FloatVariable("RMSE")  ]
+        if self.isClassDiscrete:
+            allVars = specialVars + classificationVars 
+        else:
+            allVars = specialVars + regressionVars
+        commVars = [  orange.FloatVariable("nTest"),
+                       orange.FloatVariable("nTrain")  ]
+        allVars += commVars
+
+        self.statistics = orange.ExampleTable(orange.Domain(allVars,orange.FloatVariable("Stability")))
+        for ml in statistics:
+            # Total row 
+            ex = orange.Example(self.statistics.domain)
+            if ml == "selectedML": 
+                ex["Method"] = "Total"
+            else:
+                ex["Method"] = ml+" Total"
+            ex["Stability"] = statistics[ml]["CA"]
+            # [[TP, FN],[FP, TN]]
+            if self.isClassDiscrete:
+                ex["CA"] = statistics[ml]["CA"] 
+                ex["MCC"] = statistics[ml]["MCC"] 
+                ex["truePOS"] = statistics[ml]["CM"][0][0] 
+                ex["trueNEG"] = statistics[ml]["CM"][1][1]
+                ex["falsePOS"] = statistics[ml]["CM"][1][0]
+                ex["falseNEG"] = statistics[ml]["CM"][0][1] 
+            else:
+                ex["Q2"] = statistics[ml]["Q2"]
+                ex["RMSE"] = statistics[ml]["RMSE"]
+            self.statistics.append(ex)
+            # Fold rows
+            for fold,nTest in enumerate(statistics[ml]["foldStat"]["nTestCmpds"]):
+                ex = orange.Example(self.statistics.domain)
+                if ml == "selectedML":
+                    ex["Method"] = statistics[ml]["foldStat"]["foldSelectedML"][fold]
+                else:    
+                    ex["Method"] = ml
+                ex["Fold"] = fold
+                ex["nTrain"] = statistics[ml]["foldStat"]["nTrainCmpds"][fold]
+                ex["nTest"] = statistics[ml]["foldStat"]["nTestCmpds"][fold]
+                # [[TP, FN],[FP, TN]]
+                if self.isClassDiscrete:
+                    ex["CA"] = statistics[ml]["foldStat"]["CA"][fold]
+                    ex["MCC"] = statistics[ml]["foldStat"]["MCC"][fold]
+                    ex["truePOS"] = statistics[ml]["foldStat"]["CM"][fold][0][0]
+                    ex["trueNEG"] = statistics[ml]["foldStat"]["CM"][fold][1][1]
+                    ex["falsePOS"] = statistics[ml]["foldStat"]["CM"][fold][1][0]
+                    ex["falseNEG"] = statistics[ml]["foldStat"]["CM"][fold][0][1]
+                else:
+                    ex["Q2"] = statistics[ml]["foldStat"]["Q2"][fold]
+                    ex["RMSE"] = statistics[ml]["foldStat"]["RMSE"][fold]
+                self.statistics.append(ex)
+        return self.statistics
+
+
 
     def getModel(self):
         self.warning(0)
+        self.error(0)
+        self.statInfo = ""
+        self.statistics = None
+        self.statInfoBox.setText("")
         """Get the model and send it to the output"""
         if not os.path.isdir(str(self.statPath)):
             statPath = None
@@ -270,44 +348,85 @@ class OWCombiQSAR(OWWidget):
             modelPath = os.path.join(str(self.statPath),"Model")
         
         res = competitiveWorkflow.competitiveWorkflow(self.dataset, modelSavePath = modelPath, statisticsSavePath = statPath, runningDir = AZOC.NFS_SCRATCHDIR, queueType = self.queueTypes[self.queueType], callBack = self.advance)
- 
         if not res:
             self.error("Errors occurred. Please check the output window.")
             self.send("Classifier", None)
+            self.send("Examples", None)
             return
         self.classifier = res["model"][res["model"].keys()[0]]
         statistics = res["statistics"] 
 
-        self.statistics = pprint.pformat(statistics)
-        self.statInfo.setText(self.statistics)
+        # DEBUG
+        #fileh = open("/home/palmeida/dev/AZOrange/orange/OrangeWidgets/Classify/model.pkl")
+        #statistics = pickle.load(fileh)
+        #fileh.close()
+        #self.classifier = AZBaseClasses.modelRead("/home/palmeida/dev/AZOrange/orange/OrangeWidgets/Classify/Model")
+
+        if not statistics:
+            self.statInfo = "Some error occured. Could not get statistics.\nPlease check the output window"
+        else:
+            self.statistics = self.createStatData(statistics)
+            if statPath and os.path.isfile(statPath):
+                self.statInfo = "Statistics were saved to " + statPath+"\n"+\
+                                  "You can save the statistics in other place by using \n"
+            else:
+                self.statInfo +="You can save the statistics by using \n"
+        self.statInfo +=    " the button 'Save statistics'\n\n"+\
+                              "You can also use or view the statistics by connecting \n"+\
+                              " the appropriate widget to this widget output"
+        self.statInfoBox.setText(self.statInfo)
 
         self.classifier.name = str(self.name)
         self.send("Classifier", self.classifier)
+        self.send("Examples", self.statistics)
 
 
     def getStatistics(self):
         self.warning(0)
+        self.error(0)
+        self.statInfo = ""
+        self.statistics = None
+        self.statInfoBox.setText("")
         """Get the statistics and save to desired place if specifyes"""
         if not os.path.isdir(str(self.statPath)):
             statPath = None
         else:
             statPath =  os.path.join(str(self.statPath),"statistics.pkl")
         runPath = miscUtilities.createScratchDir(desc = "CombiQSAR")
-        statistics = competitiveWorkflow.getStatistics(self.dataset, runPath, statPath, queueType = self.queueTypes[self.queueType], getAllModels = False, callBack = self.advance)
 
-        self.statistics = pprint.pformat(statistics)
-        self.statInfo.setText(self.statistics)
 
+        # DEBUG
+        #fileh = open("/home/palmeida/dev/AZOrange/orange/OrangeWidgets/Classify/stat.pkl")
+        #statistics = pickle.load(fileh)
+        #fileh.close()
+        statistics = competitiveWorkflow.getMLStatistics(self.dataset, savePath = statPath, queueType = self.queueTypes[self.queueType], verbose = 0, logFile = None, callBack = self.advance)
+
+
+        if not statistics:
+            self.statInfo = "Some error occured. Please check the output window"
+        else:
+            self.statistics = self.createStatData(statistics)
+            if statPath and os.path.isfile(statPath):
+                self.statInfo = "Statistics were saved to " + statPath+"\n"+\
+                                  "You can save the statistics in other place by using \n"
+            else:
+                self.statInfo +="You can save the statistics by using \n"
+        self.statInfo +=    " the button 'Save statistics'\n\n"+\
+                              "You can also use or view the statistics by connecting \n"+\
+                              " the appropriate widget to this widget output" 
+        self.statInfoBox.setText(self.statInfo)
         self.send("Classifier", None)
+        self.send("Examples", self.statistics)
 
 
     def setData(self, dataset): 
         self.warning(0)
+        self.isClassDiscrete = None
+        self.dataset = None
         if dataset:
             self.dataset = dataset
+            self.isClassDiscrete = dataset.domain.classVar.varType == orange.VarTypes.Discrete            
             self.Apply()
-        else:
-            self.dataset = None
 
 
 if __name__ == "__main__": 
