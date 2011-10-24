@@ -252,7 +252,7 @@ def getModel(trainData, savePath = None, queueType = "NoSGE", verbose = 0, getAl
             return {MLMethod["MLMethod"]:model}
 
 
-def createStatObj(results=None, exp_pred=None, nTrainCmpds=None, nTestCmpds=None, responseType=None, nExtFolds=None, userAlert = ""):
+def createStatObj(results=None, exp_pred=None, nTrainCmpds=None, nTestCmpds=None, responseType=None, nExtFolds=None, userAlert = "", foldSelectedML = None):
         #Initialize res (statObj) for statistic results
         res = {}
         # Classification
@@ -313,6 +313,10 @@ def createStatObj(results=None, exp_pred=None, nTrainCmpds=None, nTestCmpds=None
             res["foldStat"]["Q2"] = [r[1] for r in results]
             #Compute Stability value
             res["StabilityValue"] = evalUtilities.stability(res["foldStat"]["Q2"])
+
+        # Save selectedMLs if passed
+        if foldSelectedML:
+            res["foldStat"]["foldSelectedML"] = [ml for ml in foldSelectedML]
 
         #Evaluate stability of ML
         StabilityValue = res["StabilityValue"]
@@ -513,6 +517,7 @@ def getStatistics(dataset, runningDir, resultsFile, queueType = "NoSGE", verbose
         exp_pred["selectedML"] = []
         nTrainEx["selectedML"] = []
         nTestEx["selectedML"] = []
+        foldSelectedML = []
 
         for ml in mlMethods:   # Loop over each MLMethod
             try:
@@ -542,6 +547,7 @@ def getStatistics(dataset, runningDir, resultsFile, queueType = "NoSGE", verbose
                     nTrainEx[ml].append(model.NTrainEx)
                     nTestEx[ml].append(len(testData))
                     if foldStat[ml]["selected"]:
+                        foldSelectedML.append(ml)
                         nTrainEx["selectedML"].append(model.NTrainEx)
                         nTestEx["selectedML"].append(len(testData))
 
@@ -570,7 +576,7 @@ def getStatistics(dataset, runningDir, resultsFile, queueType = "NoSGE", verbose
             except:
                 print "Error on MLmethod "+ml+". It will be skipped"
         ml = "selectedML"
-        res = createStatObj(results[ml], exp_pred[ml], nTrainEx[ml], nTestEx[ml],responseType, len(sortedJobs), logTxt)
+        res = createStatObj(results[ml], exp_pred[ml], nTrainEx[ml], nTestEx[ml],responseType, len(sortedJobs), logTxt, foldSelectedML)
         if not res:
             raise Exception("No results available!")
         statistics[ml] = copy.deepcopy(res)
