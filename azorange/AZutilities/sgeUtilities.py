@@ -5,7 +5,7 @@ from glob import glob
 from shutil import copy
 
 
-def arrayJob(jobName = "AZOarray",jobNumber =1 ,jobParams = [], jobParamFile = "Params.pkl", jobQueue = "quick.q", jobScript = "", memSize = "150M"):   
+def arrayJob(jobName = "AZOarray",jobNumber =1 ,jobParams = [], jobParamFile = "Params.pkl", jobQueue = "quick.q", jobScript = "", memSize = "150M", archFlag = "lx24-amd64"):   
 
         runPath = miscUtilities.createScratchDir(desc ="optQsub"+jobName, baseDir = AZOC.NFS_SCRATCHDIR)
         cwd = os.getcwd()
@@ -19,7 +19,14 @@ def arrayJob(jobName = "AZOarray",jobNumber =1 ,jobParams = [], jobParamFile = "
         jobFile.write(jobScript)
         jobFile.close()
 
-        (status, output) = commands.getstatusoutput("echo python " + os.path.join(runPath,jobName + ".py") + " | qsub -cwd -V -q " + jobQueue + " -p -800 -t 1-"+str(jobNumber) + " -N " + jobName + " -S /bin/sh -sync yes -l mf="+memSize) # specify shell /bin/sh so not to get warning: no access to tty in output file.
+        cmd = "echo python " + os.path.join(runPath, str(jobName) + ".py") + \
+              " | qsub -cwd -V -q " + str(jobQueue) + \
+              " -p -800 -t 1-" + str(jobNumber) + \
+              " -N " + str(jobName) + \
+              " -S /bin/sh -sync yes" + \
+              " -l mf=" + str(memSize) + \
+              " -l arch=" + str(archFlag) # specify shell /bin/sh so not to get warning: no access to tty in output file.
+        (status, output) = commands.getstatusoutput(cmd)
 
         # Check exit status of all our jobs
         if status != 0:
@@ -130,8 +137,7 @@ class Job:
                     print self.name + " failed! " + line
                     raise JobError
 
-        if self.action:
-	    if action == "picklebuild":  # build return array from pickle objects in output file
+        if self.action == "picklebuild":  # build return array from pickle objects in output file
                 resList = []
                 for part in sorted(glob(os.path.join(self.wd,self.name+".o*"))):
                     file = open(part,"r")
@@ -147,6 +153,7 @@ class Job:
         print "Dir: " + self.wd 
         print "Shell: " + self.shell
 
+        cwd = os.getcwd()
         os.chdir(cwd)
 #        miscUtilities.removeDir(runPath)
 
