@@ -292,7 +292,7 @@ class OWCombiQSAR(OWWidget):
             statPath = None
         else:
             statPath =  os.path.join(str(self.statPath),"statistics.pkl")
-        runPath = miscUtilities.createScratchDir(desc = "CombiQSAR")
+        runPath = miscUtilities.createScratchDir(desc = "CombiQSAR", baseDir = AZOC.NFS_SCRATCHDIR)
         statistics = competitiveWorkflow.getStatistics(self.dataset, runPath, statPath, queueType = self.queueTypes[self.queueType], getAllModels = False, callBack = self.advance)
 
         self.statistics = pprint.pformat(statistics)
