@@ -179,3 +179,7 @@ QSARSTABILITYTHRESHOLD_CLASS_L = 0.1    #Max stability value for a model to be c
 QSARSTABILITYTHRESHOLD_CLASS_H = 0.1    #Max stability value for a model to be considered stable when testset has less than 50 cmpds
 QSARSTABILITYTHRESHOLD_REG_L = 0.1      #Max stability value for a model to be considered stable when testset has more than 50 cmpds
 QSARSTABILITYTHRESHOLD_REG_H = 0.2      #Max stability value for a model to be considered stable when testset has less than 50 cmpds
+
+SGE_QSUB_ARCH_OPTION_64BIT = " -l arch=lx24-amd64 "
+SGE_QSUB_ARCH_OPTION_CURRENT = SGE_QSUB_ARCH_OPTION_64BIT
+ 
