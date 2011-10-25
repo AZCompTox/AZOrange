@@ -1031,7 +1031,7 @@ print cPickle.dumps(eval(evalMethod)(res)[0])
 
         presentDir = os.getcwd()
         os.chdir(self.runPath)
-        command = "qsub -l mf=" + str(memSize) + "M -q " + self.queueType + " " + self.qsubFile
+        command = "qsub" + " -q " + self.queueType + AZOC.SGE_QSUB_ARCH_OPTION_CURRENT + " -l mf=" + str(memSize) + "M " + " " + self.qsubFile
         if self.verbose > 1:
             print("In dir '" + os.getcwd() + "', about to run command '" + command + "'")
         exitCode, qsub = commands.getstatusoutput(command)
@@ -1046,7 +1046,7 @@ print cPickle.dumps(eval(evalMethod)(res)[0])
         self.__log("           present dir:"+presentDir)
         self.__log("           qsub running dir:"+self.runPath)
         self.__log("           memsize:"+str(memSize))
-        self.__log("           command:"+"Command:  qsub -l mf="+str(memSize)+"M -q "+self.queueType+" "+self.qsubFile)
+        self.__log("           command:"+command)
 
         return exitCode
 

@@ -448,7 +448,8 @@ def getStatistics(dataset, runningDir, resultsFile, queueType = "NoSGE", verbose
                      stepsDone += 1
                      if not callBack((100*stepsDone)/nTotalSteps): return None    
             else:
-                status, out = commands.getstatusoutput("qsub -cwd -q batch.q " + os.path.join(jobs[job]["path"],"run.sh"))
+                cmd = "qsub -cwd -q batch.q" + AZOC.SGE_QSUB_ARCH_OPTION_CURRENT + os.path.join(jobs[job]["path"],"run.sh")
+                status, out = commands.getstatusoutput(cmd)
                 if status:
                     print "ERROR on Job "+str(job)+" (will be skipped)"
                     print out
@@ -666,7 +667,8 @@ def restartJob(jobObj, force = False):
                 os.system("mv status Bkup_"+oldjID)
             print "  Starting Job "+str(job)+"..."
             jobFile = os.path.join(runningJobDir,"run.sh")
-            status, out = commands.getstatusoutput("qsub -cwd -q batch.q " + jobFile)
+            cmd = "qsub -cwd -q batch.q" + AZOC.SGE_QSUB_ARCH_OPTION_CURRENT + jobFile
+            status, out = commands.getstatusoutput(cmd)
             if status:
                 print "  ERROR on Job "+str(job)+" (will be skipped)"
                 print out

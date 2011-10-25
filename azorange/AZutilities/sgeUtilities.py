@@ -5,7 +5,7 @@ from glob import glob
 from shutil import copy
 
 
-def arrayJob(jobName = "AZOarray",jobNumber =1 ,jobParams = [], jobParamFile = "Params.pkl", jobQueue = "quick.q", jobScript = "", memSize = "150M", archFlag = "lx24-amd64"):   
+def arrayJob(jobName = "AZOarray",jobNumber =1 ,jobParams = [], jobParamFile = "Params.pkl", jobQueue = "quick.q", jobScript = "", memSize = "150M"):   
 
         runPath = miscUtilities.createScratchDir(desc ="optQsub"+jobName, baseDir = AZOC.NFS_SCRATCHDIR)
         cwd = os.getcwd()
@@ -24,8 +24,8 @@ def arrayJob(jobName = "AZOarray",jobNumber =1 ,jobParams = [], jobParamFile = "
               " -p -800 -t 1-" + str(jobNumber) + \
               " -N " + str(jobName) + \
               " -S /bin/sh -sync yes" + \
-              " -l mf=" + str(memSize) + \
-              " -l arch=" + str(archFlag) # specify shell /bin/sh so not to get warning: no access to tty in output file.
+              AZOC.SGE_QSUB_ARCH_OPTION_CURRENT + \
+              " -l mf=" + str(memSize) # specify shell /bin/sh so not to get warning: no access to tty in output file.
         (status, output) = commands.getstatusoutput(cmd)
 
         # Check exit status of all our jobs
@@ -86,10 +86,11 @@ class Job:
         qsub = qsub + "#$ -S " + shell          + "\n"
         self.shell = shell   
         self.range = range
+        qsub = qsub + "#$ " + AZOC.SGE_QSUB_ARCH_OPTION_CURRENT + "\n"
         if range:
             qsub = qsub + "#$ -t 1-" + str(range)      + "\n"
         if resources:
-	    qsub = qsub + "#$ -l " + resources  + "\n"
+            qsub = qsub + "#$ -l " + resources  + "\n"
             self.resources = resources
         if hold:
             qsub = qsub + "#$ -hold_jid " + str(hold)   + "\n"
