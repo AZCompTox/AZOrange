@@ -332,7 +332,6 @@ class Installer:
                 sumStatus += os.system("cp -Rf ../COPYING* %s/." % self.installDir)
 
             if not self.openInstall:
-                sumStatus += os.system("cp -f ../azorange/*.txt %s/azorange/." % self.installDir)
                 sumStatus += os.system("cp -Rf  ../exampleScripts %s/." % self.installDir)
             #  Added the azorange to pythonpath in order to maintain the use of modules
             #  inside it accessible by the same way
