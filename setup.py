@@ -1088,7 +1088,7 @@ class Installer:
                     self.detailsLogFile = options.detailslogfile
                     self.envFile = options.envfile
                     self.modulesToLoad = eval(options.modulestoload)
-                    self.openInstall = options.openinstall
+                    self.openInstall = eval(options.openinstall)
                     self.logFile = options.logfile
                     self.verbosedLogging = options.verbose
                     self.__initialize()
