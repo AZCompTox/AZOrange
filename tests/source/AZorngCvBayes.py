@@ -441,7 +441,7 @@ class CvBayesClassifierTest(AZorngTestUtil.AZorngTestUtil):
         Assure that the accuracy is perserved for models trained in the same way. 
         """
         #Deviation Allowed
-        devAllowed = 0.3
+        devAllowed = 0.4
         ExpectedAcc = 0.95
         # One step Bayes creation
         Bayes = AZorngCvBayes.CvBayesLearner(self.train_data)

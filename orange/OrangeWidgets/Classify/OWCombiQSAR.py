@@ -294,7 +294,7 @@ class OWCombiQSAR(OWWidget):
                 ex["Method"] = "Total"
             else:
                 ex["Method"] = ml+" Total"
-            ex["Stability"] = statistics[ml]["Stability"]
+            ex["Stability"] = statistics[ml]["StabilityValue"]
             # [[TP, FN],[FP, TN]]
             if self.isClassDiscrete:
                 ex["CA"] = statistics[ml]["CA"] 

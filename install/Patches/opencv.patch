@@ -1069,3 +1069,23 @@ diff -crBN AZOrange/orangeDependencies/src/opencv-2.0.0/src/ml/mlann_mlp.cpp AZO
   }
   
   float CvANN_MLP::predict( const Mat& _inputs, Mat& _outputs ) const
+diff -crBN AZOrange/orangeDependencies/src/opencv/src/ml/mlsvm.cpp AZOrangeExported/orangeDependencies/src/opencv/src/ml/mlsvm.cpp
+*** AZOrange/orangeDependencies/src/opencv/src/ml/mlsvm.cpp	2009-10-01 01:20:59.000000000 +0100
+--- AZOrangeExported/orangeDependencies/src/opencv/src/ml/mlsvm.cpp	2011-10-25 17:22:27.280146501 +0100
+***************
+*** 1563,1569 ****
+      block_size = MAX( block_size, sample_count*2*(int)sizeof(double) + 1024 );
+      block_size = MAX( block_size, sample_size*2 + 1024 );
+  
+!     CV_CALL( storage = cvCreateMemStorage(block_size));
+      CV_CALL( temp_storage = cvCreateChildMemStorage(storage));
+      CV_CALL( alpha = (double*)cvMemStorageAlloc(temp_storage, sample_count*sizeof(double)));
+  
+--- 1563,1569 ----
+      block_size = MAX( block_size, sample_count*2*(int)sizeof(double) + 1024 );
+      block_size = MAX( block_size, sample_size*2 + 1024 );
+  
+!     CV_CALL( storage = cvCreateMemStorage(block_size + sizeof(CvMemBlock) + sizeof(CvSeqBlock)));
+      CV_CALL( temp_storage = cvCreateChildMemStorage(storage));
+      CV_CALL( alpha = (double*)cvMemStorageAlloc(temp_storage, sample_count*sizeof(double)));
+  
