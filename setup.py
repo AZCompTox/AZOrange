@@ -1090,7 +1090,7 @@ class Installer:
                     self.modulesToLoad = eval(options.modulestoload)
                     self.openInstall = eval(options.openinstall)
                     self.logFile = options.logfile
-                    self.verbosedLogging = options.verbose
+                    self.verbosedLogging = eval(options.verbose)
                     self.__initialize()
                     self.__build() 
                 else:
