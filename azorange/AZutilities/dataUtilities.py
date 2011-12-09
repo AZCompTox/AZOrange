@@ -30,6 +30,15 @@ def getIsMissing(ex):
     return isMissing
 
 ##scPA
+def getSMILESAttr(data):
+    """Find the SMILES attribute in data"""
+    smilesName = None
+    for attr in [a.name for a in  data.domain] + [a.name for a in data.domain.getmetas().values()]:
+        if attr.lower() in [a.lower() for a in AZOC.SMILESNAMES]:
+            smilesName = attr
+    return smilesName
+
+
 def SeedDataSampler(data, nFolds):
     """ Samples the data for being used in Folds: Pseudo-Random Selected based on a Seed
         It assures that the sampling is constant for the same dataset using the same number of folds

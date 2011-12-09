@@ -55,10 +55,7 @@ toolkitsDef = {
 
 def getSMILESAttr(data):
     # Check that the data contains a SMILES attribute
-    smilesName = None
-    for attr in [a.name for a in  data.domain] + [a.name for a in data.domain.getmetas().values()]:
-        if attr.lower() in [a.lower() for a in AZOC.SMILESNAMES]:
-            smilesName = attr
+    smilesName = dataUtilities.getSMILESAttr(data)
     if not smilesName:
         print "Warning: The data set does not contain any known smiles attribute!"
         print "         Expected SMILES attribute names: "+str(AZOC.SMILESNAMES)
