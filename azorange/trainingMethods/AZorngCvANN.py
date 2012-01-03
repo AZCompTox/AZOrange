@@ -1,5 +1,5 @@
 import pickle
-import orange
+import orange,Orange
 import AZBaseClasses
 from AZutilities import dataUtilities
 import AZOrangeConfig as AZOC
@@ -291,11 +291,14 @@ class CvANNClassifier(AZBaseClasses.AZClassifier):
             #On Regression models, assume the DFV as the value predicted
             DFV = res.value
             self._updateDFVExtremes(DFV)
+            y_hat = self.classVar(res.value)
+            dist = Orange.statistics.distribution.Continuous(self.classVar)
+            dist[y_hat] = 1.0
             if resultType == orange.GetProbabilities:
-                res  =  [0.0]
+                res  =  dist
             else:
                 if resultType==orange.GetBoth:
-                    res = (res,[0.0])
+                    res = (res,dist)
         self.nPredictions += 1
         
         if returnDFV:

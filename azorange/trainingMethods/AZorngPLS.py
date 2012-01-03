@@ -9,7 +9,7 @@ import time
 import pickle 
 
 import pls
-import orange
+import orange,Orange
 import orngTest
 import orngBayes
 import orngStat
@@ -228,7 +228,13 @@ class PLSClassifier(AZBaseClasses.AZClassifier):
                 print "Value in orange Format (Would be the last element of PLSout): ",str(orngOut),"  ->  ",str(orngOut[len(orngOut)-1])
                 print "Returning '?'"
                 value=orange.Value(self.classVar,'?')
-	    score = self.getProbabilities(value)
+	    if self.classVar.varType == orange.VarTypes.Discrete: 
+                score = self.getProbabilities(value)
+            else:
+                y_hat = self.classVar(value)
+                score = Orange.statistics.distribution.Continuous(self.classVar)
+                score[y_hat] = 1.0
+
 	    # Assure that large local variables are deleted
 	    del examplesImp
 	    del PLSFeatureVector

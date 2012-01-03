@@ -15,7 +15,7 @@ from opencv import ml
 from opencv import cv
 
 ##ecPA
-import orange
+import orange,Orange
 
 from AZutilities import dataUtilities
 from AZutilities import miscUtilities
@@ -413,6 +413,9 @@ class RFClassifier(AZBaseClasses.AZClassifier):
                     #On Regression models assume the DVF as the value predicted
                     DFV = prediction
                     self._updateDFVExtremes(DFV)
+                    y_hat = self.classVar(prediction)
+                    probabilities = Orange.statistics.distribution.Continuous(self.classVar)
+                    probabilities[y_hat] = 1.0
                 del exampleCvMat
                 del inExample
             else:

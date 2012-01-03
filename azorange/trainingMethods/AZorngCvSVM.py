@@ -1,5 +1,5 @@
 import pickle
-import orange
+import orange,Orange
 import AZBaseClasses
 from AZutilities import dataUtilities
 import AZOrangeConfig as AZOC
@@ -258,7 +258,9 @@ class CvSVMClassifier(AZBaseClasses.AZClassifier):
                     dist = orange.DiscDistribution(examplesImp.domain.classVar)
                     dist[res]=1
                 else:
-                    dist = res
+                    y_hat = self.classVar(res)
+                    dist = Orange.statistics.distribution.Continuous(self.classVar)
+                    dist[y_hat] = 1.0
                 if resultType==orange.GetProbabilities:
                     res = dist
                 else:
