@@ -1089,3 +1089,39 @@ diff -crBN AZOrange/orangeDependencies/src/opencv/src/ml/mlsvm.cpp AZOrangeExpor
       CV_CALL( temp_storage = cvCreateChildMemStorage(storage));
       CV_CALL( alpha = (double*)cvMemStorageAlloc(temp_storage, sample_count*sizeof(double)));
   
+*** AZOrange/orangeDependencies/src/opencv-2.0.0/include/opencv/cxcore_orig.hpp	2011-12-26 12:26:15.352440192 +0000
+--- AZOrangeExported/orangeDependencies/src/opencv-2.0.0/include/opencv/cxcore.hpp	2011-12-26 12:27:54.260437251 +0000
+***************
+*** 55,60 ****
+--- 55,61 ----
+  #include <new>
+  #include <string>
+  #include <vector>
++ #include <cstddef>
+  #endif // SKIP_INCLUDES
+  
+  namespace cv {
+*** AZOrange/orangeDependencies/src/opencv-2.0.0/include/opencv/cxoperations_orig.hpp	2011-12-26 12:28:08.960436741 +0000
+--- AZOrangeExported/orangeDependencies/src/opencv-2.0.0/include/opencv/cxoperations.hpp	2011-12-26 12:28:44.268437778 +0000
+***************
+*** 45,50 ****
+--- 45,51 ----
+  
+  #ifndef SKIP_INCLUDES
+    #include <string.h>
++   #include <cstddef>
+    #include <limits.h>
+  #endif // SKIP_INCLUDES
+  
+*** AZOrange/orangeDependencies/src/opencv-2.0.0/include/opencv/cxmat_orig.hpp	2011-12-26 12:28:56.928435702 +0000
+--- AZOrangeExported/orangeDependencies/src/opencv-2.0.0/include/opencv/cxmat.hpp	2011-12-26 12:29:13.360435040 +0000
+***************
+*** 45,50 ****
+--- 45,51 ----
+  
+  #ifndef SKIP_INCLUDES
+  #include <limits.h>
++ #include <cstddef>
+  #endif // SKIP_INCLUDES
+  
+  #ifdef __cplusplus
