@@ -216,10 +216,10 @@ def getRdkDescResult(data,descList, radius = 1):
                 if name not in [x.name for x in fingerPrintsAttrs]:
                     fingerPrintsAttrs.append(orange.FloatVariable(name))
                 fingerPrintsRes[mol][name] = float(count)
-        #Add FP attributes even if there was no reference to it. Models will need it as unknown vakues '?'!
+        #Add FP attributes even if there was no reference to it. Models will need it as FP not present, i.e. equal 0.0 !
         for fpDesc in FP_desc:
-            if fpDesc not in [str(attr.name) for attr in fingerPrintsAttrs]:
-                name = toolkitsDef["rdk"]["tag"]+fpDesc
+            name = toolkitsDef["rdk"]["tag"]+fpDesc
+            if name not in [str(attr.name) for attr in fingerPrintsAttrs]:
                 fingerPrintsAttrs.append(orange.FloatVariable(name))
     #Test attrTypes
     for ex in data:
@@ -239,8 +239,8 @@ def getRdkDescResult(data,descList, radius = 1):
 
              #Process fingerprints
              if FingerPrints:
-                 for desc in fingerPrintsAttrs:
-                     attrObj.append(orange.FloatVariable(desc.name))
+                 for desc in [fp for fp in fingerPrintsAttrs if fp.name not in attrObj]:
+                     attrObj.append(desc)#orange.FloatVariable(desc.name))
              break
         except:
             continue    
@@ -249,7 +249,7 @@ def getRdkDescResult(data,descList, radius = 1):
     resData = orange.ExampleTable(orange.Domain([data.domain[smilesName]] + attrObj,0))     
     badCompounds = 0
     for ex in data:
-        newEx = orange.Example(resData.domain)
+        newEx = orange.Example(resData.domain)   # All attrs: ?, ?, ?, ..., ?
         newEx[smilesName] = ex[smilesName]
         molStr = str(newEx[smilesName].value)
         # OBS - add something keeping count on the number of unused smiles
