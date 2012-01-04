@@ -41,10 +41,11 @@ class BBRC(object):
         #FMINER_SILENT : Redirect STDERR (debug output) of fminer to local file 'fminer_debug.txt'
         #FMINER_NR_HITS : Display (in the occurrence lists) the number of times each fragment occurs in a molecule.
 
-        #                          lazar    smarts    pvalue    no_aromatic_wc    silent                     nr_hits
         try:
+            #                          lazar    smarts    pvalue    no_aromatic_wc    silent   
             self.MyFminer = bbrc.Bbrc( True,    True,     False,    False,            not bool(self.verbose),    True)
         except:
+            #FallBack to default constructor. Env vars must be already set: FMINER_LAZAR 1; FMINER_SMARTS 1; FMINER_PVALUES 0
             self.MyFminer = bbrc.Bbrc()
 
     def __setBBRCOptions(self):
