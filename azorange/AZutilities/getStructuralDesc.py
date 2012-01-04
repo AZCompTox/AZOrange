@@ -42,7 +42,10 @@ class BBRC(object):
         #FMINER_NR_HITS : Display (in the occurrence lists) the number of times each fragment occurs in a molecule.
 
         #                          lazar    smarts    pvalue    no_aromatic_wc    silent                     nr_hits
-        self.MyFminer = bbrc.Bbrc( True,    True,     False,    False,            not bool(self.verbose),    True)
+        try:
+            self.MyFminer = bbrc.Bbrc( True,    True,     False,    False,            not bool(self.verbose),    True)
+        except:
+            self.MyFminer = bbrc.Bbrc()
 
     def __setBBRCOptions(self):
         if not self.MyFminer:
@@ -206,7 +209,7 @@ if __name__=="__main__":
     #logging.basicConfig(level=logging.DEBUG)
     log.setLevel(logging.DEBUG)
     dataIN =  dataUtilities.DataTable("./testSMILES.tab")
-    algoPar = "FTM"
+    algoPar = "BBRC"
     minSupPar = 4 
     outData = getStructuralDescResult(dataIN,algoPar,minSupPar, verbose = 1)
     if not outData:
