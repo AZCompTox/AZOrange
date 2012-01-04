@@ -1,23 +1,28 @@
+import logging
 import os,string,sys
 from AZutilities import dataUtilities 
 import random
 import bbrc
 import orange
 
+logging.basicConfig()
+log = logging.getLogger(__name__)
+log.setLevel(logging.INFO)
 
-VERSION = "2.0"
 
 class BBRC(object):
-    def __init__(self):
+    def __init__(self, verbose = 0):
         self.iniDir = os.getcwd()
         self.runDir = "/tmp/BBRC_"+str(random.random())[2:]
         self.SMI = []
         self.CLASS = []
         self.ID = []
-        self.verbose = 0
+        self.verbose = verbose
         self.minsup = 6               # -f   default 2
-        #self.chisqSig = -1.0         # -p   default -1 
-        self.Backbone = True          # -b
+        self.Backbone = True          # -b   default  True
+        self.ChisqActive = True       #      default True
+        self.DynamicUpperBound = True #      default True
+        self.ChisqSig = None          # default is -1.0 but cannot assign -1.0 !
         # if the temporal dataSet is specifyed, p=0 f=1
         self.data = None
         self.active = "POS"  # Only available for Classification
@@ -36,18 +41,22 @@ class BBRC(object):
         #FMINER_SILENT : Redirect STDERR (debug output) of fminer to local file 'fminer_debug.txt'
         #FMINER_NR_HITS : Display (in the occurrence lists) the number of times each fragment occurs in a molecule.
 
-        #                          lazar    smarts    pvalue    no_aromatic_wc    silent    nr_hits
-        self.MyFminer = bbrc.Bbrc( True,    True,     False,    False,             False,    True)
+        #                          lazar    smarts    pvalue    no_aromatic_wc    silent                     nr_hits
+        self.MyFminer = bbrc.Bbrc( True,    True,     False,    False,            not bool(self.verbose),    True)
 
     def __setBBRCOptions(self):
         if not self.MyFminer:
             print "Missing initialization"
             return
+
+        self.MyFminer.SetDynamicUpperBound(self.DynamicUpperBound)
+        if self.ChisqSig is not None:
+            self.MyFminer.SetChisqSig(self.ChisqSig)
         self.MyFminer.SetBackbone(self.Backbone)
+        self.MyFminer.SetChisqActive(self.ChisqActive)
         self.MyFminer.SetConsoleOut(0)
         self.MyFminer.SetAromatic(1)
         self.MyFminer.SetMinfreq(self.minsup)   # same as -f
-        #self.MyFminer.SetChisqSig(self.chisqSig)  # same as -p 
 
 
     def __createBBRCInputs(self):
@@ -70,20 +79,19 @@ class BBRC(object):
 
 
     def __runBBRC(self):
-        if self.verbose: print "Running version ",VERSION
-        print "Running BBRC for ", repr(self.MyFminer.GetNoCompounds())," compounds..."
+        if self.verbose: print "Running BBRC for "+ str(repr(self.MyFminer.GetNoCompounds())) +" compounds..."
         # gather results for every root node in vector instead of immediate output
         lines = []
         for j in range(0, self.MyFminer.GetNoRootNodes()-1):
             result = self.MyFminer.MineRoot(j)
             for i in range(0, result.size()-1):
                  lines.append( result[i].strip() )
-                 print result[i]  # DEBUG
+                 #print result[i]  # DEBUG
         return lines
 
     def __parseBBRCoutput(self,res, ctrlDescSet):
         #Parse the results to an orange tab file
-        print "Parsing BBRC results. Please wait..."
+        if self.verbose: print "Parsing BBRC results. Please wait..."
         nCompounds = len(self.data)
         allDesc = []
         allIDs = []
@@ -112,21 +120,23 @@ class BBRC(object):
                          [orange.FloatVariable(name) for name in selDesc] + \
                          [self.data.domain.classVar]
         newDomain = orange.Domain(newDomainAttrs)
-        print "Original domain lenght: ",len(self.data.domain)
-        print "New domain lenght     : ",len(newDomain)
-        print "\n0%"+" "*98+"100%"
-        print "|"+"-"*100+"|"
-        sys.stdout.write("|")
-        sys.stdout.flush()
+        if self.verbose: 
+            print "Original domain lenght: ",len(self.data.domain)
+            print "New domain lenght     : ",len(newDomain)
+            print "\n0%"+" "*98+"100%"
+            print "|"+"-"*100+"|"
+            sys.stdout.write("|")
+            sys.stdout.flush()
 
         newData = dataUtilities.DataTable(newDomain) 
         for idx,ex in enumerate(self.data):
             newEx = orange.Example(newDomain,ex)
-            if nCompounds < 100:
-                sys.stdout.write("=")
-            elif idx%(int(nCompounds/100)) == 0:
-                sys.stdout.write("=")
-            sys.stdout.flush()
+            if self.verbose: 
+                if nCompounds < 100:
+                    sys.stdout.write("=")
+                elif idx%(int(nCompounds/100)) == 0:
+                    sys.stdout.write("=")
+                sys.stdout.flush()
 
             ID = idx+1   # ID is the number of coumpound in self.data which is the number os the example (1 based!)
             for dIdx,d in enumerate(selDesc):
@@ -135,19 +145,21 @@ class BBRC(object):
                 else:
                     newEx[d] = 0.0
             newData.append(newEx)
-        if nCompounds < 100:
-            sys.stdout.write("="*(100-nCompounds+1))
-        print ""
+        if self.verbose: 
+            if nCompounds < 100:
+                sys.stdout.write("="*(100-nCompounds+1))
+            print ""
         return newData
 
     def getDesc(self, data, ctrlDescSet = None):
         if ctrlDescSet and os.path.isfile(ctrlDescSet):  # Not implemented: TODO
             # if the temporal dataSet is specifyed, p=0 minsup=1
-            self.chisqSig = 0.0
+            self.ChisqSig = 0.0
             self.minsup = 1
-            print "Because a controll dataset was specifyed, the following parameters were changed:"
-            print "  p was set to 0.0"
-            print "  f was set to 1"
+            if self.verbose: 
+                print "Because a controll dataset was specifyed, the following parameters were changed:"
+                print "  p was set to 0.0"
+                print "  f was set to 1"
         self.data = data
         self.__setBBRCOptions()
         self.__createBBRCInputs()
@@ -159,33 +171,44 @@ class BBRC(object):
         
 
 #TopLevel interface
-def getStructuralDescResult(dataIN, algo, minSupPar, active = None):
+def getStructuralDescResult(dataIN, algo, minSupPar, active = None, verbose = 0):
     """ delegate to different algorithm methods 
     """
+    if active is not None:
+        activeLabel = active
+    else:
+        activeLabel = dataIN.domain.classVar.values[0]   # For BBRC the active class can be any since it will only use the "count"
+
     if (algo == "FTM"):              # Using BBRC without class correlation
-        BBRCCalc = BBRC()
+        BBRCCalc = BBRC(verbose = verbose)
         BBRCCalc.minsup = minSupPar
-        BBRCCalc.active = active
-        BBRCCalc.Backbone = False    # No class correlation
+        BBRCCalc.active = activeLabel
+        #Disanling class correlation
+        BBRCCalc.DynamicUpperBound = False 
+        BBRCCalc.ChisqSig = 0.0
+        BBRCCalc.Backbone = False
+
         return BBRCCalc.getDesc(dataIN)
     elif (algo == "BBRC"):
-        BBRCCalc = BBRC()
+        BBRCCalc = BBRC(verbose = verbose)
         BBRCCalc.minsup = minSupPar
-        BBRCCalc.active = active
-        BBRCCalc.Backbone = True
+        BBRCCalc.active = activeLabel
         return BBRCCalc.getDesc(dataIN)
     elif (algo == "LAST-PM"):
         return getFMinerDescResult(data,minsup,algo)
+    else:
+        print "Algorithm "+algo+" is unknown!"
 
 
 
 
 if __name__=="__main__":
+    #logging.basicConfig(level=logging.DEBUG)
+    log.setLevel(logging.DEBUG)
     dataIN =  dataUtilities.DataTable("./testSMILES.tab")
-    algoPar = "LAST-PM"
+    algoPar = "FTM"
     minSupPar = 4 
-    active = "2"
-    outData = getStructuralDescResult(dataIN,algoPar,minSupPar,active)
+    outData = getStructuralDescResult(dataIN,algoPar,minSupPar, verbose = 1)
     if not outData:
         print "Could not get BBRC descriptors!"
     else:
