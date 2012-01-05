@@ -60,6 +60,8 @@ class Installer(object):
         if self.successInstall:
             self.checkoutFTM()
         if self.successInstall:
+            self.checkoutFMINER()
+        if self.successInstall:
             self.checkOutOpenAZO()
         if self.successInstall:
             self.checkOutCinfony()
@@ -480,7 +482,7 @@ application/xml=AZOrange.desktop;
             #Update the AZO source from GITHub
             os.chdir(self.trunkDir)
             if self.openInstallation:
-                self.addLog("*Using current files.")
+                self.addLog("*OpenAZOrange: Using current files.")
                 self.addLog("#trunk: "+self.trunkDir)
                 #self.__logAndExecute("git pull")
             else:
@@ -566,6 +568,43 @@ application/xml=AZOrange.desktop;
                 self.__logAndExecute("wget " + URL )
         else:
                 self.addLog("*Using "+name+" in SVN Repo (Not implemented yet)")
+
+    def checkoutFMINER(self):
+        # Get the dependency Config
+        name = "fminer"
+        if name not in self.dependencies:
+            URL = None
+            REV = None
+            USE_INSTALLED = True
+        else:
+            depCfg = self.dependencies[name].split(",")
+            URL = depCfg[0]
+            if len(depCfg)<2 or depCfg[1] == "":
+                REV = "HEAD"
+            else:
+                REV = depCfg[1]
+            if len(depCfg)>=3 and depCfg[2] == "*":
+                USE_INSTALLED = True
+            else:
+                USE_INSTALLED = False
+
+        if not URL or USE_INSTALLED or self.repoInter == "no":
+           self.addLog("*Not downloading "+name)
+           return
+
+        self.__logAndExecute("rm -rf " + os.path.join(self.DepSrcDir,name))
+        os.chdir(self.DepSrcDir)
+        tarFile = os.path.split(URL)[-1].strip()
+        if self.openInstallation:
+                self.addLog("*Downloading "+name+" to trunk ("+URL+":"+REV+")")
+                self.__logAndExecute("git clone " + URL + " " + os.path.join(self.DepSrcDir,name))
+        else:
+                self.addLog("*Using "+name+" in SVN Repo (Not implemented yet)")
+                return
+        if not os.path.isdir(os.path.join(self.DepSrcDir,name,"libbbrc")):
+            self.addLog("#ERROR: Could not fet fminer source code.")
+            self.successInstall = False
+            return
 
 
     def checkoutFTM(self):
