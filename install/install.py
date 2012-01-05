@@ -599,7 +599,7 @@ application/xml=AZOrange.desktop;
                 self.addLog("*Downloading "+name+" to trunk ("+URL+":"+REV+")")
                 self.__logAndExecute("git clone " + URL + " " + os.path.join(self.DepSrcDir,name))
         else:
-                self.addLog("*Using "+name+" in SVN Repo (Not implemented yet)")
+                self.addLog("*Using "+name+" in SVN Repo (Not implemented)")
                 return
         if not os.path.isdir(os.path.join(self.DepSrcDir,name,"libbbrc")):
             self.addLog("#ERROR: Could not fet fminer source code.")
