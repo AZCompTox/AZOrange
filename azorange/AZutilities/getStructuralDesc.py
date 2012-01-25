@@ -93,7 +93,7 @@ class BBRC(object):
                  #print result[i]  # DEBUG
         return lines
 
-    def __parseBBRCoutput(self,res, ctrlDescSet):
+    def __parseBBRCoutput(self,res):
         #Parse the results to an orange tab file
         if self.verbose: print "Parsing BBRC results. Please wait..."
         nCompounds = len(self.data)
@@ -107,19 +107,6 @@ class BBRC(object):
         missingDesc = []
         desAttr = []
         selDesc = [x for x in allDesc]
-        if ctrlDescSet:# NOT AVAILABLE TODO
-            if not os.path.isfile(ctrlDescSet):
-                print "Unable to find Control Descriptors Set: ",ctrlDescSet
-            else:
-                f = open(ctrlDescSet)
-                trainDesc = f.readline().strip().split("\t")[2:-1]
-                f.close()
-                missingDesc = [x for x in trainDesc if x not in allDesc]
-                #Attributes to be desellected
-                desAttr = [x for x in allDesc if x not in trainDesc]
-                selDesc = [x for x in allDesc if x not in desAttr]     
-
-        #TODO  Add attrs and values to the NEWdata!
         newDomainAttrs = [attr for attr in self.data.domain.attributes] + \
                          [orange.FloatVariable(name) for name in selDesc] + \
                          [self.data.domain.classVar]
@@ -156,26 +143,58 @@ class BBRC(object):
         return newData
 
     def getDesc(self, data, ctrlDescSet = None):
-        if ctrlDescSet and os.path.isfile(ctrlDescSet):  # Not implemented: TODO
-            # if the temporal dataSet is specifyed, p=0 minsup=1
-            self.ChisqSig = 0.0
-            self.minsup = 1
-            if self.verbose: 
-                print "Because a controll dataset was specifyed, the following parameters were changed:"
-                print "  p was set to 0.0"
-                print "  f was set to 1"
+        """ If ctrlDescSet are set, it adds the descriptors in ctrlDescSet 
+              which do not exist in data.domain.attributes
+            ctrlDescSet is ment to be a list of SMARTS. In the future (TODO) we should automatically identify SMARTS from the ctrlDescSet and only set those to 0 if they are not calculated.
+        """
         self.data = data
         self.__setBBRCOptions()
         self.__createBBRCInputs()
         res = self.__runBBRC() 
+
         if res:
-            return self.__parseBBRCoutput(res,ctrlDescSet)
+            originalDesc = [attr.name for attr in self.data.domain]
+            newData = self.__parseBBRCoutput(res)
+            conflictRen = [attr.name for attr in self.data.domain if attr.name not in originalDesc]
+            conflictOrig= [attr for attr in originalDesc if attr not in self.data.domain]
+            if conflictRen or conflictOrig:
+                print "WARNING!!  It has been detected conflictuous descriptors."
+                print "           Descriptors that existed in the input data and were also calculated "
+                print "             were renamed."
+                print "           Descriptors in conflict: ",conflictOrig," -> ",conflictRen
+            calculatedDesc = [attr.name for attr in newData.domain if attr.name not in self.data.domain]
+            if ctrlDescSet and type(ctrlDescSet) == list:
+                newAttrs = [attr for attr in ctrlDescSet if attr not in [x.name for x in newData.domain.attributes]]
+                newDomain = orange.Domain( newData.domain.attributes + \
+                            [orange.FloatVariable(attr, numberOfDecimals=1) 
+                              for attr in newAttrs],newData.domain.classVar   )
+                #Create new data with extended attributes = '?'
+                newData = dataUtilities.DataTable(newDomain, newData)
+                #Set the new extended SMARTS to 0 TODO: detect and actuate only in SMARTS
+                for ex in newData:
+                    for attr in [x for x in ctrlDescSet if ex[x].isSpecial()]:
+                        ex[attr] = 0
+                print "Original data descriptors: ",len(self.data.domain)
+                print "Calculated descriptors: ",len(calculatedDesc)
+                print "  ...of which already in the original data (Should be 0): ",len([attr for attr in calculatedDesc if attr in originalDesc])
+                print "  ...of which were expected: ",len([attr for attr in calculatedDesc if attr in ctrlDescSet])
+                print "  ...of which are new and added: ",len([attr for attr in calculatedDesc if attr not in ctrlDescSet])
+                print "Descriptors to be expected in the output data (user-defined): ",len(ctrlDescSet)
+                print "  ...of which were not calculated (set to 0): ",len([attr for attr in ctrlDescSet if attr not in calculatedDesc])
+                print "     ...of which needed to be added (set to 0):",len(newAttrs)
+                print "  ...of which were calculated:",len([attr for attr in ctrlDescSet if attr in calculatedDesc])
+                print "Output data attributes: ",len(newData.domain)
+            elif ctrlDescSet:
+                print "ctrlDescSet was defined, but it must be a list of attribute names"
+                return None
+            return newData
         else:
             print "No output from BBRC!"
+            return None
         
 
 #TopLevel interface
-def getStructuralDescResult(dataIN, algo, minSupPar, active = None, verbose = 0):
+def getStructuralDescResult(dataIN, algo, minSupPar, active = None, ctrlDescSet = None, verbose = 0):
     """ delegate to different algorithm methods 
     """
     if active is not None:
@@ -192,12 +211,12 @@ def getStructuralDescResult(dataIN, algo, minSupPar, active = None, verbose = 0)
         BBRCCalc.ChisqSig = 0.0
         BBRCCalc.Backbone = False
 
-        return BBRCCalc.getDesc(dataIN)
+        return BBRCCalc.getDesc(dataIN,ctrlDescSet)
     elif (algo == "BBRC"):
         BBRCCalc = BBRC(verbose = verbose)
         BBRCCalc.minsup = minSupPar
         BBRCCalc.active = activeLabel
-        return BBRCCalc.getDesc(dataIN)
+        return BBRCCalc.getDesc(dataIN,ctrlDescSet)
     elif (algo == "LAST-PM"):
         return getFMinerDescResult(data,minsup,algo)
     else:
