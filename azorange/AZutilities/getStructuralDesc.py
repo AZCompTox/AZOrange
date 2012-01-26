@@ -179,22 +179,22 @@ def getSMARTSrecalcDesc(data, smarts):
                 Expects the test/prediction data and a list of SMARTS strings.
                 Returns the data including the new features. 
     """
-    smilesName = getSMILESAttr(data)
+    smilesName = dataUtilities.getSMILESAttr(data)
     if not smilesName or type(smarts) != list or not len(smarts): 
         print "Please check the input parameters"
         return None
                 
-    existingAttrs = [attr for attr in smarts if attr in data]
+    existingAttrs = [attr for attr in smarts if attr in data.domain]
     if existingAttrs:
         print "The input data cannot contain the smarts to be calculated!"
         return None
 
     newdomain = orange.Domain(data.domain.attributes + \
-                              [orange.FloatVariable(attr.name, numberOfDecimals=1) for attr in smarts],\
+                              [orange.FloatVariable(attr, numberOfDecimals=1) for attr in smarts],\
                               data.domain.classVar )
     newdata = orange.ExampleTable(newdomain, data)
        
-    for ex in data:
+    for ex in newdata:
         smile = str(ex[smilesName].value)
         mol = rdk.Chem.MolFromSmiles(smile)
         if mol is None: 
