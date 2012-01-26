@@ -84,6 +84,7 @@ class Installer:
         self.rdkitDir = None
         self.cdkDir = None
         self.ftmDir = None
+        self.fminerDir = None
         self.plearnDir = None
         self.R8Dir = None
         self.ctoolsDir = None
@@ -164,6 +165,9 @@ class Installer:
         
         # Setup the correct environment.
         self.setEnv()
+        
+        # Compile fminer 
+        self.compileFMINER()
 
         # Compile ftm
         self.compileFTM()
@@ -259,6 +263,7 @@ class Installer:
         self.rdkitDir = os.path.join(self.buildDir,"orangeDependencies/src/rdkit")
         self.cdkDir = os.path.join(self.buildDir,"orangeDependencies/src/cdk")
         self.ftmDir = os.path.join(self.buildDir,"orangeDependencies/src/ftm")
+        self.fminerDir = os.path.join(self.buildDir,"orangeDependencies/src/fminer")
         self.plearnDir = os.path.join(self.buildDir,"orangeDependencies/src/plearn")
         self.ctoolsDir = os.path.join(self.buildDir,"orangeDependencies/src/Ctools")
         self.R8Dir = os.path.join(self.buildDir,"orangeDependencies/src/R8/Src")
@@ -507,6 +512,48 @@ class Installer:
                 stat, out = commands.getstatusoutput("cp "+ os.path.join(self.ftmDir,"src/ftm") +" "+ ftminstallDir)
                 checkStatus(stat, out,"Error installing ftm.")
 
+        else:
+                print "Not reinstalled"
+
+    def compileFMINER(self):
+        if ("fminer" not in self.dependencies):
+            print "Not using the local fminer"
+            return
+        fminerinstallDir = os.path.join(self.orangeDependenciesDir,"fminer")
+        if self.dependencies["fminer"]:   #compile and install
+                os.chdir(os.path.join(self.fminerDir,"libbbrc"))
+                print "Building BBRC in:   ",self.fminerDir
+                stat, out = commands.getstatusoutput("make python")
+
+                os.chdir(os.path.join(self.fminerDir,"liblast"))
+                print "Building LAST in:   ",self.fminerDir
+                stat, out = commands.getstatusoutput("make python")
+
+                stat, out = commands.getstatusoutput("rm -rf " + fminerinstallDir)
+                stat, out = commands.getstatusoutput("mkdir " + fminerinstallDir)
+                checkStatus(stat, out,"Error creating " + fminerinstallDir)
+
+                print "Installing BBRC in: ",fminerinstallDir
+                _file = os.path.join(self.fminerDir,"libbbrc","bbrc.py") 
+                stat, out = commands.getstatusoutput("cp "+ _file +" "+ fminerinstallDir)
+                checkStatus(stat, out,"Could not copy from " + _file)
+                _file = os.path.join(self.fminerDir,"libbbrc","_bbrc.so")
+                stat, out = commands.getstatusoutput("cp "+ _file +" "+ fminerinstallDir)
+                checkStatus(stat, out,"Could not copy from " + _file)
+
+                print "Installing LAST in: ",fminerinstallDir
+                _file = os.path.join(self.fminerDir,"liblast","last.py")
+                stat, out = commands.getstatusoutput("cp "+ _file +" "+ fminerinstallDir)
+                checkStatus(stat, out,"Could not copy from " + _file)
+                _file = os.path.join(self.fminerDir,"liblast","_last.so")
+                stat, out = commands.getstatusoutput("cp "+ _file +" "+ fminerinstallDir)
+                checkStatus(stat, out,"Could not copy from " + _file)
+        
+                #Set Env variables
+                self.__prependEnvVar("PYTHONPATH" , fminerinstallDir)
+                self.__prependEnvVar("FMINER_LAZAR" , "1")
+                self.__prependEnvVar("FMINER_SMARTS" , "1")
+                self.__prependEnvVar("FMINER_PVALUES" , "0")
         else:
                 print "Not reinstalled"
 

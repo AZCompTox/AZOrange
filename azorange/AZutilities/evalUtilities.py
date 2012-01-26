@@ -126,6 +126,23 @@ def getNearestNeighbors(query, n, NNDataPath, FPPath = None, resPath = None, idx
     return res
     
 
+def calcConfMat(exp_pred_Val, labels):
+    #exp_pred_Val is a list of lists of strings:
+    #    [[exp_Val, pred_val],
+    #     [exp_Val, pred_val],
+    #    ...
+    #    ]
+    #labels is a list of strings which are the possible class lables ordered as in the original data.domain.classvar.values
+    # The order of the matrix will be acconding to the order of the labels
+    # the output will follow what defined in confMat method.
+    CM = [[0]*len(labels) for x in range(len(labels))]
+    for val in exp_pred_Val:
+        row = labels.index(val[0])  # experimental
+        col = labels.index(val[1])  # Predicted
+        CM[row][col] += 1
+    return [CM]
+        
+
 
 def ConfMat(res = None):
         """ Returns a confusion matrix in the form of a vector:
@@ -136,8 +153,8 @@ def ConfMat(res = None):
                                              Predicted class
                                         |   A       B       C
                                      ---------------------------
-                           known     A  |  tpA     eAB     eAC
-                           class     B  |  eBA     tpB     eBC
+                       experimental  A  |  tpA     eAB     eAC     eAB is read as: Error, should be A instead of B
+                          class      B  |  eBA     tpB     eBC                
                                      C  |  eCA     eCB     tpC
 
                     [[tpA, eAB, ..., eAN],
@@ -207,14 +224,21 @@ def generalCVconfMat(data, learners, nFolds = 5):
             print ("%s" + ("\t%i" * len(classes))) % ((className, ) + tuple(classConfusions))
 
 def getClassificationAccuracy(testData, classifier):
+    #Construct the list of experimental and predicted values: [(exp1, pred1), (exp2, pred2), ...]
     if not len(testData):
         return 0.0
-    correct = 0.0
+    exp_pred = []
     for ex in testData:
+        exp_pred.append( (str(ex.getclass()), str(classifier(ex))) )
+    return calcClassificationAccuracy(exp_pred)
+
+def calcClassificationAccuracy(exp_pred_Val):
+    correct = 0.0
+    for val in exp_pred_Val:
         #print str(classifier(ex)) + "->" + str(ex.getclass())
-        if str(classifier(ex)) == str(ex.getclass()):
+        if val[0] == val[1]:
             correct = correct + 1.0
-    ClassificationAccuracy = correct/len(testData)
+    ClassificationAccuracy = correct/len(exp_pred_Val)
     return ClassificationAccuracy
 
 
