@@ -4,6 +4,8 @@ from AZutilities import dataUtilities
 import random
 import bbrc
 import orange
+from cinfony import rdk
+
 
 logging.basicConfig()
 log = logging.getLogger(__name__)
@@ -61,7 +63,6 @@ class BBRC(object):
         self.MyFminer.SetConsoleOut(0)
         self.MyFminer.SetAromatic(1)
         self.MyFminer.SetMinfreq(self.minsup)   # same as -f
-
 
     def __createBBRCInputs(self):
         if not self.data:
@@ -142,11 +143,7 @@ class BBRC(object):
             print ""
         return newData
 
-    def getDesc(self, data, ctrlDescSet = None):
-        """ If ctrlDescSet are set, it adds the descriptors in ctrlDescSet 
-              which do not exist in data.domain.attributes
-            ctrlDescSet is ment to be a list of SMARTS. In the future (TODO) we should automatically identify SMARTS from the ctrlDescSet and only set those to 0 if they are not calculated.
-        """
+    def getDesc(self, data):
         self.data = data
         self.__setBBRCOptions()
         self.__createBBRCInputs()
@@ -163,30 +160,11 @@ class BBRC(object):
                 print "             were renamed."
                 print "           Descriptors in conflict: ",conflictOrig," -> ",conflictRen
             calculatedDesc = [attr.name for attr in newData.domain if attr.name not in self.data.domain]
-            if ctrlDescSet and type(ctrlDescSet) == list:
-                newAttrs = [attr for attr in ctrlDescSet if attr not in [x.name for x in newData.domain.attributes]]
-                newDomain = orange.Domain( newData.domain.attributes + \
-                            [orange.FloatVariable(attr, numberOfDecimals=1) 
-                              for attr in newAttrs],newData.domain.classVar   )
-                #Create new data with extended attributes = '?'
-                newData = dataUtilities.DataTable(newDomain, newData)
-                #Set the new extended SMARTS to 0 TODO: detect and actuate only in SMARTS
-                for ex in newData:
-                    for attr in [x for x in ctrlDescSet if ex[x].isSpecial()]:
-                        ex[attr] = 0
-                print "Original data descriptors: ",len(self.data.domain)
-                print "Calculated descriptors: ",len(calculatedDesc)
-                print "  ...of which already in the original data (Should be 0): ",len([attr for attr in calculatedDesc if attr in originalDesc])
-                print "  ...of which were expected: ",len([attr for attr in calculatedDesc if attr in ctrlDescSet])
-                print "  ...of which are new and added: ",len([attr for attr in calculatedDesc if attr not in ctrlDescSet])
-                print "Descriptors to be expected in the output data (user-defined): ",len(ctrlDescSet)
-                print "  ...of which were not calculated (set to 0): ",len([attr for attr in ctrlDescSet if attr not in calculatedDesc])
-                print "     ...of which needed to be added (set to 0):",len(newAttrs)
-                print "  ...of which were calculated:",len([attr for attr in ctrlDescSet if attr in calculatedDesc])
-                print "Output data attributes: ",len(newData.domain)
-            elif ctrlDescSet:
-                print "ctrlDescSet was defined, but it must be a list of attribute names"
-                return None
+            print "Original data attributes: ",len(self.data.domain)
+            print "Calculated descriptors: ",len(calculatedDesc)
+            print "  ...of which already in the original data (orig. renamed): ",len([attr for attr in calculatedDesc if attr in originalDesc])
+            print "  ...of which were added: ",len([attr for attr in calculatedDesc if attr not in self.data.domain])
+            print "Output data attributes: ",len(newData.domain)
             return newData
         else:
             print "No output from BBRC!"
@@ -194,7 +172,43 @@ class BBRC(object):
         
 
 #TopLevel interface
-def getStructuralDescResult(dataIN, algo, minSupPar, active = None, ctrlDescSet = None, verbose = 0):
+def getSMARTSrecalcDesc(data, smarts):
+    """ Calculates structural descriptors for test and training data.
+                In other words, checks for the substructure occurrence (0/1) in the 
+                test or prediction molecules. Uses RDK.
+                Expects the test/prediction data and a list of SMARTS strings.
+                Returns the data including the new features. 
+    """
+    smilesName = getSMILESAttr(data)
+    if not smilesName or type(smarts) != list or not len(smarts): 
+        print "Please check the input parameters"
+        return None
+                
+    existingAttrs = [attr for attr in smarts if attr in data]
+    if existingAttrs:
+        print "The input data cannot contain the smarts to be calculated!"
+        return None
+
+    newdomain = orange.Domain(data.domain.attributes + \
+                              [orange.FloatVariable(attr.name, numberOfDecimals=1) for attr in smarts],\
+                              data.domain.classVar )
+    newdata = orange.ExampleTable(newdomain, data)
+       
+    for ex in data:
+        smile = str(ex[smilesName].value)
+        mol = rdk.Chem.MolFromSmiles(smile)
+        if mol is None: 
+            continue
+        for smrt in smarts:
+            patt = rdk.Chem.MolFromSmarts(smrt)
+            if mol.HasSubstructMatch(patt):
+                ex[smrt] = 1.0
+            else:
+                ex[smrt] = 0.0
+    return newdata
+
+
+def getStructuralDescResult(dataIN, algo, minSupPar, ChisqSig = None, active = None, verbose = 0):
     """ delegate to different algorithm methods 
     """
     if active is not None:
@@ -211,12 +225,19 @@ def getStructuralDescResult(dataIN, algo, minSupPar, active = None, ctrlDescSet 
         BBRCCalc.ChisqSig = 0.0
         BBRCCalc.Backbone = False
 
-        return BBRCCalc.getDesc(dataIN,ctrlDescSet)
+        return BBRCCalc.getDesc(dataIN)
     elif (algo == "BBRC"):
         BBRCCalc = BBRC(verbose = verbose)
         BBRCCalc.minsup = minSupPar
         BBRCCalc.active = activeLabel
-        return BBRCCalc.getDesc(dataIN,ctrlDescSet)
+        if ChisqSig is not None:       
+            if ChisqSig < 0 or ChisqSig > 1:
+                print "ERROR: ChisqSig must be defined between 0 and 1"
+                return None 
+            BBRCCalc.ChisqSig = ChisqSig
+        else:
+            BBRCCalc.ChisqSig = 0.95
+        return BBRCCalc.getDesc(dataIN)
     elif (algo == "LAST-PM"):
         return getFMinerDescResult(data,minsup,algo)
     else:
@@ -231,7 +252,7 @@ if __name__=="__main__":
     dataIN =  dataUtilities.DataTable("./testSMILES.tab")
     algoPar = "BBRC"
     minSupPar = 4 
-    outData = getStructuralDescResult(dataIN,algoPar,minSupPar, verbose = 1)
+    outData = getStructuralDescResult(dataIN,algoPar,minSupPar, ChisqSig = None ,verbose = 1)
     if not outData:
         print "Could not get BBRC descriptors!"
     else:
