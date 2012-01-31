@@ -29,7 +29,7 @@ class OWCombiQSAR(OWWidget):
         self.outputs = [("Classifier", orange.Classifier), ("Examples", ExampleTable)]
 
         self.queueTypes = ["NoSGE","batch.q","quick.q"] 
-        self.outputModes = ["Statistics for all available algorithms. Please note, no model selection.", "Model and statistics (unbiased wrt model selection)"]
+        self.outputModes = ["Statistics for all available algorithms. Please note, no model selection.", "Model and statistics (unbiased wrt model selection). Please note, time consuming."]
         self.name = name
 	self.dataset = None
 	self.classifier = None
