@@ -382,7 +382,7 @@ def Sensitivity(confMatrixList, classes):
                 sensitivityDict[classes[idx]] = "N/A"
             else:        
 ##ecPA
-                sensitivityDict[classes[idx]] = confMatrix[idx][idx]/sum(confMatrix[idx])
+                sensitivityDict[classes[idx]] = float(confMatrix[idx][idx])/float(sum(confMatrix[idx]))
         sensitivityList.append(sensitivityDict)
 
     #print "End sensitivity "+str(sensitivityList)
@@ -414,7 +414,7 @@ def Predictivity(confMatrixList, classes):
                 PredictivityDict[classes[idx]] = "N/A"
             else:
 ##ecPA
-               PredictivityDict[classes[idx]] = confMatrix[idx][idx]/colSum
+               PredictivityDict[classes[idx]] = float(confMatrix[idx][idx])/float(colSum)
         PredictivityList.append(PredictivityDict)
 
     #print "End Predictivity "+str(PredictivityList)
