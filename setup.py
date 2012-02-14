@@ -815,6 +815,7 @@ class Installer:
 
 
     def setEnv(self):
+        return
         print "The buildDir: ",self.buildDir
         # Add nspr directory to CPATH
         if self.platform[0:3] == "GAS":
