@@ -815,9 +815,8 @@ class Installer:
 
 
     def setEnv(self):
-        return
         print "The buildDir: ",self.buildDir
-        # Add nspr directory to CPATH
+        # Add nspr directory to CPATH  # Used by plearn (PLS)
         if self.platform[0:3] == "GAS":
             try:
                 pcfile=open("/usr/lib/pkgconfig/mozilla-nspr.pc")
