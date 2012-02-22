@@ -769,7 +769,7 @@ def concatenate(datasets,useFirstAsLeader=False,mergeDomains=True):
     firstDataIdx = None
     # Use the first valid dataset to start the concatenation
     for idx,data in enumerate(datasets):
-        if data:
+        if data is not None:
             newTable = datasets[idx]
             firstDataIdx = idx
             break
