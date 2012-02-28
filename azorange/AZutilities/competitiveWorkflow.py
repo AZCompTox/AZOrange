@@ -17,7 +17,7 @@ for ML in AZOC.MLMETHODS:
     exec("import "+AZOC.MLMETHODS[ML]["module"])
     MLMETHODS[ML] = eval(AZOC.MLMETHODS[ML]["module"]+"."+AZOC.MLMETHODS[ML]["object"])
 
-print "Available MLMETHODS:",[ml for ml in MLMETHODS]
+#print "Available MLMETHODS:",[ml for ml in MLMETHODS]
 
 def log(logFile, text):
         """Adds a new line (what's in text) to the logFile"""
