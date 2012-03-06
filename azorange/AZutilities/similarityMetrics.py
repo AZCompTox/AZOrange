@@ -166,7 +166,7 @@ def getMahalanobisResults(predictor, invCovMatFile = None, centerFile = None, da
         domain = None
         if predictor.highConf == None and predictor.lowConf == None:
             return None, None
-        if not hasattr(predictor,"trainDataPath") or not predictor.trainDataPath:
+        if not dataTableFile and (not hasattr(predictor,"trainDataPath") or not predictor.trainDataPath):
             print "The predictor does not have a trainDataPath specifyed. We need it for calculating Mahalanobis results!"
             return None, None
         testData = dataUtilities.attributeDeselectionData(predictor.exToPred,["SMILEStoPred"])
