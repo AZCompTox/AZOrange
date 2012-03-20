@@ -18,6 +18,9 @@ AZORANGEHOME = os.environ["AZORANGEHOME"]
 SCRATCHDIR = "/tmp"
 NFS_SCRATCHDIR = os.path.join(os.environ["HOME"],"AZO_NFS_scratchDir")
 
+# environment for structural clustering
+STRUCTCLUSTDIR = os.path.join(os.environ["AZORANGEHOME"], "orangeDependencies/structuralClustering")
+
 # Configurable parameters that can be overwriten by AZOrangeExtraConfig.py
 #cinfonyToolkits = ["cdk","rdk","obabel","webel"]        # NOT so stable!!
 #cinfonyToolkits = ["rdk","obabel","webel"]              # Testing Stability!!

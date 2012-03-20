@@ -249,9 +249,10 @@ def getStructuralDescResult(dataIN, algo, minSupPar, ChisqSig = None, active = N
 if __name__=="__main__":
     #logging.basicConfig(level=logging.DEBUG)
     log.setLevel(logging.DEBUG)
-    dataIN =  dataUtilities.DataTable("./testSMILES.tab")
-    algoPar = "BBRC"
-    minSupPar = 4 
+    dataPath = os.path.join(os.environ["AZORANGEHOME"],"tests/source/data/QSAR_10mols.tab")
+    dataIN =  dataUtilities.DataTable(dataPath)
+    algoPar = "FTM" #"BBRC"
+    minSupPar = 2 
     outData = getStructuralDescResult(dataIN,algoPar,minSupPar, ChisqSig = None ,verbose = 1)
     if not outData:
         print "Could not get BBRC descriptors!"
