@@ -645,8 +645,7 @@ application/xml=AZOrange.desktop;
                 self.__logAndExecute("wget " + URL )
                 self.__logAndExecute("mv "+dwnldFile+" "+tarFile)
         else:
-                self.addLog("*Using "+name+" in SVN Repo (Not implemented yet)")
-                return
+                self.addLog("*Using "+name+" in SVN Repo")
         UnpackCmd = "tar "
         if  tarFile[-6:] == "tar.gz":
             UnpackCmd += "xfz "
