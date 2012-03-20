@@ -636,9 +636,9 @@ application/xml=AZOrange.desktop;
 
         self.__logAndExecute("rm -rf " + os.path.join(self.DepSrcDir,name))
         os.chdir(self.DepSrcDir)
-        tarFile = "structuralClustering.tar.gz"    
-        dwnldFile = os.path.split(URL)[-1].strip()
         if self.openInstallation:
+                tarFile = "structuralClustering.tar.gz"
+                dwnldFile = os.path.split(URL)[-1].strip()
                 self.addLog("*Downloading "+name+" to trunk ("+URL+":"+REV+")")
                 self.__logAndExecute("rm -rf " + tarFile)
                 self.__logAndExecute("rm -rf " + dwnldFile)
@@ -646,6 +646,7 @@ application/xml=AZOrange.desktop;
                 self.__logAndExecute("mv "+dwnldFile+" "+tarFile)
         else:
                 self.addLog("*Using "+name+" in SVN Repo")
+                tarFile = URL 
         UnpackCmd = "tar "
         if  tarFile[-6:] == "tar.gz":
             UnpackCmd += "xfz "
