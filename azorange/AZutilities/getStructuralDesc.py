@@ -44,8 +44,8 @@ class BBRC(object):
         #FMINER_NR_HITS : Display (in the occurrence lists) the number of times each fragment occurs in a molecule.
 
         try:
-            #                          lazar    smarts    pvalue    no_aromatic_wc    silent   
-            self.MyFminer = bbrc.Bbrc( True,    True,     False,    False,            not bool(self.verbose),    True)
+            #                          lazar    smarts    pvalue    no_aromatic_wc    silent   fminer_nr_hits  
+            self.MyFminer = bbrc.Bbrc( True,    True,     False,    False,            0,       True)
         except:
             #FallBack to default constructor. Env vars must be already set: FMINER_LAZAR 1; FMINER_SMARTS 1; FMINER_PVALUES 0
             self.MyFminer = bbrc.Bbrc()
@@ -251,13 +251,14 @@ if __name__=="__main__":
     log.setLevel(logging.DEBUG)
     dataPath = os.path.join(os.environ["AZORANGEHOME"],"tests/source/data/QSAR_10mols.tab")
     dataIN =  dataUtilities.DataTable(dataPath)
-    algoPar = "FTM" #"BBRC"
+    algoPar = "BBRC"
     minSupPar = 2 
     outData = getStructuralDescResult(dataIN,algoPar,minSupPar, ChisqSig = None ,verbose = 1)
     if not outData:
         print "Could not get BBRC descriptors!"
     else:
         outData.save("./outBBRC.tab")
+        print "OK!"
 
 
 
