@@ -91,7 +91,7 @@ GCCmoduleForAppspackMPI = None
 ;    It must be somehow already installed or being loaded by modules
 ;If the third argument * is present, the respective dependency will not be built and it will use a previous installed one.
 ;    It must already have been installed in a previous azorange full installation (without *) 
-orange = http://orange.biolab.si/svn/orange/trunk,12117
+orange = https://bitbucket.org/biolab/orange,2.5a2
 appspack = http://software.sandia.gov/appspack/downloads/appspack-5.0.1.tar.gz,5.0.1
 boost = http://downloads.sourceforge.net/project/boost/boost/1.34.1/boost_1_34_1.tar.gz,1.34.1
 opencv = http://downloads.sourceforge.net/project/opencvlibrary/opencv-unix/2.0/OpenCV-2.0.0.tar.bz2,2.0.0

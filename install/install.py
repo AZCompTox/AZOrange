@@ -779,51 +779,28 @@ application/xml=AZOrange.desktop;
 
         #self.__logAndExecute("rm -rf " + os.path.join(self.trunkDir,"orange/*"))
         #This command may have some failures, but it's no problem. We just want to delete if there is something to delete!
-        self.__logAndExecute("mkdir -p " + os.path.join(self.trunkDir,"orange"))
-        if self.installType == "developer":
-            commands.getstatusoutput('find ' + os.path.join(self.trunkDir,"orange") + '| grep -v "\.svn" | xargs rm -f')
-        self.__logAndExecute("rm -rf " + os.path.join(self.DepSrcDir,"orange"))
+        self.__logAndExecute("mkdir -p " + os.path.join(self.trunkDir,"Orange"))
+        self.__logAndExecute("rm -rf " + os.path.join(self.DepSrcDir,"Orange"))
+        os.chdir(self.DepSrcDir)
         if self.openInstallation:
-                self.addLog("*Checking out from orange SVN to trunk ("+URL+":"+REV+")")
+                self.addLog("*Checking out from orange bitbucket to trunk ("+URL+":"+REV+")")
                 #os.chdir(os.path.join(self.trunkDir,"orange"))
-                self.__logAndExecute("mkdir -p " + os.path.join(self.DepSrcDir,"orange"))
-                os.chdir(os.path.join(self.DepSrcDir,"orange"))
-                self.__logAndExecute("svn export --force" + " -r " + REV + " " + os.path.join(URL,"add-ons") + " ./add-ons")
-                self.__logAndExecute("svn export --force" + " -r " + REV + " " + os.path.join(URL,"install-scripts/linux") + " ./install-scripts/linux")
-                self.__logAndExecute("svn export --force" + " -r " + REV + " " + os.path.join(URL,"source") + " ./source")
-                self.__logAndExecute("svn export --force" + " -r " + REV + " " + os.path.join(URL,"testing") + " ./testing")
-                self.__logAndExecute("svn export --force" + " -r " + REV + " " + os.path.join(URL,"orange") + " ./ --force")
+                self.__logAndExecute("hg clone " + URL + " ./Orange")
         else:
                 self.addLog("*Extracting orange from " + URL)
-                os.chdir(self.DepSrcDir)
                 self.__logAndExecute("tar xfz " + os.path.split(URL)[-1])
         os.chdir(self.DepSrcDir)
-        self.__logAndExecute('find '+os.path.join(self.DepSrcDir,"orange")+' -name ".svn" | xargs rm -Rf')
-        if self.installType == "developer":
-            self.__logAndExecute("cp -rf orange/* " + os.path.join(self.trunkDir,"orange/") )
-        else:
-            self.__logAndExecute("yes n | cp -R -i orange/* " + os.path.join(self.trunkDir,"orange/") )
 
         # Apply Patch
         self.addLog("#Applying Patch...")
         os.chdir(os.path.join(self.currentDir,"Patches"))
-        status,out = commands.getstatusoutput("./applyOrangePatch.sh %s" % (os.path.join(self.trunkDir,"orange")))
+        status,out = commands.getstatusoutput("./applyOrangePatch.sh %s" % (os.path.join(self.DepSrcDir,"Orange")))
         if status != 0:
             self.addLog("#WARNING: Patch was not properly applied. It might be that it has been already applied.")
             self.addLog("#         Please check the next details.")
             self.addLog([0,out])
         else:
             self.addLog([status,out])
-        #Revert to the Orange GIT files for the developer version since they were removed previously and wre copied with -rf flaga
-        if self.installType == "developer":
-            os.chdir(os.path.join(self.trunkDir,"orange"))
-            self.addLog("#Reverting orange to Git version...")
-            self.__logAndExecute("git checkout -f ./")
-
-        if not self.openInstallation:
-            os.chdir(os.path.join(self.trunkDir,"orange"))
-            self.addLog("#Reverting orange to SVN version...")
-            self.__logAndExecute("svn revert -R ./*")
 
         os.chdir(self.currentDir)
 
@@ -1057,7 +1034,7 @@ application/xml=AZOrange.desktop;
         self.__logAndExecute('find ./ -name ".git" | xargs rm -Rf')
 
         #The orange core setup.py that is placed in orange/install-scripts/linux must be copied to orange
-        self.__logAndExecute("/bin/cp -f " + os.path.join(self.buildDir,"orange/install-scripts/linux/setup.py") + " " + os.path.join(self.buildDir,"orange"))
+        #self.__logAndExecute("/bin/cp -f " + os.path.join(self.buildDir,"orange/install-scripts/linux/setup.py") + " " + os.path.join(self.buildDir,"orange"))
 
         #In buildDir> python setup.py build ...
         self.addLog("#Compiling by running setup.py")
@@ -1122,7 +1099,7 @@ application/xml=AZOrange.desktop;
 
         #  LD_LIBRARY_PATH  space separated paths in tcsh!!
         #LD_LIBPaths = [localVars["installDir"]+"/orange", localVars["installDir"]+"/orangeDependencies/bin"]
-        LD_LIBPaths = [os.path.join("$AZORANGEHOME", "orange")]
+        LD_LIBPaths = [os.path.join("$AZORANGEHOME", "Orange")]
         if "LD_LIBRARY_PATH" in self.EnvVars:
             for value in self.EnvVars["LD_LIBRARY_PATH"]:
                 if value not in LD_LIBPaths: LD_LIBPaths.insert(0,value)
@@ -1153,7 +1130,7 @@ application/xml=AZOrange.desktop;
                 if value not in PATHPaths: PATHPaths.insert(0,value)
         self.EnvVars["PATH"] = PATHPaths
         #  PYTHONPATH
-        pythonPaths = [".",os.path.join("$AZORANGEHOME", "orange"), os.path.join("$AZORANGEHOME", "azorange"), os.path.join("$AZORANGEHOME", "tests")]
+        pythonPaths = [".",os.path.join("$AZORANGEHOME", "Orange"), os.path.join("$AZORANGEHOME", "azorange"), os.path.join("$AZORANGEHOME", "tests")]
         if "PYTHONPATH" in self.EnvVars:      
             for value in self.EnvVars["PYTHONPATH"]:
                 if value not in pythonPaths: pythonPaths.insert(0,value)
@@ -1190,9 +1167,9 @@ application/xml=AZOrange.desktop;
         #Aliases
         strFile += "\n# AZOrange canvas alias\n"
         if shellType == SHELL_TYPE_BASH:
-            strFile += "alias azorange='python " + os.path.join("$AZORANGEHOME", "orange", "OrangeCanvas", "orngCanvas.pyw") + "'\n"
+            strFile += "alias azorange='python " + os.path.join("$AZORANGEHOME", "Orange", "OrangeCanvas", "orngCanvas.pyw") + "'\n"
         else:
-            strFile += "alias azorange python " + os.path.join("$AZORANGEHOME", "orange", "OrangeCanvas", "orngCanvas.pyw") + "\n"
+            strFile += "alias azorange python " + os.path.join("$AZORANGEHOME", "Orange", "OrangeCanvas", "orngCanvas.pyw") + "\n"
         #Modules
         if eval(self.modules):
             strFile += "\n# AZOrange module dependencies\n"

@@ -249,7 +249,9 @@ class Installer:
             
             raise Exception("Invalid platform.")
 
-        self.orangeDir = os.path.join(self.buildDir,"orange")
+        self.orangeDir = os.path.join(self.buildDir,"Orange")
+        self.orangeInstallDir = os.path.join(self.installDir)   # It will add /Orange
+        self.orangeSrcDir = os.path.join(self.buildDir,"orangeDependencies/src/Orange")
         self.azorangeDir = os.path.join(self.buildDir,"azorange")
         self.orngCRSDir = os.path.join(self.buildDir,"orangeDependencies/src/orngCRS")
         self.mpichDir = os.path.join(self.buildDir,"orangeDependencies/src/mpich-1.2.7p1")
@@ -288,25 +290,27 @@ class Installer:
         print "InstallPythonLayer"
         # Set the python path and install the python layer
         #setupFile = os.path.join(self.orangeDir,"setup.py")
-        os.chdir(self.orangeDir)
-        try:
-            os.system("python setup.py install --orangepath="+self.installDir)
-        except:
-            print "Error installing the orange in the installation directory."
-            sys.exit(1)
-        try:
-            os.remove(os.path.join(self.installDir,"orange","liborange.so"))
-        except:
-            print "Unable to remove orange/liborange.so"
-        savedCwd = os.getcwd()
-        try:
-            os.chdir(os.path.join(self.installDir, "orange"))
-            os.symlink("orange.so", "liborange.so")
-        except:
-            print "Failed to link liborange.so"
-            sys.exit(1)
-        os.chdir(savedCwd)
+        
+        # Remove old link liborange.so
+        commands.getstatusoutput("rm -f "+os.path.join(self.orangeInstallDir, "Orange", "liborange.so"))
 
+        #Install now orange in its destination dir
+        installCMD = 'python setup.py install --install-base "'+self.orangeInstallDir+\
+                                           '" --install-platbase "'+self.orangeInstallDir+\
+                                           '" --install-lib "'+self.orangeInstallDir+\
+                                           '" --install-headers "'+self.orangeInstallDir+\
+                                           '" --install-scripts "'+self.orangeInstallDir+\
+                                           '" --install-data "'+self.orangeInstallDir+'"'
+        os.chdir(self.orangeSrcDir)
+        # will install in self.orangeInstallDir/Orange
+        stat, out = commands.getstatusoutput(installCMD)
+        checkStatus(stat, out,"Error installing orange orange.")
+        self.__prependEnvVar("PYTHONPATH", self.orangeInstallDir)
+        self.__prependEnvVar("PYTHONPATH", os.path.join(self.orangeInstallDir,"Orange/orng"))
+        self.__prependEnvVar("LD_LIBRARY_PATH", self.orangeInstallDir)
+        self.__prependEnvVar("LD_LIBRARY_PATH",  os.path.join(self.orangeInstallDir,"Orange/orng"))
+
+        os.chdir(self.orangeDir)
         # Also copy the shared libraries that were built separately.
         #print "Copying c45.so and _orngCRS.so to installation directory."
         #try:
@@ -330,8 +334,8 @@ class Installer:
             sumStatus += os.system("cp -Rf ../azorange/bin %s/azorange/." % self.installDir)
             sumStatus += os.system("cp -Rf ../doc %s/." % self.installDir)
             sumStatus += os.system("cp -Rf ../azorange/documentation %s/azorange/." % self.installDir)
-            #Copy missing from orange install script.
-            sumStatus += os.system("cp -Rf ../orange/Orange %s/orange/." % self.installDir)
+            #Copy missing from orange install script. TODO
+            #sumStatus += os.system("cp -Rf ../orange/Orange " + os.path.join(self.orangeInstallDir, ".") )
 
             if self.openInstall:
                 sumStatus += os.system("cp -Rf ../COPYING* %s/." % self.installDir)
@@ -590,22 +594,14 @@ class Installer:
         
 
     def compileOrange(self):
-        # Orange is being compiled three times because there is something wrong with how the dependencies and the entire orange make procedure is set up.
         print "CompileOrange"
-        os.chdir(self.orangeDir)
-        stat=1
-        c=0
-        stat, out = commands.getstatusoutput("python setup.py compile")
-        #while stat and c<10:
-        #    print "Running orange setup.py ... try " + str(c+1)
-        #    stat, out = commands.getstatusoutput("python setup.py compile")
-        #    c=c+1
+        os.chdir(self.orangeSrcDir)
+        stat, out = commands.getstatusoutput("python setup.py build")
+        checkStatus(stat, out,"Error building orange.")
+        #install in the current build Structure to be used by other software on build if needed
+        stat, out = commands.getstatusoutput('python setup.py install --prefix "'+self.orangeDir+'"')
+        checkStatus(stat, out,"Error installing orange in build dir.")
 
-        # checkStatus(stat, out,"Error compiling orange.") Can't check
-        # error here since there is one due to the faulty make
-        # procedure..
-        #stat, out = commands.getstatusoutput("python setup.py compile")
-        checkStatus(stat, out,"Error compiling orange.")
 
 
     def compileOrngCRS(self):

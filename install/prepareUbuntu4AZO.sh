@@ -20,6 +20,9 @@ sudo apt-get install -y python-qwt5-qt4
 sudo apt-get install -y git-core gitosis
 sudo apt-get install -y subversion
 sudo apt-get install -y git-core gitosis
+sudo apt-get install -y mercurial
+# hg clone ssh://hg@bitbucket.org/biolab/orange
+# hg clone https://bitbucket.org/biolab/orange
 
 # ==========  Needed by cinfony ===========
 #Openbabel
