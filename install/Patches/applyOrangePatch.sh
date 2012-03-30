@@ -28,14 +28,14 @@ if [ ! -d $patchDir/source ]
   exit 1
 fi
 
-if [ ! -d $patchDir/OrangeCanvas ]
+if [ ! -d $patchDir/Orange/OrangeCanvas ]
   then
   echo "The Directory specified does not correspond to an orange2.0 structure:"
   echo "$patchDir/OrangeCanvas is not a valid Directory!"
   exit 1
 fi
 
-if [ ! -d $patchDir/OrangeWidgets ]
+if [ ! -d $patchDir/Orange/OrangeWidgets ]
   then
   echo "The Directory specified does not correspond to an orange2.0 structure:"
   echo "$patchDir/OrangeWidgets is not a valid Directory!"
