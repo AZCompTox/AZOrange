@@ -305,9 +305,9 @@ class Installer:
         # will install in self.orangeInstallDir/Orange
         stat, out = commands.getstatusoutput(installCMD)
         checkStatus(stat, out,"Error installing orange orange.")
-        self.__prependEnvVar("PYTHONPATH", self.orangeInstallDir)
+        self.__prependEnvVar("PYTHONPATH", self.orangeInstallDir+"/")
         self.__prependEnvVar("PYTHONPATH", os.path.join(self.orangeInstallDir,"Orange/orng"))
-        self.__prependEnvVar("LD_LIBRARY_PATH", self.orangeInstallDir)
+        self.__prependEnvVar("LD_LIBRARY_PATH", self.orangeInstallDir+"/")
         self.__prependEnvVar("LD_LIBRARY_PATH",  os.path.join(self.orangeInstallDir,"Orange/orng"))
 
         os.chdir(self.orangeDir)
