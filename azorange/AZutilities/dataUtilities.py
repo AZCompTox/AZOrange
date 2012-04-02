@@ -1521,6 +1521,26 @@ def horizontalMerge(dataAin, dataBin, varAin, varBin):
     return etAB
 
 
+def attributeAddData(data, attributeList, attrType, defaultValue = '?'):
+    """Adds attributes passed in attributeList into data of type attrType (ex: orange.FloatVariable)
+       if defaultValue is set, it will bw assigned to all attrs in attributeList for all examples
+        returns new dataset
+    """
+    newDomainList = [attr for attr in data.domain.attributes] +\
+                    [attrType(name) for name in attributeList if name not in data.domain] 
+    newDomain = orange.Domain(newDomainList, data.domain.classVar)
+    #Handle the Meta Attributes
+    for attrID in data.domain.getmetas():
+        if string.strip(data.domain[attrID].name) not in attributeList:
+                newDomain.addmeta(attrID,data.domain[attrID])
+    outData = data.select(newDomain)
+    if defaultValue != "?":
+        for ex in outData:
+            for attr in attributeList:
+                ex[attr] = defaultValue
+    return outData
+
+
 
 def attributeDeselectionData(data, attributeList):
     """Deselects the attributes passed in attributeList from data"""
