@@ -24,8 +24,8 @@ STRUCTCLUSTDIR = os.path.join(os.environ["AZORANGEHOME"], "orangeDependencies/st
 # Configurable parameters that can be overwriten by AZOrangeExtraConfig.py
 #cinfonyToolkits = ["cdk","rdk","obabel","webel"]        # NOT so stable!!
 #cinfonyToolkits = ["rdk","obabel","webel"]              # Testing Stability!!
-#cinfonyToolkits = ["rdk","webel"]
-cinfonyToolkits = ["rdk"]
+cinfonyToolkits = ["rdk","webel"]
+#cinfonyToolkits = ["rdk"]
 OWParamOptExecEnvs = [("Local serial", 0)]
  
 
