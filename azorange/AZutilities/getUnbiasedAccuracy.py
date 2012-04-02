@@ -386,6 +386,7 @@ class UnbiasedAccuracyGetter():
                     if self.responseType == "Classification":
                         CLASS0 = str(self.data.domain.classVar.values[0])
                         CLASS1 = str(self.data.domain.classVar.values[1])
+                        # exprTest0
                         exprTest0 = "(0"
                         for ml in consensusMLs:
                             exprTest0 += "+( "+ml+" == "+CLASS0+" )*"+str(optAcc[ml][foldN])+" "
@@ -393,7 +394,15 @@ class UnbiasedAccuracyGetter():
                         for ml in consensusMLs:
                             exprTest0 += ", "+ml+" == "+CLASS0+" "
                         exprTest0 += "]),1)"
-                        exprTest1 = exprTest0.replace(CLASS0,CLASS1)
+                        # exprTest1
+                        exprTest1 = "(0"
+                        for ml in consensusMLs:
+                            exprTest1 += "+( "+ml+" == "+CLASS1+" )*"+str(optAcc[ml][foldN])+" "
+                        exprTest1 += ")/IF0(sum([False"
+                        for ml in consensusMLs:
+                            exprTest1 += ", "+ml+" == "+CLASS1+" "
+                        exprTest1 += "]),1)"
+                        # Expression
                         expression = [exprTest0+" >= "+exprTest1+" -> "+CLASS0," -> "+CLASS1]
                     else:
                         Q2sum = sum([optAcc[ml][foldN] for ml in consensusMLs])

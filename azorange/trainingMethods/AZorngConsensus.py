@@ -360,9 +360,11 @@ class ConsensusClassifier(AZBaseClasses.AZClassifier):
                             break
                     except SyntaxError, (errno, strerror):
                         print "Syntax Error!\n Learner names must be isolated with spaces for ex. use ( RF == SVM ) and not (RF==SVM).\nCheck your custom logical expression: ", strerror
+                        print "Actual expression: "+str(self.expression)
                         return None
                     except Exception:#, (errno, strerror):
                         print "Exception: Check your custom logical expression.\n Learner names must be isolated with spaces for ex. use ( RF == SVM ) and not (RF==SVM)."
+                        print "Actual expression: "+str(self.expression)
                         return None
 
                 self._isRealProb = False
