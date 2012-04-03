@@ -319,7 +319,7 @@ class AZOrangePredictor:
                 # Cinfony
                 if cinfonyDesc:
                     print "Calculating Cinfony desc..."
-                    self.smilesData = getCinfonyDesc.getCinfonyDescResults(self.smilesData, cinfonyDesc)
+                    self.smilesData = getCinfonyDesc.getCinfonyDescResults(self.smilesData, cinfonyDesc, radius = 5)
 
                 # bbrcDesc
                 if "bbrc" in DescMethodsAvailable and bbrcDesc:
