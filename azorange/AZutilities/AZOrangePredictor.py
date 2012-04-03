@@ -256,7 +256,7 @@ class AZOrangePredictor:
         """When only CLab descriptors are present. """
 
         # Create an Orange ExampleTable with a smiles attribute
-        smilesAttr = orange.EnumVariable("SMILEStoPred", values = [smiles])
+        smilesAttr = orange.StringVariable("SMILEStoPred", values = [smiles])
         myDomain = orange.Domain([smilesAttr], 0)
         self.smilesData = dataUtilities.DataTable(myDomain, [[smiles]])
 
