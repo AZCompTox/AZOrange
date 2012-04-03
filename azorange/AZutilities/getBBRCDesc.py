@@ -210,7 +210,7 @@ def getSMARTSrecalcDesc(data, smarts):
     return newdata
 
 
-def getStructuralDescResult(dataIN, algo = "FTM", minSupPar = 2, ChisqSig = None, active = None, verbose = 0, descList = []):
+def getBBRCDescResult(dataIN, algo = "FTM", minSupPar = 2, ChisqSig = None, active = None, verbose = 0, descList = []):
     """ delegate to different algorithm methods 
     """
     if not descList:
@@ -257,8 +257,8 @@ def getStructuralDescResult(dataIN, algo = "FTM", minSupPar = 2, ChisqSig = None
         desAttrs = [attr for attr in newAttrs if attr not in descList]
     else:
         desAttrs = []
-    print "Structural descriptors requested: "+str(len(descList) or  "ALL")
-    print "Structural descriptors returned: "+str(len(newAttrs)-len(desAttrs))
+    print "BBRC descriptors requested: "+str(len(descList) or  "ALL")
+    print "BBRC descriptors returned: "+str(len(newAttrs)-len(desAttrs))
     if desAttrs:
         outData = dataUtilities.attributeDeselectionData(outData, desAttrs)
     unknownAttrs = [attr for attr in descList if attr not in outData.domain]
@@ -276,7 +276,7 @@ if __name__=="__main__":
     algoPar = "FTM"#"BBRC"
     minSupPar = 6
     dl = None
-    outData = getStructuralDescResult(dataIN,algoPar,minSupPar, ChisqSig = None ,verbose = 1, descList = dl)
+    outData = getBBRCDescResult(dataIN,algoPar,minSupPar, ChisqSig = None ,verbose = 1, descList = dl)
     if not outData:
         print "Could not get BBRC descriptors!"
     else:
