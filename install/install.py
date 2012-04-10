@@ -786,6 +786,8 @@ application/xml=AZOrange.desktop;
                 self.addLog("*Checking out from orange bitbucket to trunk ("+URL+":"+REV+")")
                 #os.chdir(os.path.join(self.trunkDir,"orange"))
                 self.__logAndExecute("hg clone " + URL + " ./Orange")
+                os.chdir("Orange")
+                self.__logAndExecute("hg update " + REV)
         else:
                 self.addLog("*Extracting orange from " + URL)
                 self.__logAndExecute("tar xfz " + os.path.split(URL)[-1])
