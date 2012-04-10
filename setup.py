@@ -253,9 +253,9 @@ class Installer:
             
             raise Exception("Invalid platform.")
 
-        self.orangeDir = os.path.join(self.buildDir,"Orange")
-        self.orangeInstallDir = os.path.join(self.installDir)   # It will add /Orange
-        self.orangeSrcDir = os.path.join(self.buildDir,"orangeDependencies/src/Orange")
+        self.orangeDir = os.path.join(self.buildDir,"orange") # will be Orange in later revision!
+        self.orangeInstallDir = os.path.join(self.installDir)   #It will add orange. In a latter revision it will add /Orange
+        self.orangeSrcDir = os.path.join(self.buildDir,"orangeDependencies/src/orange") # will be Orange in later revision!
         self.azorangeDir = os.path.join(self.buildDir,"azorange")
         self.orngCRSDir = os.path.join(self.buildDir,"orangeDependencies/src/orngCRS")
         self.mpichDir = os.path.join(self.buildDir,"orangeDependencies/src/mpich-1.2.7p1")
@@ -297,7 +297,7 @@ class Installer:
         #setupFile = os.path.join(self.orangeDir,"setup.py")
         
         # Remove old link liborange.so
-        commands.getstatusoutput("rm -f "+os.path.join(self.orangeInstallDir, "Orange", "liborange.so"))
+        commands.getstatusoutput("rm -f "+os.path.join(self.orangeInstallDir, "orange", "liborange.so")) # will be Orange in later revision! 
 
         #Install now orange in its destination dir
         installCMD = 'python setup.py install --install-base "'+self.orangeInstallDir+\
@@ -307,18 +307,18 @@ class Installer:
                                            '" --install-scripts "'+self.orangeInstallDir+\
                                            '" --install-data "'+self.orangeInstallDir+'"'
         os.chdir(self.orangeSrcDir)
-        # will install in self.orangeInstallDir/Orange
+        # will install in self.orangeInstallDir/orange # will be Orange in later revision!
         stat, out = commands.getstatusoutput(installCMD)
         checkStatus(stat, out,"Error installing orange orange.")
         self.__prependEnvVar("PYTHONPATH", self.orangeInstallDir+"/")
-        self.__prependEnvVar("PYTHONPATH", os.path.join(self.orangeInstallDir,"Orange/orng"))
+        self.__prependEnvVar("PYTHONPATH", os.path.join(self.orangeInstallDir,"orange/orng")) # will be Orange in later revision!
         self.__prependEnvVar("LD_LIBRARY_PATH", self.orangeInstallDir+"/")
-        self.__prependEnvVar("LD_LIBRARY_PATH",  os.path.join(self.orangeInstallDir,"Orange/orng"))
+        self.__prependEnvVar("LD_LIBRARY_PATH",  os.path.join(self.orangeInstallDir,"orange/orng")) # will be Orange in later revision!
 
         # Check that liborange.so link was created
-        if not os.path.isfile(os.path.join(self.orangeInstallDir, "Orange", "liborange.so")):
+        if not os.path.isfile(os.path.join(self.orangeInstallDir, "orange", "liborange.so")): # will be Orange in later revision!
             print "Missing link liborange.so -> orange.so. Creating it..."
-            os.symlink(os.path.join(self.orangeInstallDir, "Orange", "orange.so"), os.path.join(self.orangeInstallDir, "Orange", "liborange.so"))
+            os.symlink(os.path.join(self.orangeInstallDir, "orange", "orange.so"), os.path.join(self.orangeInstallDir, "orange", "liborange.so")) # will be Orange in later revision!
 
         os.chdir(self.orangeDir)
         # Also copy the shared libraries that were built separately.
