@@ -6,6 +6,7 @@ import os
 import time
 import commands
 import random
+from cinfony import rdk
 from opencv import ml
 from opencv import cv
 import AZOrangeConfig as AZOC
@@ -37,6 +38,40 @@ def getSMILESAttr(data):
         if attr.lower() in [a.lower() for a in AZOC.SMILESNAMES]:
             smilesName = attr
     return smilesName
+
+
+def makeTempSDF(data, smilesAsName=None):
+        """     create temporary SFD file for usage with, e.g., structural clustering or other integrated algorithms
+                that need SDF input.
+                returns a file object that still has to be closed!
+        """
+        smilesName = getSMILESAttr(data)
+        if not smilesName: return None
+
+        sdf_molsName = miscUtilities.generateUniqueFile(desc = "tempSDF", ext = "sdf")
+        sdf_mols = open(sdf_molsName,"w+b")
+        # write structures in sdf format to this file
+        count = 0
+        w = rdk.Chem.SDWriter(sdf_molsName)
+        #w = rdk.Chem.SDWriter('testftm.sdf')
+        count_mols = 0
+        for a in data:
+            smile = str(a[smilesName].value)
+            m = rdk.Chem.MolFromSmiles(smile)
+            if m is None:
+                count += 1
+                #print "ALERT"
+                continue
+            if (smilesAsName):
+                # set smiles as molname (just to have any name) 
+                m.SetProp("_Name", smile)
+            w.write(m)
+
+            count_mols+=1
+        #print "Number of molecules that could not be read: ", count
+        #print "Number of molecules read: ", count_mols
+        sdf_mols.close()
+        return sdf_molsName
 
 
 def SeedDataSampler(data, nFolds):
@@ -1484,6 +1519,26 @@ def horizontalMerge(dataAin, dataBin, varAin, varBin):
         etAB.domain[classVarName+ClassTag].name = classVarName
     etAB.name = "%(nameA)s (merged with %(nameB)s)" % vars()
     return etAB
+
+
+def attributeAddData(data, attributeList, attrType, defaultValue = '?'):
+    """Adds attributes passed in attributeList into data of type attrType (ex: orange.FloatVariable)
+       if defaultValue is set, it will bw assigned to all attrs in attributeList for all examples
+        returns new dataset
+    """
+    newDomainList = [attr for attr in data.domain.attributes] +\
+                    [attrType(name) for name in attributeList if name not in data.domain] 
+    newDomain = orange.Domain(newDomainList, data.domain.classVar)
+    #Handle the Meta Attributes
+    for attrID in data.domain.getmetas():
+        if string.strip(data.domain[attrID].name) not in attributeList:
+                newDomain.addmeta(attrID,data.domain[attrID])
+    outData = data.select(newDomain)
+    if defaultValue != "?":
+        for ex in outData:
+            for attr in attributeList:
+                ex[attr] = defaultValue
+    return outData
 
 
 

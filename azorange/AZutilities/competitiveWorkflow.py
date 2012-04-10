@@ -122,6 +122,7 @@ def buildConsensus(trainData, learners, MLMethods, logFile = None):
             #    where CAavg_{POS} is the average of classification accuracies of all models predicting POS.
             CLASS0 = str(trainData.domain.classVar.values[0])
             CLASS1 = str(trainData.domain.classVar.values[1])
+            #exprTest0
             exprTest0 = "(0"
             for ml in MLMethods:
                 exprTest0 += "+( "+ml+" == "+CLASS0+" )*"+str(MLMethods[ml]["optAcc"])+" "
@@ -129,7 +130,15 @@ def buildConsensus(trainData, learners, MLMethods, logFile = None):
             for ml in MLMethods:
                 exprTest0 += ", "+ml+" == "+CLASS0+" "
             exprTest0 += "]),1)"
-            exprTest1 = exprTest0.replace(CLASS0,CLASS1)
+            # exprTest1
+            exprTest1 = "(0"
+            for ml in MLMethods:
+                exprTest1 += "+( "+ml+" == "+CLASS1+" )*"+str(MLMethods[ml]["optAcc"])+" "
+            exprTest1 += ")/IF0(sum([False"
+            for ml in MLMethods:
+                exprTest1 += ", "+ml+" == "+CLASS1+" "
+            exprTest1 += "]),1)"
+            # expression
             expression = [exprTest0+" >= "+exprTest1+" -> "+CLASS0," -> "+CLASS1]
         else:
             Q2sum = sum([MLMethods[ml]["optAcc"] for ml in MLMethods])

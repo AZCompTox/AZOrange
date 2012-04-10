@@ -84,6 +84,7 @@ class Installer:
         self.rdkitDir = None
         self.cdkDir = None
         self.ftmDir = None
+        self.structClustDir = None
         self.fminerDir = None
         self.plearnDir = None
         self.R8Dir = None
@@ -168,6 +169,9 @@ class Installer:
         
         # Compile fminer 
         self.compileFMINER()
+
+        # Compile structClust
+        self.compileStructClust()
 
         # Compile ftm
         self.compileFTM()
@@ -265,6 +269,7 @@ class Installer:
         self.rdkitDir = os.path.join(self.buildDir,"orangeDependencies/src/rdkit")
         self.cdkDir = os.path.join(self.buildDir,"orangeDependencies/src/cdk")
         self.ftmDir = os.path.join(self.buildDir,"orangeDependencies/src/ftm")
+        self.structClustDir = os.path.join(self.buildDir,"orangeDependencies/src/structuralClustering")
         self.fminerDir = os.path.join(self.buildDir,"orangeDependencies/src/fminer")
         self.plearnDir = os.path.join(self.buildDir,"orangeDependencies/src/plearn")
         self.ctoolsDir = os.path.join(self.buildDir,"orangeDependencies/src/Ctools")
@@ -479,6 +484,33 @@ class Installer:
         self.__prependEnvVar("JPYPE_JVM" , libjvm)
         self.__prependEnvVar("CLASSPATH" , CDKJar)
            
+
+    def compileStructClust(self):
+        if ("clustering" not in self.dependencies):
+            print "Not using the local structural clustering"
+            return
+        structClustinstallDir = os.path.join(self.orangeDependenciesDir,"structuralClustering")  
+        if self.dependencies["clustering"]:   #compile and install
+                # The source Dir will have to be available at running time
+                print "Copying clustering dir to orangeDependencies"
+                stat, out = commands.getstatusoutput("rm -rf " + structClustinstallDir)
+                stat, out = commands.getstatusoutput("cp -R " + self.structClustDir+ " " + structClustinstallDir)
+                checkStatus(stat, out, "Error copying the structural clustering")
+                # compile gSpan
+# gspanpp        g++ -o gspan3 -O2 gspan_all_BB.cpp -Iivy_mike/src/
+# gSpan                gcc -O2 min.c computeSymm.c gSpan.c biconn.c preprocessDB2.c -o gSpan
+                os.chdir(os.path.join(structClustinstallDir, "gSpan/gspanpp"))
+                stat, out = commands.getstatusoutput("g++ -o gspan3 -O2 gspan_all_BB.cpp -Iivy_mike/src/")
+                checkStatus(stat, out, "Error compiling gspan3")
+        
+                os.chdir(os.path.join(structClustinstallDir, "gSpan/gSpan/FeatureVector_nodes"))
+                stat, out = commands.getstatusoutput("gcc -O2 min.c computeSymm.c gSpan.c biconn.c preprocessDB2.c -o gSpan")
+                checkStatus(stat, out, "Error compiling gSpan")
+        else:
+                print "Not reinstalled"
+
+
+
     def compileFTM(self):
         if ("ftm" not in self.dependencies):
             print "Not using the local ftm"

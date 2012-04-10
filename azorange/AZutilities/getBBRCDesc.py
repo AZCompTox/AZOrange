@@ -27,7 +27,7 @@ class BBRC(object):
         self.ChisqSig = None          # default is -1.0 but cannot assign -1.0 !
         # if the temporal dataSet is specifyed, p=0 f=1
         self.data = None
-        self.active = "POS"  # Only available for Classification
+        self.active = None  # Only available for Classification
         # Constructor parameters:
         #fminer_lazar
         #fminer_smarts
@@ -44,8 +44,8 @@ class BBRC(object):
         #FMINER_NR_HITS : Display (in the occurrence lists) the number of times each fragment occurs in a molecule.
 
         try:
-            #                          lazar    smarts    pvalue    no_aromatic_wc    silent   
-            self.MyFminer = bbrc.Bbrc( True,    True,     False,    False,            not bool(self.verbose),    True)
+            #                          lazar    smarts    pvalue    no_aromatic_wc    silent   fminer_nr_hits  
+            self.MyFminer = bbrc.Bbrc( True,    True,     False,    False,            0,       True)
         except:
             #FallBack to default constructor. Env vars must be already set: FMINER_LAZAR 1; FMINER_SMARTS 1; FMINER_PVALUES 0
             self.MyFminer = bbrc.Bbrc()
@@ -68,13 +68,16 @@ class BBRC(object):
         if not self.data:
             print "ERROR: Data must be loaded first!"
             return None
-        if self.active not in self.data.domain.classVar.values:
+        if self.active and self.active not in self.data.domain.classVar.values:
             print "ERROR: '"+str(self.active)+"' is not part of the class values!"
             return None
 
         smilesName = dataUtilities.getSMILESAttr(self.data)
+        print "SMILES attr detected: ",smilesName
         for idx,ex in enumerate(self.data):
-            if ex.getclass().value == self.active:
+            if not self.active:
+                activity = 0    #It is unknown 
+            elif ex.getclass().value == self.active:
                 activity = 1 
             else:
                 activity = 0
@@ -109,9 +112,8 @@ class BBRC(object):
         desAttr = []
         selDesc = [x for x in allDesc]
         newDomainAttrs = [attr for attr in self.data.domain.attributes] + \
-                         [orange.FloatVariable(name) for name in selDesc] + \
-                         [self.data.domain.classVar]
-        newDomain = orange.Domain(newDomainAttrs)
+                         [orange.FloatVariable(name) for name in selDesc] 
+        newDomain = orange.Domain(newDomainAttrs, self.data.domain.classVar)
         if self.verbose: 
             print "Original domain lenght: ",len(self.data.domain)
             print "New domain lenght     : ",len(newDomain)
@@ -208,14 +210,20 @@ def getSMARTSrecalcDesc(data, smarts):
     return newdata
 
 
-def getStructuralDescResult(dataIN, algo, minSupPar, ChisqSig = None, active = None, verbose = 0):
+def getBBRCDescResult(dataIN, algo = "FTM", minSupPar = 2, ChisqSig = None, active = None, verbose = 0, descList = []):
     """ delegate to different algorithm methods 
     """
+    if not descList:
+        descList = []
+    outData = None
     if active is not None:
         activeLabel = active
     else:
-        activeLabel = dataIN.domain.classVar.values[0]   # For BBRC the active class can be any since it will only use the "count"
-
+        if dataIN.domain.classVar:
+            activeLabel = dataIN.domain.classVar.values[0]   # For BBRC the active class can be any since it will only use the "count"
+        else:
+            activeLabel = None
+            
     if (algo == "FTM"):              # Using BBRC without class correlation
         BBRCCalc = BBRC(verbose = verbose)
         BBRCCalc.minsup = minSupPar
@@ -225,7 +233,7 @@ def getStructuralDescResult(dataIN, algo, minSupPar, ChisqSig = None, active = N
         BBRCCalc.ChisqSig = 0.0
         BBRCCalc.Backbone = False
 
-        return BBRCCalc.getDesc(dataIN)
+        outData = BBRCCalc.getDesc(dataIN)
     elif (algo == "BBRC"):
         BBRCCalc = BBRC(verbose = verbose)
         BBRCCalc.minsup = minSupPar
@@ -237,26 +245,43 @@ def getStructuralDescResult(dataIN, algo, minSupPar, ChisqSig = None, active = N
             BBRCCalc.ChisqSig = ChisqSig
         else:
             BBRCCalc.ChisqSig = 0.95
-        return BBRCCalc.getDesc(dataIN)
+        outData = BBRCCalc.getDesc(dataIN)
     elif (algo == "LAST-PM"):
-        return getFMinerDescResult(data,minsup,algo)
+        outData = getFMinerDescResult(data,minsup,algo)
     else:
-        print "Algorithm "+algo+" is unknown!"
-
-
+        print "Algorithm "+str(algo)+" is unknown!"
+    if not outData:
+        return None
+    newAttrs = [attr.name for attr in outData.domain if attr.name not in dataIN.domain]
+    if descList:
+        desAttrs = [attr for attr in newAttrs if attr not in descList]
+    else:
+        desAttrs = []
+    print "BBRC descriptors requested: "+str(len(descList) or  "ALL")
+    print "BBRC descriptors returned: "+str(len(newAttrs)-len(desAttrs))
+    if desAttrs:
+        outData = dataUtilities.attributeDeselectionData(outData, desAttrs)
+    unknownAttrs = [attr for attr in descList if attr not in outData.domain]
+    print "Attributes not found among the structural descriptors: ",len(unknownAttrs)," (set to 0.0)"
+    outData = dataUtilities.attributeAddData(outData, unknownAttrs, orange.FloatVariable, 0.0)
+    return outData
 
 
 if __name__=="__main__":
     #logging.basicConfig(level=logging.DEBUG)
     log.setLevel(logging.DEBUG)
-    dataIN =  dataUtilities.DataTable("./testSMILES.tab")
-    algoPar = "BBRC"
-    minSupPar = 4 
-    outData = getStructuralDescResult(dataIN,algoPar,minSupPar, ChisqSig = None ,verbose = 1)
+    dataPath = os.path.join(os.environ["AZORANGEHOME"],"tests/source/data/QSAR_10mols.tab")
+    #dataPath = "/home/palmeida/RDK_RF.tab"
+    dataIN =  dataUtilities.DataTable(dataPath)
+    algoPar = "FTM"#"BBRC"
+    minSupPar = 6
+    dl = None
+    outData = getBBRCDescResult(dataIN,algoPar,minSupPar, ChisqSig = None ,verbose = 1, descList = dl)
     if not outData:
         print "Could not get BBRC descriptors!"
     else:
         outData.save("./outBBRC.tab")
+        print "OK!"
 
 
 

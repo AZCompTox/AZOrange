@@ -53,7 +53,8 @@ class evalUtilitiesTest(unittest.TestCase):
         for d in desc:
             if desc[d] != desc[d]:
                 desc[d] = '?'
-        expectedDesc = {'HBA1': 0.0, 'HBD': 0.0, 'HBA2': 0.0}
+        #expectedDesc = {'HBA1': 0.0, 'HBD': 0.0, 'HBA2': 0.0}
+        expectedDesc = {'abonds': 0.0, 'atoms': 3.0, 'bonds': 2.0}
         self.assertEqual(desc,expectedDesc)
 
     def test_RDKit(self):
