@@ -316,7 +316,7 @@ class Installer:
         self.__prependEnvVar("LD_LIBRARY_PATH",  os.path.join(self.orangeInstallDir,"Orange/orng"))
 
         # Check that liborange.so link was created
-        if not os.path.isfile(os.path.join(self.orangeInstallDir, "Orange", "liborange.so"):
+        if not os.path.isfile(os.path.join(self.orangeInstallDir, "Orange", "liborange.so")):
             print "Missing link liborange.so -> orange.so. Creating it..."
             os.symlink(os.path.join(self.orangeInstallDir, "Orange", "orange.so"), os.path.join(self.orangeInstallDir, "Orange", "liborange.so"))
 
