@@ -316,10 +316,12 @@ class Installer:
         self.__prependEnvVar("LD_LIBRARY_PATH",  os.path.join(self.orangeInstallDir,"orange/orng")) # will be Orange in later revision!
 
         # Check that liborange.so link was created
-        #if not os.path.isfile(os.path.join(self.orangeInstallDir, "orange", "liborange.so")): # will be Orange in later revision!
-        #    print "Missing link liborange.so -> orange.so. Creating it..."
+        if not os.path.isfile(os.path.join(self.orangeInstallDir, "orange", "liborange.so")): # will be Orange in later revision!
+            print "WARNING: Missing link liborange.so -> orange.so"
         #    os.symlink(os.path.join(self.orangeInstallDir, "orange", "orange.so"), os.path.join(self.orangeInstallDir, "orange", "liborange.so")) # will be Orange in later revision!
 
+        # Recover any git replaced files from the orange installation
+        commands.getstatusoutput("cp -Rf "+os.path.join(self.buildDir,"orange")+" "+self.orangeInstallDir)
         os.chdir(self.orangeDir)
         # Also copy the shared libraries that were built separately.
         #print "Copying c45.so and _orngCRS.so to installation directory."
