@@ -833,14 +833,14 @@ application/xml=AZOrange.desktop;
 
         #self.__logAndExecute("rm -rf " + os.path.join(self.trunkDir,"orange/*"))
         #This command may have some failures, but it's no problem. We just want to delete if there is something to delete!
-        self.__logAndExecute("mkdir -p " + os.path.join(self.trunkDir,"Orange"))
-        self.__logAndExecute("rm -rf " + os.path.join(self.DepSrcDir,"Orange"))
+        self.__logAndExecute("mkdir -p " + os.path.join(self.trunkDir,"orange"))
+        self.__logAndExecute("rm -rf " + os.path.join(self.DepSrcDir,"orange"))
         os.chdir(self.DepSrcDir)
         if self.openInstallation:
                 self.addLog("*Checking out from orange bitbucket to trunk ("+URL+":"+REV+")")
                 #os.chdir(os.path.join(self.trunkDir,"orange"))
-                self.__logAndExecute("hg clone " + URL + " ./Orange")
-                os.chdir("Orange")
+                self.__logAndExecute("hg clone " + URL + " ./orange")
+                os.chdir("orange")
                 self.__logAndExecute("hg update " + REV)
         else:
                 self.addLog("*Extracting orange from " + URL)
@@ -850,7 +850,7 @@ application/xml=AZOrange.desktop;
         # Apply Patch
         self.addLog("#Applying Patch...")
         os.chdir(os.path.join(self.currentDir,"Patches"))
-        status,out = commands.getstatusoutput("./applyOrangePatch.sh %s" % (os.path.join(self.DepSrcDir,"Orange")))
+        status,out = commands.getstatusoutput("./applyOrangePatch.sh %s" % (os.path.join(self.DepSrcDir,"orange")))
         if status != 0:
             self.addLog("#WARNING: Patch was not properly applied. It might be that it has been already applied.")
             self.addLog("#         Please check the next details.")
@@ -1155,7 +1155,7 @@ application/xml=AZOrange.desktop;
 
         #  LD_LIBRARY_PATH  space separated paths in tcsh!!
         #LD_LIBPaths = [localVars["installDir"]+"/orange", localVars["installDir"]+"/orangeDependencies/bin"]
-        LD_LIBPaths = [os.path.join("$AZORANGEHOME", "Orange")]
+        LD_LIBPaths = [os.path.join("$AZORANGEHOME", "orange")]
         if "LD_LIBRARY_PATH" in self.EnvVars:
             for value in self.EnvVars["LD_LIBRARY_PATH"]:
                 if value not in LD_LIBPaths: LD_LIBPaths.insert(0,value)
@@ -1186,7 +1186,7 @@ application/xml=AZOrange.desktop;
                 if value not in PATHPaths: PATHPaths.insert(0,value)
         self.EnvVars["PATH"] = PATHPaths
         #  PYTHONPATH
-        pythonPaths = [".",os.path.join("$AZORANGEHOME", "Orange"), os.path.join("$AZORANGEHOME", "azorange"), os.path.join("$AZORANGEHOME", "tests")]
+        pythonPaths = [".",os.path.join("$AZORANGEHOME", "orange"), os.path.join("$AZORANGEHOME", "azorange"), os.path.join("$AZORANGEHOME", "tests")]
         if "PYTHONPATH" in self.EnvVars:      
             for value in self.EnvVars["PYTHONPATH"]:
                 if value not in pythonPaths: pythonPaths.insert(0,value)
@@ -1223,9 +1223,9 @@ application/xml=AZOrange.desktop;
         #Aliases
         strFile += "\n# AZOrange canvas alias\n"
         if shellType == SHELL_TYPE_BASH:
-            strFile += "alias azorange='python " + os.path.join("$AZORANGEHOME", "Orange", "OrangeCanvas", "orngCanvas.pyw") + "'\n"
+            strFile += "alias azorange='python " + os.path.join("$AZORANGEHOME", "orange", "OrangeCanvas", "orngCanvas.pyw") + "'\n"
         else:
-            strFile += "alias azorange python " + os.path.join("$AZORANGEHOME", "Orange", "OrangeCanvas", "orngCanvas.pyw") + "\n"
+            strFile += "alias azorange python " + os.path.join("$AZORANGEHOME", "orange", "OrangeCanvas", "orngCanvas.pyw") + "\n"
         #Modules
         if eval(self.modules):
             strFile += "\n# AZOrange module dependencies\n"

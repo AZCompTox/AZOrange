@@ -316,9 +316,9 @@ class Installer:
         self.__prependEnvVar("LD_LIBRARY_PATH",  os.path.join(self.orangeInstallDir,"orange/orng")) # will be Orange in later revision!
 
         # Check that liborange.so link was created
-        if not os.path.isfile(os.path.join(self.orangeInstallDir, "orange", "liborange.so")): # will be Orange in later revision!
-            print "Missing link liborange.so -> orange.so. Creating it..."
-            os.symlink(os.path.join(self.orangeInstallDir, "orange", "orange.so"), os.path.join(self.orangeInstallDir, "orange", "liborange.so")) # will be Orange in later revision!
+        #if not os.path.isfile(os.path.join(self.orangeInstallDir, "orange", "liborange.so")): # will be Orange in later revision!
+        #    print "Missing link liborange.so -> orange.so. Creating it..."
+        #    os.symlink(os.path.join(self.orangeInstallDir, "orange", "orange.so"), os.path.join(self.orangeInstallDir, "orange", "liborange.so")) # will be Orange in later revision!
 
         os.chdir(self.orangeDir)
         # Also copy the shared libraries that were built separately.
@@ -636,8 +636,8 @@ class Installer:
         stat, out = commands.getstatusoutput("python setup.py build")
         checkStatus(stat, out,"Error building orange.")
         #install in the current build Structure to be used by other software on build if needed
-        stat, out = commands.getstatusoutput('python setup.py install --prefix "'+self.orangeDir+'"')
-        checkStatus(stat, out,"Error installing orange in build dir.")
+        #stat, out = commands.getstatusoutput('python setup.py install --prefix "'+self.orangeDir+'"')
+        #checkStatus(stat, out,"Error installing orange in build dir.")
 
 
 
