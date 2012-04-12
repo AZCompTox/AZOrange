@@ -11,7 +11,6 @@ from trainingMethods import AZorngRF
 import AZOrangeConfig as AZOC
 import AZorngTestUtil
 
-
 class evalUtilitiesTest(unittest.TestCase):
 
     def setUp(self):
@@ -50,6 +49,19 @@ class evalUtilitiesTest(unittest.TestCase):
             for d in dists:
                 self.assert_(abs(MD1[idx][d]-x[d]) < 0.00001, "MD1: idx "+str(idx) +"    diff = "+str(MD1[idx][d]-x[d]))
 
+
+    def test_VarCtrlVal(self):
+        """Test of Variable Control Validation"""
+        data = dataUtilities.DataTable(os.path.join(AZOC.AZORANGEHOME,"tests/source/data/iris_W_dataOrigin.tab"))
+        learners = [AZorngRF.RFLearner()]
+
+        pTrain = 60/100.  # Percentage od data to be used in TrainSet
+        rep = 10          # Number of repetitions
+
+        res = evalUtilities.proportionTest(learners, data, pTrain, times=rep, testAttrFilter="Data Origin", testFilterVal="SRC1")
+        self.assert_(len(res.results) == 134)
+        self.assert_(evalUtilities.ConfMat(res) == [[[96.0, 2.0], [0.0, 36.0]]])
+        self.assert_(evalUtilities.CA(res)[0] == 0.988)
 
     def testQuantileCalc(self):
 
