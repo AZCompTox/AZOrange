@@ -831,8 +831,6 @@ application/xml=AZOrange.desktop;
            self.addLog("*Not downloading/unpacking orange")
            return 
 
-        #self.__logAndExecute("rm -rf " + os.path.join(self.trunkDir,"orange/*"))
-        #This command may have some failures, but it's no problem. We just want to delete if there is something to delete!
         self.__logAndExecute("mkdir -p " + os.path.join(self.trunkDir,"orange"))
         self.__logAndExecute("rm -rf " + os.path.join(self.DepSrcDir,"orange"))
         os.chdir(self.DepSrcDir)
@@ -842,6 +840,7 @@ application/xml=AZOrange.desktop;
                 self.__logAndExecute("hg clone " + URL + " ./orange")
                 os.chdir("orange")
                 self.__logAndExecute("hg update " + REV)
+                self.__logAndExecute("rm -rf .hg")
         else:
                 self.addLog("*Extracting orange from " + URL)
                 self.__logAndExecute("tar xfz " + os.path.split(URL)[-1])
