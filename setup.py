@@ -675,9 +675,9 @@ class Installer:
                     os.environ["LD_LIBRARY_PATH"] =   self.orangeDir
 
                 os.chdir(self.R8Dir)
-                stat, out = commands.getstatusoutput("cp -f %s/buildC45.py ." % self.orangeDir)
+                stat, out = commands.getstatusoutput("cp -f %s/orange/buildC45.py ." % self.orangeDir)
                 checkStatus(stat, out,"Error copying build script for R8 (buildC45.py).")
-                stat, out = commands.getstatusoutput("cp -f %s/ensemble.c ." % self.orangeDir)
+                stat, out = commands.getstatusoutput("cp -f %s/orange/ensemble.c ." % self.orangeDir)
                 checkStatus(stat, out,"Error copying ensemble.c.")
                 print "Build c45 start"
                 stat, out = commands.getstatusoutput("python buildC45.py")
