@@ -58,10 +58,15 @@ class evalUtilitiesTest(unittest.TestCase):
         pTrain = 60/100.  # Percentage od data to be used in TrainSet
         rep = 10          # Number of repetitions
 
-        res = evalUtilities.proportionTest(learners, data, pTrain, times=rep, testAttrFilter="Data Origin", testFilterVal="SRC1")
-        self.assert_(len(res.results) == 134)
-        self.assert_(evalUtilities.ConfMat(res) == [[[96.0, 2.0], [0.0, 36.0]]])
-        self.assert_(evalUtilities.CA(res)[0] == 0.988)
+        res = evalUtilities.proportionTest(learners, data, pTrain, times=rep, testAttrFilter="Data Origin", testFilterVal=["SRC1"])
+        self.assert_(len(res.results) == 140)
+        self.assert_(evalUtilities.ConfMat(res) == [[[100.0, 0.0], [0.0, 40.0]]])
+        self.assert_(evalUtilities.CA(res)[0] == 1.0)
+
+        res = evalUtilities.crossValidation(learners, data, rep, testAttrFilter="Data Origin", testFilterVal=["SRC1"])
+        self.assert_(len(res.results) == 36)
+        self.assert_(evalUtilities.ConfMat(res) == [[[26.0, 0.0], [0.0, 10.0]]])
+        self.assert_(evalUtilities.CA(res)[0] == 1.0)
 
     def testQuantileCalc(self):
 

@@ -795,26 +795,101 @@ def WilcoxonRankTest(accLearner1, accLearner2):
 from Orange.evaluation.testing  import Evaluation
 import Orange
 from Orange.misc import demangle_examples,getobjectname
-
-def proportionTest(learners, examples, learningProportion, times=10,
+def crossValidation(learners, data, folds=10,
+            stratified=Orange.core.MakeRandomIndices.StratifiedIfPossible,
+            preprocessors=(), random_generator=0, callback=None,
+            store_classifiers=False, store_examples=False, testAttrFilter=None, testFilterVal=None):
+    evaluator = VarCtrlVal()
+    # Setting in advanve the trainBias to be used
+    examples = evaluator.getExamplesAndSetTrainBias(data, testAttrFilter, testFilterVal)
+    # Proceeding with examples matching the test criterias
+    return evaluator.cross_validation(learners, examples, folds,
+            stratified, preprocessors, random_generator, callback,
+            store_classifiers, store_examples)
+        
+def proportionTest(learners, data, learningProportion, times=10,
                    stratification=Orange.core.MakeRandomIndices.StratifiedIfPossible, preprocessors=(), randomGenerator=0,
                    callback=None, storeClassifiers=False, storeExamples=False,
                    testAttrFilter=None, testFilterVal=None):
     evaluator = VarCtrlVal()
-    return evaluator.proportionTest(learners, examples, learningProportion, times,
+    return evaluator.proportion_test(learners, data, learningProportion, times,
                    stratification, preprocessors, randomGenerator,
                    callback, storeClassifiers, storeExamples, testAttrFilter, testFilterVal)
-class VarCtrlVal(Evaluation):
 
-    def proportionTest(self, learners, examples, learning_proportion, times=10,
+class VarCtrlVal(Evaluation):
+    trainBias = None # Exampels to be added everytime a train is performed! Should always be set using the getExamplesAndSetTrainBias method
+
+    def getExamplesAndSetTrainBias(self, data, testAttrFilter, testFilterVal):
+        """
+        Collects and returns the examples that match the filterValue at the Attr defined
+        The remaining examples (that do not match the filterValue at the Attr defined) are
+        placed in the trainBias to be added in all train events.
+        """
+        self.trainBias = None
+        if testAttrFilter is not None and  testFilterVal is not None and testAttrFilter in data.domain:
+            if type(testFilterVal) != list:
+                raise Exception("Invalid Attr filter value. It must be a list of strings")
+            else:
+                allDataEx = len(data)
+                examples = orange.ExampleTable(data.domain)
+                self.trainBias = orange.ExampleTable(data.domain)
+                for ex in data:
+                    inExamples = False
+                    for Vfilter in testFilterVal:
+                        if ex[testAttrFilter].value == Vfilter:
+                            examples.append(ex)
+                            inExamples = True
+                            break
+                    if not inExamples:
+                        self.trainBias.append(ex)
+
+                print "INFO: Variable control validation:"
+                print "      Examples in data: "+str(allDataEx)
+                print "      Examples selected for validation: "+str(len(examples))
+                print "      Examples to be appended to the train set: "+str(len(self.trainBias))
+                examples = dataUtilities.attributeDeselectionData(examples, [testAttrFilter])
+        else:
+            examples = data
+
+        return examples
+
+
+    def one_fold_with_indices(self, learners, examples, fold, indices, preprocessors=(), weight=0):
+        """Perform one fold of cross-validation like procedure using provided indices."""
+        learn_set = examples.selectref(indices, fold, negate=1)
+        test_set = examples.selectref(indices, fold, negate=0)
+        if len(learn_set)==0 or len(test_set)==0:
+            return (), ()
+
+        # learning
+        learn_set, test_set = self._preprocess_data(learn_set, test_set, preprocessors)
+        #Add train bias to the lear_set
+        if self.trainBias:
+            learn_set = dataUtilities.concatenate([learn_set, self.trainBias], True)[0]
+            
+        if not learn_set:
+            raise SystemError("no training examples after preprocessing")
+        if not test_set:
+            raise SystemError("no test examples after preprocessing")
+
+        classifiers = [learner(learn_set, weight) for learner in learners]
+
+        # testing
+        testset_ids = (i for i, _ in enumerate(examples) if indices[i] == fold)
+        results = self._test_on_data(classifiers, test_set, testset_ids)
+
+        return results, classifiers
+ 
+
+    def proportion_test(self, learners, data, learning_proportion, times=10,
                    stratification=Orange.core.MakeRandomIndices.StratifiedIfPossible, preprocessors=(), random_generator=0,
                    callback=None, store_classifiers=False, store_examples=False, testAttrFilter=None, testFilterVal=None):
         """
         Perform a test, where learners are trained and tested on different data sets. Training and test sets are
-        generated by proportionally splitting examples.
+        generated by proportionally splitting data.
 
         :param learners: list of learners to be tested
-        :param examples: a dataset used for evaluation
+        :param data: a dataset used for evaluation
         :param learning_proportion: proportion of examples to be used for training
         :param times: number of test repetitions
         :param stratification: use stratification when constructing train and test sets.
@@ -824,6 +899,8 @@ class VarCtrlVal(Evaluation):
         :param store_examples: if True, examples will be accessible in test_results.
         :return: :obj:`ExperimentResults`
         """
+        examples = self.getExamplesAndSetTrainBias(data, testAttrFilter, testFilterVal)
+
         pick = Orange.core.MakeRandomIndices2(stratified = stratification, p0 = learning_proportion, randomGenerator = random_generator)
 
         examples, weight = demangle_examples(examples)
@@ -841,11 +918,9 @@ class VarCtrlVal(Evaluation):
             indices = pick(examples)
             learn_set = examples.selectref(indices, 0)
             test_set = examples.selectref(indices, 1)
-            if testAttrFilter is not None and  testFilterVal is not None and testAttrFilter in test_set.domain:
-                allTestEx = len(test_set)
-                test_set = test_set.select({testAttrFilter:testFilterVal}) 
-                print "INFO: Variable control validation resulted in selecting "+str(len(test_set))+" from the "+str(allTestEx)+" examples."
-                learn_set = dataUtilities.attributeDeselectionData(learn_set, [testAttrFilter])
+            #Add train bias to the lear_set
+            if self.trainBias:
+                learn_set = dataUtilities.concatenate([learn_set, self.trainBias], True)[0]
             classifiers, results = self._learn_and_test_on_test_data(learners, learn_set, weight, test_set, preprocessors)
             if store_classifiers:
                 test_results.classifiers.append(classifiers)
