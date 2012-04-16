@@ -14,7 +14,7 @@ from trainingMethods import AZorngPLS
 import AZOrangeConfig as AZOC
 import os
 
-class OWPLS(OWWidget):
+class OWAZPLS(OWWidget):
 
     def __init__(self, parent=None, signalManager = None, name='PLS'):
         OWWidget.__init__(self, parent, signalManager, name)
@@ -212,7 +212,7 @@ file name here and clicking the save button.")
 
 if __name__ == "__main__": 
     appl = QApplication(sys.argv) 
-    ow = OWPLS() 
+    ow = OWAZPLS() 
     appl.setMainWidget(ow) 
     ow.show() 
     dataset = dataUtilities.DataTable('iris.tab') 
