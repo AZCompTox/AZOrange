@@ -8,7 +8,7 @@ DescMethodsAvailable = []
 import orange
 try:
     from AZutilities import ClabUtilities as ClabUtilities
-    DescMethodsAvailable.append("Clab")
+    DescMethodsAvailable.append("clab")
 except:
     print "WARNING: ClabUtilities not available!"
 
@@ -256,7 +256,7 @@ class AZOrangePredictor:
         """When only CLab descriptors are present. """
 
         # Create an Orange ExampleTable with a smiles attribute
-        smilesAttr = orange.StringVariable("SMILEStoPred", values = [smiles])
+        smilesAttr = orange.StringVariable("SMILEStoPred")  
         myDomain = orange.Domain([smilesAttr], 0)
         self.smilesData = dataUtilities.DataTable(myDomain, [[smiles]])
 
