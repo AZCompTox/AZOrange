@@ -109,7 +109,10 @@ def getNearestNeighbors(query, n, NNDataPath, FPPath = None, resPath = None, idx
     timeStamp=str(time.time()).replace(".",'')
     for fidx,nn in enumerate(TS):
         ID= nn[idxID]
-        expVal = nn[idxExpVal]
+        if miscUtilities.isNumber(nn[idxExpVal]):
+            expVal = str(round(float(nn[idxExpVal]),2))
+        else:
+            expVal = nn[idxExpVal]
         SMILES = nn[idxSMILES]
         if resPath and os.path.isdir(resPath):
             imgPath = os.path.join(resPath,"NN"+str(idx)+"_"+str(fidx+1)+"_"+timeStamp+".png")
