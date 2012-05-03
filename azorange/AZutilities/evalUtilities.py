@@ -803,7 +803,7 @@ def crossValidation(learners, data, folds=10,
             preprocessors=(), random_generator=0, callback=None,
             store_classifiers=False, store_examples=False, testAttrFilter=None, testFilterVal=None):
     evaluator = VarCtrlVal()
-    # Setting in advanve the trainBias to be used
+    # Setting in advance the trainBias to be used
     examples = evaluator.getExamplesAndSetTrainBias(data, testAttrFilter, testFilterVal)
     # Proceeding with examples matching the test criterias
     return evaluator.cross_validation(learners, examples, folds,
