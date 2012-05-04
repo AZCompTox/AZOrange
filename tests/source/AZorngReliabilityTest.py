@@ -76,7 +76,6 @@ class ReliabilityTest(unittest.TestCase):
         """ Test of reliability methods """
         learner = AZorngRF.RFLearner()
         res = getReliability(self.data, learner)
-        print res
         self.assertEqual(res, self.resultLines)
                 
 
