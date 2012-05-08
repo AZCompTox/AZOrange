@@ -1,6 +1,6 @@
 AZOrange is a customization for the open source software Orange. 
 
-Installation for developers (Using Ubuntu Natty Narwhal 11.04  64bits):
+Installation for developers (Using Ubuntu Precise Pangolin 12.04  64bits):
 ===============================================================================
 1) Install all available system updates
 2) Install git: 
