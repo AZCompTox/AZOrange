@@ -1421,12 +1421,6 @@ def horizontalMerge(dataAin, dataBin, varAin, varBin):
     else:
         classVarNames = None
 
-    print "At first"
-    print "classVarNames"
-    print classVarNames
-    print "classVarName"
-    print classVarName
-
     #Convert all meta-attributes to regular attributes
     classA = dataAin.domain.classVar
     attrs = [attr for attr in dataAin.domain if attr is not classA] + dataAin.domain.getmetas().values()
@@ -1526,17 +1520,9 @@ def horizontalMerge(dataAin, dataBin, varAin, varBin):
         classVar = etAB.domain[classVarName+ClassTag]
         outDomain = orange.Domain([attr for attr in varList if attr.name != classVarName+ClassTag],classVar)
     elif classVarNames:   # Multiple class labels
-        print "classVarNames.................."
-        print classVarNames
         outDomain = orange.Domain(varList, class_vars = classVarNames)
     else:
         outDomain = orange.Domain(varList,None)
-
-    print "classVarNames"
-    print classVarName
-    print "outDomain"
-    print outDomain.attributes
-    print outDomain.classVars
 
     etAB = orange.ExampleTable(outDomain,etAB)
     if classVarName:
