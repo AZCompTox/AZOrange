@@ -1407,6 +1407,24 @@ def horizontalMerge(dataAin, dataBin, varAin, varBin):
     else:
         classVarName = None
 
+    # Check for multi label data sets and always use the multiple respons as the class variable
+    if dataAin.domain.class_vars:
+        classVarNames = dataAin.domain.class_vars
+        classVarIsA = True
+        classVarName = None
+    elif dataBin.domain.class_vars:
+        classVarNames = dataBin.domain.class_vars
+        classVarIsA = False
+        classVarName = None
+    else:
+        classVarNames = None
+
+    print "At first"
+    print "classVarNames"
+    print classVarNames
+    print "classVarName"
+    print classVarName
+
     #Convert all meta-attributes to regular attributes
     classA = dataAin.domain.classVar
     attrs = [attr for attr in dataAin.domain if attr is not classA] + dataAin.domain.getmetas().values()
@@ -1505,8 +1523,19 @@ def horizontalMerge(dataAin, dataBin, varAin, varBin):
     if classVarName:
         classVar = etAB.domain[classVarName+ClassTag]
         outDomain = orange.Domain([attr for attr in varList if attr.name != classVarName+ClassTag],classVar)
+    elif classVarNames:   # Multiple class labels
+        print "classVarNames.................."
+        print classVarNames
+        outDomain = orange.Domain(varList, class_vars = classVarNames)
     else:
         outDomain = orange.Domain(varList,None)
+
+    print "classVarNames"
+    print classVarName
+    print "outDomain"
+    print outDomain.attributes
+    print outDomain.classVars
+
     etAB = orange.ExampleTable(outDomain,etAB)
     if classVarName:
         # Rename the vars with same name as future class to XXXX_N
