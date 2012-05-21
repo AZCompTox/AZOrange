@@ -453,7 +453,7 @@ def CvMat2orangeResponse(value, classVar, foldClass = False):
         return discreteClass and classVar(int( max(min(value,len(classVar.values)), 0) ) )  or classVar(value)
 
 
-def getQuickDataSize(dataPath):
+def getQuickDataSize(dataPath, getAttrNames = False):
     """ Fast procedure to get the size of data. Returns a Dict:
         returned["N_EX"]             - Number of examples
         returned["N_ATTR"]           - Number of Attributes
@@ -467,6 +467,7 @@ def getQuickDataSize(dataPath):
     NClass = 0
     PossTab = False
     discreteClass = -1
+    attrNames = []
 
     if not os.path.isfile(dataPath):
         return {"N_EX":NLines, "N_ATTR":NVars-NClass, "N_CLASS":NClass, "maybeOrangeTab":PossTab, "discreteClass":discreteClass}
@@ -474,6 +475,7 @@ def getQuickDataSize(dataPath):
         NLines = int(commands.getstatusoutput("wc -l "+dataPath)[1].strip().split()[0])
         headers = commands.getstatusoutput("head -n 3 "+dataPath)[1].split("\n")
         FirstLine = [x.strip() for x in headers[0].split("\t")]
+        if getAttrNames: attrNames = FirstLine
         SecondLine = [x.strip() for x in headers[1].split("\t")]
         ThirdLine = [x.strip() for x in headers[2].split("\t")]
 
@@ -514,8 +516,8 @@ def getQuickDataSize(dataPath):
         else:
             discreteClass = -1
     except:
-        return {"N_EX":NLines, "N_ATTR":NVars-NClass, "N_CLASS":NClass, "maybeOrangeTab":False, "discreteClass":discreteClass,"className":"","metaAndIgnore":-1}
-    return {"N_EX":NLines, "N_ATTR":NVars-NClass, "N_CLASS":NClass, "maybeOrangeTab":PossTab, "discreteClass":discreteClass,"className":className,"metaAndIgnore":metaAndIgnore}
+        return {"N_EX":NLines, "N_ATTR":NVars-NClass, "N_CLASS":NClass, "maybeOrangeTab":False, "discreteClass":discreteClass,"className":"","metaAndIgnore":-1, "attrNames":attrNames}
+    return {"N_EX":NLines, "N_ATTR":NVars-NClass, "N_CLASS":NClass, "maybeOrangeTab":PossTab, "discreteClass":discreteClass,"className":className,"metaAndIgnore":metaAndIgnore, "attrNames":attrNames}
 
 
 

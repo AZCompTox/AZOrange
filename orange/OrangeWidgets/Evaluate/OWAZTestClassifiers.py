@@ -271,9 +271,9 @@ class OWAZTestClassifiers(OWWidget):
 
         # computation of results (res, and cm if classification)
         
-        pb = OWGUI.ProgressBar(self, iterations=len(classifiers))
-        res = orngTest.testOnData(classifiers, self.testdata,None,1,callback=pb.advance)
-        pb.finish()
+        #pb = OWGUI.ProgressBar(self, iterations=len(classifiers))
+        res = orngTest.testOnData(classifiers, self.testdata,None,1)  #,callback=pb.advance) # callback was removed in later orange version
+        #pb.finish()
         trainMeans = []
         for c in classifiers:
             if c.classVar and hasattr(c,"basicStat") and c.classVar.name in c.basicStat and c.basicStat[c.classVar.name] != None:
