@@ -1,5 +1,4 @@
 import orange
-import Orange
 import string
 import types
 import sys
@@ -1410,18 +1409,6 @@ def horizontalMerge(dataAin, dataBin, varAin, varBin):
     else:
         classVarName = None
 
-    # Check for multi label data sets and always use the multiple respons as the class variable
-    if dataAin.domain.class_vars:
-        classVarNames = dataAin.domain.class_vars
-        classVarIsA = True
-        classVarName = None
-    elif dataBin.domain.class_vars:
-        classVarNames = dataBin.domain.class_vars
-        classVarIsA = False
-        classVarName = None
-    else:
-        classVarNames = None
-
     #Convert all meta-attributes to regular attributes
     classA = dataAin.domain.classVar
     attrs = [attr for attr in dataAin.domain if attr is not classA] + dataAin.domain.getmetas().values()
@@ -1520,11 +1507,8 @@ def horizontalMerge(dataAin, dataBin, varAin, varBin):
     if classVarName:
         classVar = etAB.domain[classVarName+ClassTag]
         outDomain = orange.Domain([attr for attr in varList if attr.name != classVarName+ClassTag],classVar)
-    elif classVarNames:   # Multiple class labels
-        outDomain = orange.Domain(varList, class_vars = classVarNames)
     else:
         outDomain = orange.Domain(varList,None)
-
     etAB = orange.ExampleTable(outDomain,etAB)
     if classVarName:
         # Rename the vars with same name as future class to XXXX_N
@@ -1566,11 +1550,7 @@ def attributeDeselectionData(data, attributeList):
     for idx in range(len(data.domain.attributes)):
         if string.strip(data.domain.attributes[idx].name) not in attributeList:
             newDomainList.append(data.domain[idx])
-    # Accommodate multiple class labels
-    if not data.domain.class_vars:
-        newDomain = orange.Domain(newDomainList, data.domain.classVar)
-    else:
-        newDomain = Orange.data.Domain(newDomainList, data.domain.classVar, class_vars = data.domain.class_vars)
+    newDomain = orange.Domain(newDomainList, data.domain.classVar)
     #Handle the Meta Attributes
     for attrID in data.domain.getmetas():
         if string.strip(data.domain[attrID].name) not in attributeList:
