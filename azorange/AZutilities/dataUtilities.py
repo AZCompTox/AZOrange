@@ -1,4 +1,5 @@
 import orange
+import Orange
 import string
 import types
 import sys
@@ -1550,7 +1551,11 @@ def attributeDeselectionData(data, attributeList):
     for idx in range(len(data.domain.attributes)):
         if string.strip(data.domain.attributes[idx].name) not in attributeList:
             newDomainList.append(data.domain[idx])
-    newDomain = orange.Domain(newDomainList, data.domain.classVar)
+    # Handle multiple class labels
+    if not data.domain.class_vars:
+        newDomain = orange.Domain(newDomainList, data.domain.classVar)
+    else:
+        newDomain = Orange.data.Domain(newDomainList, data.domain.classVar, class_vars = data.domain.class_vars)
     #Handle the Meta Attributes
     for attrID in data.domain.getmetas():
         if string.strip(data.domain[attrID].name) not in attributeList:
