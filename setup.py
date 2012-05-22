@@ -507,7 +507,13 @@ class Installer:
 # gspanpp        g++ -o gspan3 -O2 gspan_all_BB.cpp -Iivy_mike/src/
 # gSpan                gcc -O2 min.c computeSymm.c gSpan.c biconn.c preprocessDB2.c -o gSpan
                 os.chdir(os.path.join(structClustinstallDir, "gSpan/gspanpp"))
-                stat, out = commands.getstatusoutput("g++ -o gspan3 -O2 gspan_all_BB.cpp -Iivy_mike/src/")
+                # If not using the system installed boost, we need to point boost include files location
+                boost_I_flag = ""
+                if "boost" in self.dependencies:
+                    boost_I_flag = " -I"+self.orngBoostDir  
+                else:
+                    boost_I_flag = ""
+                stat, out = commands.getstatusoutput("g++ -o gspan3 -O2 gspan_all_BB.cpp -Iivy_mike/src/ "+boost_I_flag)
                 checkStatus(stat, out, "Error compiling gspan3")
         
                 os.chdir(os.path.join(structClustinstallDir, "gSpan/gSpan/FeatureVector_nodes"))
