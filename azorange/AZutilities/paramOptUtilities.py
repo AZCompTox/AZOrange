@@ -394,7 +394,9 @@ paramFile.close()
 data = dataUtilities.DataTable(dataSet)
 res = orngTest.crossValidation([learner], data, folds=nFolds, strat=orange.MakeRandomIndices.StratifiedIfPossible, randomGenerator = random.randint(0, 100))
 evalMethod = evaluateMethod[evaluateMethod.find(".")+1:len(evaluateMethod)]
-print cPickle.dumps(eval(evalMethod)(res)[0])
+fh = open("RES_out"+os.environ["SGE_TASK_ID"]+".pkl","w")
+cPickle.dump(eval(evalMethod)(res)[0], fh)
+fh.close()
 """
  
         extEvalList = []

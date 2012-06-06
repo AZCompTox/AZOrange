@@ -240,7 +240,9 @@ paramFile=open("Params.pkl","r")
 paramFile.close()
 MyRandom = orange.RandomGenerator(1000*int(os.environ["SGE_TASK_ID"]))
 res = %(sMethod)s
-print pickle.dumps(evaluateMethod(res)[0])
+fh = open("RES_out"+os.environ["SGE_TASK_ID"]+".pkl","w")
+pickle.dump(evaluateMethod(res)[0], fh)
+fh.close()
 """
         # Assess the memory requirements
         memSize = dataUtilities.getApproxMemReq(dataSet)
