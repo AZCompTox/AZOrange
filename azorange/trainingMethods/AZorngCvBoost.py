@@ -321,3 +321,20 @@ def CvBoostread(path, verbose = 0):
         if verbose > 0: print "ERROR: Could not read model from ", path
 
 
+
+
+
+
+
+if __name__ == "__main__":
+    trainData = dataUtilities.DataTable("../../tests/source/data/BinClass_No_metas_Test.tab")
+    learner = CvBoostLearner()
+    learner.priors = [1.0,0]
+    classifier = learner(trainData)
+    for ex in trainData[0:10]:
+        print classifier(ex)
+
+
+
+
+ 
