@@ -297,7 +297,6 @@ class UnbiasedAccuracyGetter():
                     runPath = miscUtilities.createScratchDir(baseDir = AZOC.NFS_SCRATCHDIR, desc = "AccWOptParam", seed = id(trainData))
                     trainData.save(os.path.join(runPath,"trainData.tab"))
 
-                    print "Fixed will be:",self.fixedParams
                     tunedPars = paramOptUtilities.getOptParam(
                         learner = MLmethods[ml], 
                         trainDataFile = os.path.join(runPath,"trainData.tab"), 
