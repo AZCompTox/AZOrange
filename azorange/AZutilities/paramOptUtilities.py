@@ -1031,7 +1031,7 @@ fh.close()
         # Assess the memory requirements
         memSize = dataUtilities.getApproxMemReq(self.dataSet)
 
-        presentDir = os.getcwd()
+        presentDir = os.getcwd()   
         os.chdir(self.runPath)
         command = "qsub" + " -q " + self.queueType + AZOC.SGE_QSUB_ARCH_OPTION_CURRENT + " -l mf=" + str(memSize) + "M " + " " + self.qsubFile
         if self.verbose > 1:
@@ -1213,7 +1213,7 @@ echo "end mpirun"
         return True
 
 
-def getOptParam(learner, trainDataFile, paramList = None, useGrid = False, verbose = 0, queueType = "NoSGE", runPath = None, nExtFolds = None, nFolds = 5, logFile = "", getTunedPars = False):
+def getOptParam(learner, trainDataFile, paramList = None, useGrid = False, verbose = 0, queueType = "NoSGE", runPath = None, nExtFolds = None, nFolds = 5, logFile = "", getTunedPars = False, fixedParams = {}):
     """
     Optimize the parameters in paramList. If no parametres defines, optimize defauld parameters (defined in AZLearnersParmsConfig). 
     Run optimization in parallel.
@@ -1243,6 +1243,11 @@ def getOptParam(learner, trainDataFile, paramList = None, useGrid = False, verbo
     # Create an interface for setting optimizer parameters
     pars = AZLearnersParamsConfig.API(learnerName)
     
+    # Set user defined fixed parameters (do not set for optimization)
+    if fixedParams:
+        for parameter in fixedParams:
+                pars.setParameter(parameter,"optimize",False)
+                pars.setParameter(parameter,"default",fixedParams[parameter])
     # If no parameters passed, optimize default ones
     if paramList:
         # Set all parameters to not be optimized

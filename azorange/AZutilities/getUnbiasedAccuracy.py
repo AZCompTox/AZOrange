@@ -25,6 +25,7 @@ class UnbiasedAccuracyGetter():
         self.paramList = None
         self.queueType = "NoSGE"
         self.responseType = None
+        self.fixedParams = {} 
         self.sampler = dataUtilities.SeedDataSampler
         # Append arguments to the __dict__ member variable 
         self.__dict__.update(kwds)
@@ -296,6 +297,7 @@ class UnbiasedAccuracyGetter():
                     runPath = miscUtilities.createScratchDir(baseDir = AZOC.NFS_SCRATCHDIR, desc = "AccWOptParam", seed = id(trainData))
                     trainData.save(os.path.join(runPath,"trainData.tab"))
 
+                    print "Fixed will be:",self.fixedParams
                     tunedPars = paramOptUtilities.getOptParam(
                         learner = MLmethods[ml], 
                         trainDataFile = os.path.join(runPath,"trainData.tab"), 
@@ -307,7 +309,8 @@ class UnbiasedAccuracyGetter():
                         nExtFolds = None, 
                         nFolds = self.nInnerFolds,
                         logFile = self.logFile,
-                        getTunedPars = True)
+                        getTunedPars = True,
+                        fixedParams = self.fixedParams)
                     if not MLmethods[ml] or not MLmethods[ml].optimized:
                         self.__log("       WARNING: GETACCWOPTPARAM: The learner "+str(ml)+" was not optimized.")
                         self.__log("                It will be ignored")
