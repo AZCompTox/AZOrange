@@ -30,6 +30,7 @@ class UnbiasedAccuracyGetter():
         self.__dict__.update(kwds)
         self.learnerName = ""
 
+
     def __checkTrainData(self, trainData, stopIfError = True):
         """
             Checks if the train data complies with rules:
@@ -114,13 +115,14 @@ class UnbiasedAccuracyGetter():
                     return False
         return True
 
-    def createStatObj(self, results=None, exp_pred=None, nTrainCmpds=None, nTestCmpds=None, responseType=None, nExtFolds=None, userAlert = ""):
+    def createStatObj(self, results=None, exp_pred=None, nTrainCmpds=None, nTestCmpds=None, responseType=None, nExtFolds=None, userAlert = "", labels = None):
         #Initialize res (statObj) for statistic results
         res = {}
         # Classification
         res["CA"] = None
         res["CM"] = None
         res["MCC"] = None
+        res["labels"] = None
         #Regression
         res["Q2"] = None
         res["RMSE"] = None
@@ -155,6 +157,7 @@ class UnbiasedAccuracyGetter():
                         res["CM"][Lidx][idx] = res["CM"][Lidx][idx] + val   #Add each same ConfMat position
             #Compute MCC 
             res["MCC"] = evalUtilities.calcMCC(res["CM"])
+            res["labels"] = labels
             #Compute foldStat
             res["foldStat"]["nTrainCmpds"] = [n for n in nTrainCmpds]
             res["foldStat"]["nTestCmpds"] = [n for n in nTestCmpds]
@@ -340,7 +343,7 @@ class UnbiasedAccuracyGetter():
                      if not callBack((100*stepsDone)/nTotalSteps): return None
    
 
-            res = self.createStatObj(results[ml], exp_pred[ml], nTrainEx[ml], nTestEx[ml],self.responseType, self.nExtFolds, logTxt)
+            res = self.createStatObj(results[ml], exp_pred[ml], nTrainEx[ml], nTestEx[ml],self.responseType, self.nExtFolds, logTxt, labels = list(self.data.domain.classVar.values))
             if self.verbose > 0: 
                 print "UnbiasedAccuracyGetter!Results  "+ml+":\n"
                 pprint(res)
@@ -430,7 +433,7 @@ class UnbiasedAccuracyGetter():
                         #Save the experimental value and correspondent predicted value
                         Cexp_pred += local_exp_pred
 
-                res = self.createStatObj(Cresults, Cexp_pred, CnTrainEx, CnTestEx, self.responseType, self.nExtFolds)
+                res = self.createStatObj(Cresults, Cexp_pred, CnTrainEx, CnTestEx, self.responseType, self.nExtFolds, labels = list(self.data.domain.classVar.values))
                 statistics["Consensus"] = copy.deepcopy(res)
                 statistics["Consensus"]["IndividualStatistics"] = copy.deepcopy(consensusMLs)
                 self.__writeResults(statistics)
