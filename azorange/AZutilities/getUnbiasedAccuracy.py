@@ -197,7 +197,7 @@ class UnbiasedAccuracyGetter():
 
         return res
         
-    def getAcc(self, callBack = None):
+    def getAcc(self, callBack = None, callBackWithFoldModel = None):
         """ For regression problems, it returns the RMSE and the Q2 
             For Classification problems, it returns CA and the ConfMat
             The return is made in a Dict: {"RMSE":0.2,"Q2":0.1,"CA":0.98,"CM":[[TP, FP],[FN,TN]]}
@@ -343,7 +343,8 @@ class UnbiasedAccuracyGetter():
                 if callBack:
                      stepsDone += 1
                      if not callBack((100*stepsDone)/nTotalSteps): return None
-   
+                if callBackWithFoldModel:
+                    callBackWithFoldModel(model) 
 
             res = self.createStatObj(results[ml], exp_pred[ml], nTrainEx[ml], nTestEx[ml],self.responseType, self.nExtFolds, logTxt, labels = list(self.data.domain.classVar.values))
             if self.verbose > 0: 
