@@ -26,10 +26,27 @@ class UnbiasedAccuracyGetter():
         self.queueType = "NoSGE"
         self.responseType = None
         self.fixedParams = {} 
+        self.testAttrFilter = None
+        self.testFilterVal = None
         self.sampler = dataUtilities.SeedDataSampler
         # Append arguments to the __dict__ member variable 
         self.__dict__.update(kwds)
         self.learnerName = ""
+
+        self.trainBiasMask = []
+        if self.testFilterVal and type(self.testFilterVal) == list and self.testAttrFilter and type(self.testAttrFilter) == str and self.testAttrFilter in self.data.domain:
+            self.useVarCtrlCV = True
+            for ex in self.data:
+                if ex[self.testAttrFilter].value in self.testFilterVal: # Compound selected to be allowed in the test set
+                    self.trainBiasMask.append(0)
+                else:                                                 # Compound to not include in the test set. Always to be shifted to the train
+                    self.trainBiasMask.append(1)
+            self.data = dataUtilities.attributeDeselectionData(self.data, [self.testAttrFilter]) 
+        else:
+            self.useVarCtrlCV = False
+            self.testAttrFilter = None
+            self.testFilterVal = None
+
 
 
     def __checkTrainData(self, trainData, stopIfError = True):
@@ -219,6 +236,20 @@ class UnbiasedAccuracyGetter():
         #Create the Train and test sets
         DataIdxs = dataUtilities.SeedDataSampler(self.data, self.nExtFolds) 
         
+        #Fix the Indexes based on self.trainBiasMask
+        # (0s) represents the train set  (1s) represents the test set
+        if self.useVarCtrlCV:
+            nShifted = [0] * len(DataIdxs)
+            self.__log("Number of examples marked for testing: "+str(len(self.trainBiasMask) - sum(self.trainBiasMask)))
+            for idx,isTrainBias in enumerate(self.trainBiasMask):
+                if isTrainBias:
+                    for foldIdx in range(len(DataIdxs)):
+                        if DataIdxs[foldIdx][idx]:
+                            DataIdxs[foldIdx][idx] = 0  
+                            nShifted[foldIdx] +=1
+            for idx,shift in enumerate(nShifted):
+                self.__log("In fold "+str(idx)+", "+str(shift)+" examples were shifted to the train set.")
+
         #Var for saving each Fols result
         optAcc = {}
         results = {}
