@@ -1383,13 +1383,13 @@ diff -crBN AZOrange/orangeDependencies/src/opencv/src/ml/mlsvm.cpp AZOrangeExpor
       CV_FUNCNAME( "CvBoost::train" );
   
       __BEGIN__;
-+     //scPA  Set the priors to priorsStr or by default to [1,1, ...]. They will be later scaled. 
++     //scPA  Set the priors to priorsStr if defined
 +     int cls_count = 2;  // This class only accepts Binary classification
 +     float *pseudoPriors = new float[cls_count];
-+     for (int i=0; i<cls_count; i++)
-+          pseudoPriors[i] = 1.0;
 +     if (priorsStr != NULL)
-+     { 
++     {
++         for (int i=0; i<cls_count; i++)
++             pseudoPriors[i] = 1.0;
 +         string str(priorsStr);
 +         if (str.length() >= 5) // minimum would be something like: [1 1] since we will have to be at least 2 values for the class
 +         { 
@@ -1404,8 +1404,11 @@ diff -crBN AZOrange/orangeDependencies/src/opencv/src/ml/mlsvm.cpp AZOrangeExpor
 +                 while (ss >> buf)
 +                      tokens.push_back(buf);
 +                 if (tokens.size() == cls_count)
++                 {
 +                     for (int i = 0;i<tokens.size();i++)
 +                         pseudoPriors[i] = atof(tokens[i].c_str());
++                     _params.priors = pseudoPriors;
++                 }
 +                 else
 +                     printf("The number of priors specified are different from the cls_count. Default priors will be used.\n");
 + 
@@ -1415,11 +1418,8 @@ diff -crBN AZOrange/orangeDependencies/src/opencv/src/ml/mlsvm.cpp AZOrangeExpor
 +         } 
 +         else
 +             printf("The priors passed are not in the correct format. Default priors will be used.\n");
-+     } 
-+     //Assign the priors to the params
-+     if (cls_count > 0)
-+          _params.priors = pseudoPriors;
-+ 
++     }
++      
 +     //ecPA
 + 
   
