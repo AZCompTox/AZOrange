@@ -451,6 +451,10 @@ fh.close()
                 file = open(part,"r")
                 intResTxt = intResTxt + file.readlines()
                 file.close()
+                # When running appspack_mpi on multiple nodes (> 4), crap is sometimes written to the last line.
+                # Expecting all lines to have same n. of columns. Allow to continue if crap was writen to the last line
+                if len(intResTxt[-1].split()) != len(intResTxt[0].split()):
+                    intResTxt.pop(-1) 
 
         #Retrieve Domain from the first line of intRes (This remover first line from intRes itself)
         resDomain = intResTxt.pop(0).split()
@@ -471,9 +475,6 @@ fh.close()
             print "============== Intermediate results at intRes file ("+str(len(intRes))+" lines) =============="
         for line in intRes:
             if self.verbose > 0: print line
-            # When running appspack_mpi on multiple nodes (> 4), crap is sometimes written to the last line. 
-            #try: intResFile.write(string.join([line.split()[idx] for idx in [resDomain.index(i) for i in userResDomain]],"\t")+"\n")
-            #except: pass
             intResFile.write(string.join([str(line[idx]) for idx in [resDomain.index(i) for i in userResDomain]],"\t")+"\n")
         if self.verbose > 0: print "\n"
         intResFile.close()
