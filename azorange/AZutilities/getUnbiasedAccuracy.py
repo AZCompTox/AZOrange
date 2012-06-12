@@ -1,4 +1,5 @@
 import orange, time, pickle, copy
+import sys, traceback
 import AZOrangeConfig as AZOC
 from AZutilities import paramOptUtilities
 from AZutilities import dataUtilities
@@ -377,7 +378,7 @@ class UnbiasedAccuracyGetter():
                 if callBackWithFoldModel:
                     callBackWithFoldModel(model) 
 
-            res = self.createStatObj(results[ml], exp_pred[ml], nTrainEx[ml], nTestEx[ml],self.responseType, self.nExtFolds, logTxt, labels = list(self.data.domain.classVar.values))
+            res = self.createStatObj(results[ml], exp_pred[ml], nTrainEx[ml], nTestEx[ml],self.responseType, self.nExtFolds, logTxt, labels = hasattr(self.data.domain.classVar,"values") and list(self.data.domain.classVar.values) or None )
             if self.verbose > 0: 
                 print "UnbiasedAccuracyGetter!Results  "+ml+":\n"
                 pprint(res)
@@ -388,6 +389,11 @@ class UnbiasedAccuracyGetter():
             self.__log("       OK")
           except:
             self.__log("       Learner "+str(ml)+" failed to create/optimize the model!")
+            error = str(sys.exc_info()[0]) +" "+\
+                        str(sys.exc_info()[1]) +" "+\
+                        str(traceback.extract_tb(sys.exc_info()[2]))
+            self.__log(error)
+ 
             res = self.createStatObj()
             statistics[ml] = copy.deepcopy(res)
             self.__writeResults(statistics)
@@ -467,7 +473,7 @@ class UnbiasedAccuracyGetter():
                         #Save the experimental value and correspondent predicted value
                         Cexp_pred += local_exp_pred
 
-                res = self.createStatObj(Cresults, Cexp_pred, CnTrainEx, CnTestEx, self.responseType, self.nExtFolds, labels = list(self.data.domain.classVar.values))
+                res = self.createStatObj(Cresults, Cexp_pred, CnTrainEx, CnTestEx, self.responseType, self.nExtFolds, labels = hasattr(self.data.domain.classVar,"values") and list(self.data.domain.classVar.values) or None )
                 statistics["Consensus"] = copy.deepcopy(res)
                 statistics["Consensus"]["IndividualStatistics"] = copy.deepcopy(consensusMLs)
                 self.__writeResults(statistics)
