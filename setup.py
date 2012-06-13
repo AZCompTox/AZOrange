@@ -77,7 +77,6 @@ class Installer:
         # The boost source path is the dir created when uncompressing the orangeDependencies/src/boost_1_34_1.tar.gz
         self.orngBoostDir = None
         self.APPSPackDir = None
-        self.azFannDir = None
         self.opencvDir = None
         self.oasaDir = None
         self.cinfonyDir = None
@@ -202,9 +201,6 @@ class Installer:
         # Compile and install the oasa.
         self.compileOasa()
 
-        # Compile and install the azFann.
-        self.compileAZFann()
-
         # Compile and install the ctools.
         self.compileCtools()
 
@@ -262,7 +258,6 @@ class Installer:
         # The boost source path is the dir created when uncompressing the orangeDependencies/src/boost_1_34_1.tar.gz
         self.orngBoostDir = os.path.join(self.buildDir,"orangeDependencies/src/boost")
         self.APPSPackDir = os.path.join(self.buildDir,"orangeDependencies/src/appspack")
-        self.azFannDir = os.path.join(self.buildDir,"orangeDependencies/src/azFann-2.0.0")
         self.opencvDir = os.path.join(self.buildDir,"orangeDependencies/src/opencv")
         self.oasaDir = os.path.join(self.buildDir,"orangeDependencies/src/oasa")
         self.cinfonyDir = os.path.join(self.buildDir,"orangeDependencies/src/cinfony")
@@ -980,34 +975,6 @@ class Installer:
         self.__prependEnvVar("PYTHONPATH" , sitePackagesPath)
 
 
-    def compileAZFann(self):
-        if ("azfann-2.0.0" not in self.dependencies):
-            print "Not using the local Fann"
-            return
-        FANNinstallDir = os.path.join(self.orangeDependenciesDir,os.path.split(self.azFannDir)[1])
-        if self.dependencies["azfann-2.0.0"]:   #compile and install
-                print "Compiling Fann"
-                os.chdir(self.azFannDir)
-                print "Building in:   ",self.azFannDir
-                print "Installing in: ",FANNinstallDir
-                stat, out = commands.getstatusoutput("./configure CFLAGS=-fPIC --prefix=\"" + FANNinstallDir  + "\"")
-                checkStatus(stat, out,"Error configuring Fann.")
-                stat, out = commands.getstatusoutput("make")
-                checkStatus(stat, out,"Error compiling Fann.")
-                stat, out = commands.getstatusoutput("make install")
-                checkStatus(stat, out,"Error installing Fann.")
-
-                print "compiling pyfann" # the python bindings
-                os.chdir(os.path.join(self.azFannDir,"python"))
-                stat, out = commands.getstatusoutput("make")
-                checkStatus(stat, out,"Error compiling pyFann.")
-                stat, out = commands.getstatusoutput("python setup.py install --install-lib " + os.path.join(FANNinstallDir,"lib"))
-                checkStatus(stat, out,"Error installing pyfann.")
-        else:
-                print "Not reinstalled"
-        # At runtime we will neew LD_LIBRARY_PATH to include the location of new installed libs
-        self.__prependEnvVar("LD_LIBRARY_PATH" , os.path.join(FANNinstallDir,"lib"))
-        self.__prependEnvVar("PYTHONPATH" , os.path.join(FANNinstallDir,"lib/pyfann"))
 
 
     def compileCtools(self):

@@ -194,14 +194,6 @@ RRFLearner = {'maxDepth':["types.StringType", "values", "[int(round(x)) for x in
              'nTrees':["types.IntType", "values", "miscUtilities.Range(10,1000,10)",[],AZOrangeConfig.RRFDEFAULTDICT["nTrees"],False,True,"Integer from 10 to 1000 with increments of 10"],\
             }
 
-#ANN parameters
-ANNLearner = {'nHidden':["[types.IntType]", "values", "(1.0/10.0)*N_EX<3 and [2] or [int(round(x)) for x in miscUtilities.Range(2,((1/10.0)*N_EX))]",[],str(AZOrangeConfig.ANNDEFAULTDICT["nHidden"]),True,True,"2-N_EX/10"],\
-              'randomWeights':["types.BooleanType", "values", "[False , True]",[],"False",False,False,"False and True"],\
-              'nEpochs':["types.IntType", "values", "[int(x) for x in miscUtilities.Range(100,10000)]",[],str(AZOrangeConfig.ANNDEFAULTDICT["nEpochs"]),False,True,"100-10000"],\
-              'optAlg':["types.IntType", "values", "[0 , 1 , 2 , 3]",["Incremental","Batch","RProp","QuickProp"],str(AZOrangeConfig.OPTALGDICT[AZOrangeConfig.ANNDEFAULTDICT["optAlg"]]),False,False,"Incremental\nBatch\nRProp\nQuickProp"],\
-              'MSE':["types.FloatType", "interval", "[0.001 ,  0.1]",[],str(AZOrangeConfig.ANNDEFAULTDICT["MSE"]),False,True,"0.001-0.1"],\
-              'scale':["types.BooleanType", "values", "[False , True]",[],str(AZOrangeConfig.ANNDEFAULTDICT["scale"]),False,False,"No and Yes"]\
-             }
 
 #CvANN parameters
 CvANNLearner = {'nHidden':["[types.IntType]", "values", "(1.0/30.0)*N_EX<3 and [2] or [int(round(x)) for x in miscUtilities.Range(2,((1/30.0)*N_EX))]",[],str(AZOrangeConfig.CVANNDEFAULTDICT["nHidden"]),True,True,"2-N_EX/30"],\

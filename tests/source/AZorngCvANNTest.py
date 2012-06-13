@@ -256,7 +256,7 @@ class CvANNClassifierTest(AZorngTestUtil.AZorngTestUtil):
         # Save the model
         scratchdir = os.path.join(AZOC.SCRATCHDIR, "scratchdir"+str(time.time()))
         os.mkdir(scratchdir)
-        modelPath = os.path.join(scratchdir,"ann.fann")
+        modelPath = os.path.join(scratchdir,"ann.cvann")
         ann.write(modelPath)
         
         # Read in the model
