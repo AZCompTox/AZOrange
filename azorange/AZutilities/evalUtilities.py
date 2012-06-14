@@ -862,19 +862,22 @@ class VarCtrlVal(Evaluation):
             foldsCounter = {}
             for ex in data:
                 value = str(ex[testAttrFilter].value)
+                if not miscUtilities.isNumber(value):
+                   raise Exception("Invalid fold value:"+str(value)+". It must be str convertable to an int.")
+                value = int(float(value))
                 if value not in foldsCounter:
                     foldsCounter[value] = 1
                 else:
                     foldsCounter[value] += 1
                 if not miscUtilities.isNumber:
                     raise Exception("Invalid fold value:"+str(value)+". It must be str convertable to an int.")
-                if value != '0':
+                if value != 0:
                     examples.append(ex)
-                    self.fixedIdx.append(int(value)-1)
+                    self.fixedIdx.append(value - 1)
                 else:
                     self.trainBias.append(ex)
 
-            print "INFO: Pre-selected "+str(len([f for f in foldsCounter if f != '0']))+" folds for CV:"
+            print "INFO: Pre-selected "+str(len([f for f in foldsCounter if f != 0]))+" folds for CV:"
             print "      Examples in data: "+str(allDataEx)
             print "      Examples selected for validation: "+str(len(examples))
             print "      Examples to be appended to the train set: "+str(len(self.trainBias))

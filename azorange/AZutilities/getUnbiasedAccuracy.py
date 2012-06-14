@@ -53,19 +53,20 @@ class UnbiasedAccuracyGetter():
                     foldsCounter = {}
                     for ex in self.data:
                         value = str(ex[self.testAttrFilter].value)
+                        if not miscUtilities.isNumber(value):
+                            self.__log("Invalid fold value:"+str(value)+". It must be str convertable to an int.")
+                            return False
+                        value = int(float(value))
                         if value not in foldsCounter:
                             foldsCounter[value] = 1
                         else:
                             foldsCounter[value] += 1
-                        if not miscUtilities.isNumber:
-                            self.__log("Invalid fold value:"+str(value)+". It must be str convertable to an int.")
-                            return False
-                        self.preDefIndices.append(int(value))
+                        self.preDefIndices.append(value)
 
-                    self.__log( "INFO: Pre-selected "+str(len([f for f in foldsCounter.keys() if f != '0']))+" folds for CV:")
+                    self.__log( "INFO: Pre-selected "+str(len([f for f in foldsCounter.keys() if f != 0]))+" folds for CV:")
                     self.__log( "      Examples in data: "+str(sum(foldsCounter.values())))
-                    self.__log( "      Examples selected for validation: "+str(sum([foldsCounter[f] for f in foldsCounter if f != '0'])))
-                    self.__log( "      Examples to be appended to the train set: "+str(foldsCounter['0']))
+                    self.__log( "      Examples selected for validation: "+str(sum([foldsCounter[f] for f in foldsCounter if f != 0])))
+                    self.__log( "      Examples to be appended to the train set: "+ str(0 in foldsCounter.keys() and foldsCounter[0] or 0))
             else:
                 self.__log("ERROR: Attribute Filter Ctrl was selected, but attribute is not in expected format: " + str(self.testAttrFilter))
                 return False
@@ -331,9 +332,6 @@ class UnbiasedAccuracyGetter():
 
                 trainData = self.data.select(DataIdxs,foldN,negate=1)
                 testData = self.data.select(DataIdxs,foldN)
-                print "Fold:",foldN
-                print "Train:",len(trainData)
-                print "Test:",len(testData)
                 nTrainEx[ml].append(len(trainData))
                 nTestEx[ml].append(len(testData))
                 #Test if trainsets inside optimizer will respect dataSize criterias.
