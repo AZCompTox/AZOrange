@@ -34,16 +34,44 @@ class UnbiasedAccuracyGetter():
         self.__dict__.update(kwds)
         self.learnerName = ""
 
-        self.trainBiasMask = []
-        if self.testFilterVal and type(self.testFilterVal) == list and self.testAttrFilter and type(self.testAttrFilter) == str and self.testAttrFilter in self.data.domain:
-            self.useVarCtrlCV = True
-            for ex in self.data:
-                if ex[self.testAttrFilter].value in self.testFilterVal: # Compound selected to be allowed in the test set
-                    self.trainBiasMask.append(0)
-                else:                                                 # Compound to not include in the test set. Always to be shifted to the train
-                    self.trainBiasMask.append(1)
+        self.preDefIndices = orange.LongList()
+        self.usePreDefFolds = False 
+        self.useVarCtrlCV = False
+        if self.testAttrFilter and self.testAttrFilter in self.data.domain:
+            if self.testFilterVal and type(self.testFilterVal) == list and type(self.testAttrFilter) == str:
+                self.useVarCtrlCV = True
+                self.usePreDefFolds = False
+                for ex in self.data:
+                    if ex[self.testAttrFilter].value in self.testFilterVal: # Compound selected to be allowed in the test set
+                        self.preDefIndices.append(1)
+                    else:                                                 # Compound to not include in the test set. Always to be shifted to the train
+                        self.preDefIndices.append(0)
+            elif self.testFilterVal is None:
+                    self.usePreDefFolds = True
+                    self.useVarCtrlCV = False
+                    #Enable pre-selected-indices  ( index 0 will be set for train Bias)
+                    foldsCounter = {}
+                    for ex in self.data:
+                        value = str(ex[self.testAttrFilter].value)
+                        if value not in foldsCounter:
+                            foldsCounter[value] = 1
+                        else:
+                            foldsCounter[value] += 1
+                        if not miscUtilities.isNumber:
+                            self.__log("Invalid fold value:"+str(value)+". It must be str convertable to an int.")
+                            return False
+                        self.preDefIndices.append(int(value))
+
+                    self.__log( "INFO: Pre-selected "+str(len([f for f in foldsCounter.keys() if f != '0']))+" folds for CV:")
+                    self.__log( "      Examples in data: "+str(sum(foldsCounter.values())))
+                    self.__log( "      Examples selected for validation: "+str(sum([foldsCounter[f] for f in foldsCounter if f != '0'])))
+                    self.__log( "      Examples to be appended to the train set: "+str(foldsCounter['0']))
+            else:
+                self.__log("ERROR: Attribute Filter Ctrl was selected, but attribute is not in expected format: " + str(self.testAttrFilter))
+                return False
             self.data = dataUtilities.attributeDeselectionData(self.data, [self.testAttrFilter]) 
         else:
+            self.usePreDefFolds = False
             self.useVarCtrlCV = False
             self.testAttrFilter = None
             self.testFilterVal = None
@@ -235,19 +263,21 @@ class UnbiasedAccuracyGetter():
         self.__log("  "+str(self.responseType))
 
         #Create the Train and test sets
-        DataIdxs = dataUtilities.SeedDataSampler(self.data, self.nExtFolds) 
-        
-        #Fix the Indexes based on self.trainBiasMask
-        # (0s) represents the train set  (1s) represents the test set
+        if self.usePreDefFolds:
+            DataIdxs = self.preDefIndices 
+        else:
+            DataIdxs = self.sampler(self.data, self.nExtFolds) 
+        foldsN = [f for f in dict.fromkeys(DataIdxs) if f != 0] #Folds used only from 1 on ... 0 are for fixed train Bias
+        nFolds = len(foldsN)
+        #Fix the Indexes based on DataIdxs
+        # (0s) represents the train set  ( >= 1s) represents the test set folds
         if self.useVarCtrlCV:
-            nShifted = [0] * len(DataIdxs)
-            self.__log("Number of examples marked for testing: "+str(len(self.trainBiasMask) - sum(self.trainBiasMask)))
-            for idx,isTrainBias in enumerate(self.trainBiasMask):
-                if isTrainBias:
-                    for foldIdx in range(len(DataIdxs)):
-                        if DataIdxs[foldIdx][idx]:
-                            DataIdxs[foldIdx][idx] = 0  
-                            nShifted[foldIdx] +=1
+            nShifted = [0] * nFolds
+            for idx,isTest in enumerate(self.preDefIndices):  # self.preDefIndices == 0 are to be used in TrainBias
+                if not isTest:
+                    if DataIdxs[idx]:
+                        nShifted[DataIdxs[idx]] += 1
+                        DataIdxs[idx] = 0
             for idx,shift in enumerate(nShifted):
                 self.__log("In fold "+str(idx)+", "+str(shift)+" examples were shifted to the train set.")
 
@@ -271,8 +301,8 @@ class UnbiasedAccuracyGetter():
         self.__log("  "+str([x for x in MLmethods]))
 
         #Check data in advance so that, by chance, it will not faill at the last fold!
-        for foldN in range(self.nExtFolds):
-            trainData = self.data.select(DataIdxs[foldN],negate=1)
+        for foldN in foldsN:
+            trainData = self.data.select(DataIdxs,foldN,negate=1)
             self.__checkTrainData(trainData)
 
         #Optional!!
@@ -295,12 +325,15 @@ class UnbiasedAccuracyGetter():
             nTestEx[ml] = []
             optAcc[ml] = []
             logTxt = "" 
-            for foldN in range(self.nExtFolds):
+            for foldN in foldsN:
                 if type(self.learner) == dict:
                     self.paramList = None
 
-                trainData = self.data.select(DataIdxs[foldN],negate=1)
-                testData = self.data.select(DataIdxs[foldN])
+                trainData = self.data.select(DataIdxs,foldN,negate=1)
+                testData = self.data.select(DataIdxs,foldN)
+                print "Fold:",foldN
+                print "Train:",len(trainData)
+                print "Test:",len(testData)
                 nTrainEx[ml].append(len(trainData))
                 nTestEx[ml].append(len(testData))
                 #Test if trainsets inside optimizer will respect dataSize criterias.
@@ -309,8 +342,8 @@ class UnbiasedAccuracyGetter():
                 if self.responseType != "Classification" and (len(trainData)*(1-1.0/self.nInnerFolds) < 20):
                     dontOptimize = True
                 else:                      
-                    tmpDataIdxs = dataUtilities.SeedDataSampler(trainData, self.nInnerFolds)
-                    tmpTrainData = trainData.select(tmpDataIdxs[0],negate=1)
+                    tmpDataIdxs = self.sampler(trainData, self.nInnerFolds)
+                    tmpTrainData = trainData.select(tmpDataIdxs,1,negate=1)
                     if not self.__checkTrainData(tmpTrainData, False):
                         dontOptimize = True
 
@@ -454,7 +487,7 @@ class UnbiasedAccuracyGetter():
                             expression += " + "+str(optAcc[ml][foldN])+" * "+ml+" "
                         expression += ")"
 
-                    testData = self.data.select(DataIdxs[foldN])
+                    testData = self.data.select(DataIdxs,foldN)
                     CnTestEx.append(len(testData))
                     consensusClassifiers = {}
                     for learnerName in consensusMLs:

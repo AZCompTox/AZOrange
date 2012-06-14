@@ -805,6 +805,7 @@ def crossValidation(learners, data, folds=10,
     evaluator = VarCtrlVal()
     # Setting in advance the trainBias to be used
     examples = evaluator.getExamplesAndSetTrainBias(data, testAttrFilter, testFilterVal)
+
     # Proceeding with examples matching the test criterias
     return evaluator.cross_validation(learners, examples, folds,
             stratified, preprocessors, random_generator, callback,
@@ -821,6 +822,7 @@ def proportionTest(learners, data, learningProportion, times=10,
 
 class VarCtrlVal(Evaluation):
     trainBias = None # Exampels to be added everytime a train is performed! Should always be set using the getExamplesAndSetTrainBias method
+    fixedIdx = None
 
     def getExamplesAndSetTrainBias(self, data, testAttrFilter, testFilterVal):
         """
@@ -851,6 +853,33 @@ class VarCtrlVal(Evaluation):
                 print "      Examples selected for validation: "+str(len(examples))
                 print "      Examples to be appended to the train set: "+str(len(self.trainBias))
                 examples = dataUtilities.attributeDeselectionData(examples, [testAttrFilter])
+        elif testAttrFilter is not None and testFilterVal is None and testAttrFilter in data.domain:
+            #Enable pre-selected-indices
+            self.fixedIdx = orange.LongList()
+            allDataEx = len(data)
+            examples = orange.ExampleTable(data.domain)
+            self.trainBias = orange.ExampleTable(data.domain)
+            foldsCounter = {}
+            for ex in data:
+                value = str(ex[testAttrFilter].value)
+                if value not in foldsCounter:
+                    foldsCounter[value] = 1
+                else:
+                    foldsCounter[value] += 1
+                if not miscUtilities.isNumber:
+                    raise Exception("Invalid fold value:"+str(value)+". It must be str convertable to an int.")
+                if value != '0':
+                    examples.append(ex)
+                    self.fixedIdx.append(int(value)-1)
+                else:
+                    self.trainBias.append(ex)
+
+            print "INFO: Pre-selected "+str(len([f for f in foldsCounter if f != '0']))+" folds for CV:"
+            print "      Examples in data: "+str(allDataEx)
+            print "      Examples selected for validation: "+str(len(examples))
+            print "      Examples to be appended to the train set: "+str(len(self.trainBias))
+            examples = dataUtilities.attributeDeselectionData(examples, [testAttrFilter])
+
         else:
             examples = data
 
@@ -937,5 +966,46 @@ class VarCtrlVal(Evaluation):
             if callback:
                 callback()
         return test_results
+
+    def cross_validation(self, learners, examples, folds=10,
+            stratified=Orange.core.MakeRandomIndices.StratifiedIfPossible,
+            preprocessors=(), random_generator=0, callback=None,
+            store_classifiers=False, store_examples=False):
+        """Perform cross validation with specified number of folds.
+
+        :param learners: list of learners to be tested
+        :param examples: data table on which the learners will be tested
+        :param folds: number of folds to perform
+        :param stratified: sets, whether indices should be stratified
+        :param preprocessors: a list of preprocessors to be used on data.
+        :param random_generator: random seed or random generator for selection
+               of indices
+        :param callback: a function that will be called after each fold is
+               computed.
+        :param store_classifiers: if True, classifiers will be accessible in
+               test_results.
+        :param store_examples: if True, examples will be accessible in
+               test_results.
+        :return: :obj:`ExperimentResults`
+        """
+        (examples, weight) = demangle_examples(examples)
+
+        if self.fixedIdx:
+            # ignore folds
+            indices = self.fixedIdx
+        else:
+            indices = Orange.core.MakeRandomIndicesCV(examples, folds,
+                stratified=stratified, random_generator=random_generator)
+
+        return self.test_with_indices(
+            learners=learners,
+            examples=(examples, weight),
+            indices=indices,
+            preprocessors=preprocessors,
+            callback=callback,
+            store_classifiers=store_classifiers,
+            store_examples=store_examples)
+
+
 
 

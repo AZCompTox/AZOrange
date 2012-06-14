@@ -372,7 +372,7 @@ def getStatistics(dataset, runningDir, resultsFile, queueType = "NoSGE", verbose
         DataIdxs = dataUtilities.SeedDataSampler(dataset, AZOC.QSARNEXTFOLDS )
         #Check data in advance so that, by chance, it will not faill at the last fold!
         #for foldN in range(AZOC.QSARNEXTFOLDS):
-            #trainData = dataset.select(DataIdxs[foldN],negate=1)
+            #trainData = dataset.select(DataIdxs,foldN,negate=1)
             #checkTrainData(trainData)
 
         jobs = {}
@@ -388,7 +388,7 @@ def getStatistics(dataset, runningDir, resultsFile, queueType = "NoSGE", verbose
         for fold in range(AZOC.QSARNEXTFOLDS):
             job = str(fold)
             print "Starting job for fold ",job
-            trainData = dataset.select(DataIdxs[fold],negate=1)
+            trainData = dataset.select(DataIdxs,fold,negate=1)
             jobs[job] = {"job":job,"path":os.path.join(runningDir, "fold_"+job), "running":False, "failed":False, "finished":False}
 
             # Uncomment next 3 lines for running in finished jobs dirs
@@ -553,7 +553,7 @@ def getStatistics(dataset, runningDir, resultsFile, queueType = "NoSGE", verbose
                     #load model
                     model = AZBaseClasses.modelRead(modelPath)
                     #Test the model
-                    testData = dataset.select(DataIdxs[int(job)])
+                    testData = dataset.select(DataIdxs,int(job))
                     nTrainEx[ml].append(model.NTrainEx)
                     nTestEx[ml].append(len(testData))
                     if foldStat[ml]["selected"]:

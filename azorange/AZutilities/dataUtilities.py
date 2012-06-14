@@ -80,11 +80,9 @@ def SeedDataSampler(data, nFolds):
         It assures that the sampling is constant for the same dataset using the same number of folds
         Outputs the respective fold indices, not the actual data.
         Output example for 3 Folds:
-                [ [0 0 1 1 0 1 0 0 0]
-                  [0 1 0 0 0 0 1 0 1]
-                  [1 0 0 0 1 0 0 1 0] ]
-        Where (0s) represents the train set
-              (1s) represents the test set
+                 [0 0 1 1 2 2 3 3 0]
+        Where (0s) represents the train Bias Examples (Will never be in train)
+              (>= 1s) represents the test set fold
            for each fold
         The seed used will be based on data dimensions and nFolds.
         It is assured that examples are used as test exampels in only one testSet.
@@ -93,8 +91,8 @@ def SeedDataSampler(data, nFolds):
         Usage sample:
             DataIdxs = dataUtilities.SeedDataSampler(self.data, self.nExtFolds)
             for foldN in range(self.nExtFolds):
-                trainData = self.data.select(DataIdxs[foldN],negate=1)
-                testData = self.data.select(DataIdxs[foldN]) 
+                trainData = self.data.select(DataIdxs,foldN,negate=1)
+                testData = self.data.select(DataIdxs,foldN) 
     """
     if not data or not nFolds:
         return None
@@ -103,9 +101,7 @@ def SeedDataSampler(data, nFolds):
     if not nTestEx:
         return None
     usedReg = [0] * nEx
-    foldsIdxs = []
-    for n in range(nFolds):
-        foldsIdxs.append([0] * nEx)
+    foldsIdxs = [0] * nEx
 
     random.seed(nEx + nFolds + len(data.domain.attributes))
     for idx in range(nFolds):
@@ -114,7 +110,7 @@ def SeedDataSampler(data, nFolds):
             #Find the index of the Zidx'th Zero  
             realIdx = [idxReg[0] for idxReg in enumerate(usedReg) if idxReg[1]==0][Zidx]
             usedReg[realIdx] = 1
-            foldsIdxs[idx][realIdx] = 1
+            foldsIdxs[realIdx] = idx + 1
 
     return foldsIdxs
 
