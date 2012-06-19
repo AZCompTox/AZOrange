@@ -1247,7 +1247,7 @@ application/xml=AZOrange.desktop;
 
         #Scripts to run upon setting the envitonment or loading the respective module
         strFile += "\n# Startup scripts\n"
-        strFile += os.path.join("$AZORANGEHOME", "azorange", "bin", "clean.sh") + "\n"
+        strFile += "# " + os.path.join("$AZORANGEHOME", "azorange", "bin", "clean.sh") + "\n"
         #strFile += os.path.join(self.AZOrangeInstallDir, "azorange/bin/ssh_testcfg.sh")  # This will be uncommented when using local mpi for the optimizer
 
         #Write the template file to current dir
