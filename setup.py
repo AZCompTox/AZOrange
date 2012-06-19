@@ -945,7 +945,9 @@ class Installer:
                 print "Building in:   ",self.opencvDir
                 print "Installing in: ",openCVinstallDir
                 # for debug include:    --enable-debug=\"yes\"
-                stat, out = commands.getstatusoutput("./configure --prefix=\"" + openCVinstallDir  + "\" --with-openmp --enable-apps=\"no\"")
+                #stat, out = commands.getstatusoutput("./configure --prefix=\"" + openCVinstallDir  + "\" --with-openmp --enable-apps=\"no\"")
+                # Disabled openmp because of too many cores used in SGE
+                stat, out = commands.getstatusoutput("./configure --prefix=\"" + openCVinstallDir  + "\" --enable-apps=\"no\"")
                 checkStatus(stat, out,"Error configuring opencv.")
                 stat, out = commands.getstatusoutput("make")
                 checkStatus(stat, out,"Error compiling opencv.")
