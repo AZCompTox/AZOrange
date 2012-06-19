@@ -1,5 +1,6 @@
 #!/bin/tcsh
 
 source AZO_INSTALL_DIR/templateProfile
+$AZORANGEHOME/azorange/bin/clean.sh &
 azorange $1 
 
