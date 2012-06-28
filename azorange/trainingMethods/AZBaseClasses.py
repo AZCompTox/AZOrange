@@ -514,7 +514,7 @@ class AZClassifier(object):
             if nVars == 0:
                 return { "UP":varGradNameUP,  "DOWN":varGradNameDOWN}
             else:
-                return { "UP":varGradNameUP[0:nRet], "DOWN":varGradNameUP[0:nRet] }
+                return { "UP":varGradNameUP[0:nRet], "DOWN":varGradNameDOWN[0:nRet] }
 
 
 
