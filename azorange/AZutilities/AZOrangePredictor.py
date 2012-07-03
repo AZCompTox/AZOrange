@@ -253,8 +253,6 @@ class AZOrangePredictor:
 
 
     def getSmilesData(self, smiles):
-        """When only CLab descriptors are present. """
-
         # Create an Orange ExampleTable with a smiles attribute
         smilesAttr = orange.StringVariable("SMILEStoPred")  
         myDomain = orange.Domain([smilesAttr], 0)
@@ -298,8 +296,10 @@ class AZOrangePredictor:
         savedSmilesData = dataUtilities.DataTable(self.smilesData)
 
         #Try 3 time to get All compounds descriptors
-        nTry = 3        
+        nTry = 3       
+        errorDesc = "" 
         while nTry > 0:
+           try:
                 nBadEx = 0        
                 # Determine Signature and non-Signature descriptor names
                 cinfonyDesc, clabDesc, signatureHeight, bbrcDesc = self.getDescTypes(descList)
@@ -337,7 +337,11 @@ class AZOrangePredictor:
                     nTry -= 1
                 else:
                     nTry = 0
-
+           except Exception, e:
+                errorDesc = "Error Calculating Descriptors:;  "+str(e)+";"
+                nTry -= 1
+        if errorDesc:
+           raise Exception(errorDesc)
         self.exToPred = self.smilesData
 
     def getClabTasksAndSignatures(self, smiles):
@@ -366,8 +370,9 @@ class AZOrangePredictor:
 
         try:
             prediction = self.model(self.exToPred[0]).value
-        except:
+        except Exception, e:
             prediction = None
+            raise Exception("Could not predict: " + str(e))
 
         return prediction
 
