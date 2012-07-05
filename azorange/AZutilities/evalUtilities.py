@@ -60,7 +60,8 @@ def getNearestNeighbors(query, n, NNDataPath, FPPath = None, resPath = None, idx
                 "expVal"      : ExpValues, 
                 "similarity"  : TanimotoSimilarity, 
                 "smi"         : smiles, 
-                "imgPath"     : imgPath},  ... ]        
+                "imgPath"     : imgPath,
+                "MeanInhib"   : Mean Inhib. },  ... ]        
 
         It will saves the images in resPath:
              NN_1.png    #1 neighbor
@@ -126,7 +127,8 @@ def getNearestNeighbors(query, n, NNDataPath, FPPath = None, resPath = None, idx
                 "expVal": expVal, 
                 "similarity": nn[idxSimilarity], 
                 "smi": SMILES, 
-                "imgPath": imgPath} )
+                "imgPath": imgPath,
+                "MeanInhib": ''} )
     return res
     
 
