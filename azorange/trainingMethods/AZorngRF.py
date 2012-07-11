@@ -411,8 +411,9 @@ class RFClassifier(AZBaseClasses.AZClassifier):
                         DFV = self.convert2DFV(self.classifier.predict_prob(exampleCvMat,missing_mask))
                 else:
                     #On Regression models assume the DVF as the value predicted
-                    DFV = prediction
-                    self._updateDFVExtremes(DFV)
+                    if not prediction.isSpecial():
+                        DFV = float(prediction.value)
+                        self._updateDFVExtremes(DFV)
                     y_hat = self.classVar(prediction)
                     probabilities = Orange.statistics.distribution.Continuous(self.classVar)
                     probabilities[y_hat] = 1.0

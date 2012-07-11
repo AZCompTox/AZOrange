@@ -196,6 +196,10 @@ class CvBoostClassifier(AZBaseClasses.AZClassifier):
                 # to be compatible with possible callers asking for probabilities. 
                 probabilities = self.__generateProbabilities(prediction)
                 self._isRealProb = False
+                probOf1 = probabilities[self.classVar.values[1]]
+                DFV = -(probOf1-0.5)
+                self._updateDFVExtremes(DFV)
+
         else:
             #On Regression models assume the DVF as the value predicted
             DFV = prediction
