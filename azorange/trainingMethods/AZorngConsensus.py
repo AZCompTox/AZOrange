@@ -6,7 +6,7 @@ import glob
 import string
 import os,sys
 import AZBaseClasses
-import orange
+import orange,Orange
 import sys
 import re
 import pickle
@@ -230,9 +230,12 @@ class ConsensusClassifier(AZBaseClasses.AZClassifier):
                     print self.status
 
                 votes = {self.classVar.values[0]:0, self.classVar.values[1]:0} # We already assured that if var is discrete, it is a binary classifyer
+                self._isRealProb = True
                 for c in self.classifiers:
-                    predictions.append(c(origExample))
-                    votes[predictions[-1].value] += 1
+                    predictions.append(c(origExample, orange.GetBoth))
+                    votes[predictions[-1][0].value] += 1
+                    if not hasattr(c,"isRealProb")  or  not c.isRealProb():
+                        self._isRealProb = False
 
                 if self.verbose: 
                     print str([cf.name for cf in self.classifiers])[1:-1].replace(",","\t")
@@ -241,11 +244,21 @@ class ConsensusClassifier(AZBaseClasses.AZClassifier):
                 invVotes = dict(map(lambda item: (item[1],item[0]),votes.items()))
                 maxVoted = invVotes[max(invVotes.keys())]
                 predicted = self.classVar[self.classVar.values.index(maxVoted)]
-                # generate probabilities based on voting. We assured already this is a binary classifier
-                self._isRealProb = True
-                probOf1 = votes[self.classVar.values[1]]/len(self.classifiers)
-                DFV = self._convert2DFV(probOf1)
-                probabilities = self._getProbabilities(probOf1)
+                if self._isRealProb:
+                    overallProb = {self.classVar.values[0]:0, self.classVar.values[1]:0}
+                    for p in predictions:
+                        overallProb[p[0].value] += max(p[1]) #For each predicted value of a learner, add the repective probability
+                    for prob in overallProb:
+                        overallProb[prob] = overallProb[prob]/len(predictions)
+                    probOf1 = overallProb[self.classVar.values[1]]
+                    DFV = self._convert2DFV(probOf1)
+                    probabilities = self._getProbabilities(probOf1)
+                else:
+                    # generate probabilities based on voting. We assured already this is a binary classifier
+                    probOf1 = votes[self.classVar.values[1]]/len(self.classifiers)
+                    DFV = self._convert2DFV(probOf1)
+                    probabilities = self._getProbabilities(probOf1)
+                
             else:     #Even number of Classifiers: Use the average of the N probabilities.
                 #if at least one of the Classifiers do not support true probabilities, STOP!       
                 self.status = "Using probabilities average (Even number of classifiers)"
@@ -270,6 +283,7 @@ class ConsensusClassifier(AZBaseClasses.AZClassifier):
                         overallProb[p[0].value] += max(p[1]) #For each predicted value of a learner, add the repective probability
                     for prob in overallProb:
                         overallProb[prob] = overallProb[prob]/len(predictions)
+
                     if overallProb[self.classVar.values[0]] > overallProb[self.classVar.values[1]]:
                         predicted = self.classVar[self.classVar.values.index(self.classVar.values[0])]
                     else:
@@ -286,7 +300,9 @@ class ConsensusClassifier(AZBaseClasses.AZClassifier):
             for c in self.classifiers:
                 predictions.append(c(origExample))
             DFV = predicted = sum(predictions,0.0) / len(predictions)
-            probabilities = None 
+            y_hat = self.classVar(predicted)
+            probabilities = Orange.statistics.distribution.Continuous(self.classVar)
+            probabilities[y_hat] = 1.0
 
         if resultType == orange.GetBoth:
             if predicted:
@@ -394,7 +410,10 @@ class ConsensusClassifier(AZBaseClasses.AZClassifier):
                     return None
                 
                 DFV = predicted = result
-                probabilities = None 
+                y_hat = self.classVar(predicted)
+                probabilities = Orange.statistics.distribution.Continuous(self.classVar)
+                probabilities[y_hat] = 1.0
+ 
                 # Regression expression
 
             if resultType == orange.GetBoth:

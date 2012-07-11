@@ -191,7 +191,6 @@ class CvBoostClassifier(AZBaseClasses.AZClassifier):
         prediction = dataUtilities.CvMat2orangeResponse(out, self.classVar)
         # Calculate artificial probabilities - not returned by the OpenCV RF algorithm
         if self.classVar.varType == orange.VarTypes.Discrete:
-            if resultType != orange.GetValue:
                 #Need to make sure to return meanful probabilities to the cases where opencvRF does not support probabilities
                 # to be compatible with possible callers asking for probabilities. 
                 probabilities = self.__generateProbabilities(prediction)
