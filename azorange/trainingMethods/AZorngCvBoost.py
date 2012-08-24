@@ -131,6 +131,10 @@ class CvBoostClassifier(AZBaseClasses.AZClassifier):
         #self.__init__(name, **kwds)
         return self
 
+    def getTopImportantVars(self, inEx, nVars = 1, gradRef = None, absGradient = True, c_step = None, regThreshold = None):
+        return {"info":"Not aplicable: No true DFV"}
+
+
     def __init__(self, name = "CvBoost classifier", **kwds):
         self.verbose = 0
         self.loadedModel = False

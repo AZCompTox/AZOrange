@@ -37,6 +37,7 @@ class PLSLearner(AZBaseClasses.AZLearner):
    
     #def setattr(self, name, value):
         #self.__dict__[name] = value
+
 	    
     def __init__(self, name = "PLS learner", **kwds):
         """
@@ -135,6 +136,12 @@ class PLSClassifier(AZBaseClasses.AZClassifier):
         self = AZBaseClasses.AZClassifier.__new__(cls, name = name,  **kwds)
         #self.__init__(name, **kwds)
 	return self
+
+    def getTopImportantVars(self, inEx, nVars = 1, gradRef = None, absGradient = True, c_step = None, regThreshold = None):
+        if self.classVar.varType == orange.VarTypes.Discrete:
+            return {"info":"Not aplicable: No true DFV"}
+        else:
+            return AZBaseClasses.AZClassifier.getTopImportantVars(self, inEx, nVars, gradRef, absGradient, c_step, regThreshold)
 
     def __init__(self, name = "PLS classifier", **kwds): 
         self.verbose = 0

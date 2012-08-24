@@ -376,7 +376,7 @@ class AZOrangePredictor:
 
         return prediction
 
-    def processSignificance(self, smi, prediction, descsUP, descsDOWN, res, resultsPath, idx = 0):
+    def processSignificance(self, smi, prediction, orderedDesc, res, resultsPath, idx = 0):
         """descs* = ["LogP","[So2]"]
            res =  { "signature"     : "",       
                     "imgPath"       : "",      for placing the results 
@@ -384,61 +384,167 @@ class AZOrangePredictor:
                     "molStr"        : "",
                     "atoms"         : []
                     "color"         : [(r,g,b),(),...]}
+        
+           It uses for Classificartion: 
+                        self.predictionOutcomes that must define [BADlabel, GOODlabel] in this same order
+            and for Regression:
+                        self.significanceThreshold for which a GOOD prediction is BELOW the threshold
         """
         atomColor = None
-        #Define the rules to choose from descsUP or descsDOWN and the color to highlight
+        predictionIsGood = None
+        
+        DiscMSD = []
+        ContMSD = []
+        #Define the rules to choose from UP or DOWN vectors                          and the color to highlight
         if self.model.classVar.varType == orange.VarTypes.Discrete:
             if self.predictionOutcomes is None:
                 print "WARNING: Cannot process Significance, Missing definition of predictionOutcomes for the EndPoint"
                 return
-            revPOut = list(self.predictionOutcomes)
-            revPOut.reverse()
+            theGoodPred = str(self.predictionOutcomes[1])
+            theBadPred = str(self.predictionOutcomes[0])
             if [str(p) for p in self.model.classVar.values] == self.predictionOutcomes:
-                UP = descsUP
-                DOWN = descsDOWN
-            elif [str(p) for p in self.model.classVar.values] == revPOut:
-                UP = descsDOWN
-                DOWN = descsUP
+                outComeIsRev = False
+            elif [str(p) for p in self.model.classVar.values][::-1] == self.predictionOutcomes:
+                outComeIsRev = True
             else:
                 print "ERROR: User outcome ordered list is not consistens toth model: ",\
-                      self.predictionOutcomes, "<-->",self.model.classVar.values
-
-            if  prediction == self.predictionOutcomes[0]:
-                res["signature"] = UP[1]
-                res["non-signature"] = UP[0]
-                atomColor = 'r'
-            elif prediction == self.predictionOutcomes[1]:
-                res["signature"] = DOWN[1]
-                res["non-signature"] = DOWN[0]
-                atomColor = 'g'
+                      self.predictionOutcomes, "<-->",self.model.classVar.valuesi
+            # Choose from proper vector according Documentation
+            #if the  labels at the model are oposite to the self.predictionOutcomes, switch
+            if (prediction == theGoodPred and not outComeIsRev) or (prediction == theBadPred and outComeIsRev):
+                DiscMSD = orderedDesc["Discrete"]["UP"]
+                ContMSD = orderedDesc["Continuous"]["DOWN"]
+            elif (prediction == theBadPred and not outComeIsRev) or (prediction == theGoodPred and outComeIsRev):
+                DiscMSD = orderedDesc["Discrete"]["DOWN"]
+                ContMSD = orderedDesc["Continuous"]["UP"]
             else:
                 print "ERROR: the precicted value (",prediction,") is not a known predictString"
+            
+            if prediction == theGoodPred:
+                atomColor = 'g'
+            else:
+                atomColor = 'r'
         else:
             if self.significanceThreshold is None:
                 print "WARNING: Cannot process Significance, Missing definition of significanceThreshold for the EndPoint"
                 return
-            if prediction >= self.significanceThreshold:
-                res["signature"] = descsUP[1]
-                res["non-signature"] = descsUP[0]
-                atomColor = 'r'
-            else:
-                res["signature"] = descsDOWN[1]
-                res["non-signature"] = descsDOWN[0]
+            # Choose from proper vector according Documentation
+            if prediction < self.significanceThreshold:    # It is a GOOD prediction
+                DiscMSD = orderedDesc["Discrete"]["UP"]
+                ContMSD = orderedDesc["Continuous"]["DOWN"]
                 atomColor = 'g'
-        if not res["signature"]:
-            res["imgPath"] = ""
-            return
+            else:
+                DiscMSD = orderedDesc["Discrete"]["DOWN"]
+                ContMSD = orderedDesc["Continuous"]["UP"]
+                atomColor = 'r'
 
+        res["signature"] = {"Discrete":[], "Continuous":[]}
+        res["non-signature"] = {"Discrete":[], "Continuous":[]}
+
+
+        #Discrete attributes
+        # find the first signature and non-signature descriptors
+        groupNsign = None
+        groupNnon_sign = None
+        for n,descList in enumerate(DiscMSD):
+            for desc in descList:
+                if "sign" in DescMethodsAvailable and getSignatures.getSignatureHeight(desc) is not None:
+                    if groupNsign is None:
+                        groupNsign = n
+                elif groupNnon_sign is None:
+                    groupNnon_sign = n
+            if groupNnon_sign is not None and groupNsign is not None:
+                break
+        # Group the Discrete attributes signatures and non-signatures
+        if groupNsign is not None:
+            for desc in DiscMSD[groupNsign]:
+                if "sign" in DescMethodsAvailable and getSignatures.getSignatureHeight(desc) is not None:
+                    res["signature"]["Discrete"].append(desc)
+        if groupNnon_sign is not None:
+            for desc in DiscMSD[groupNnon_sign]:
+                if not ("sign" in DescMethodsAvailable and getSignatures.getSignatureHeight(desc) is not None):
+                    res["non-signature"]["Discrete"].append(desc)
+
+
+        # Continuous attributes
+        # find the first signature and non-signature descriptors
+        groupNsign = None
+        groupNnon_sign = None
+        for n,descList in enumerate(ContMSD):
+            for desc in descList:
+                if "sign" in DescMethodsAvailable and getSignatures.getSignatureHeight(desc) is not None:
+                    if groupNsign is None:
+                        groupNsign = n
+                elif groupNnon_sign is None:
+                    groupNnon_sign = n
+            if groupNnon_sign is not None and groupNsign is not None:
+                break
+        # Group the Continuous attributes signatures and non-signatures
+        if groupNsign is not None:
+            for desc in ContMSD[groupNsign]:
+                if "sign" in DescMethodsAvailable and getSignatures.getSignatureHeight(desc) is not None:
+                    res["signature"]["Continuous"].append(desc)
+        if groupNnon_sign is not None:
+            for desc in ContMSD[groupNnon_sign]:
+                if not ("sign" in DescMethodsAvailable and getSignatures.getSignatureHeight(desc) is not None):
+                    res["non-signature"]["Continuous"].append(desc)
+
+
+        #Fix the significant descriptors so that it is a formated string
+        MSDstr = ""
+        if len(res["non-signature"]["Continuous"]):
+            MSDstr += "Continuous: \n"
+            for attr in res["non-signature"]["Continuous"]:
+                MSDstr += "   "+attr+"\n"
+            MSDstr += "\n"
+        if len(res["non-signature"]["Discrete"]):
+            MSDstr += "Discrete: \n"
+            for attr in res["non-signature"]["Discrete"]:
+                MSDstr += "   "+attr+"\n"
+            MSDstr += "\n"
+        res["non-signature"] = MSDstr
+
+
+
+        # Most probably Signatures will always be associated with Discrete attributes. Nevertheless, it happens that some are Continuous, and therefore
+        #  we will be using signatures reported as Continuous if any
+        if not len(res["signature"]["Discrete"]) and not len(res["signature"]["Continuous"]):
+            res["imgPath"] = ""
+            res["signature"] = ""
+            return
+        if len(res["signature"]["Discrete"]):
+            signature = res["signature"]["Discrete"][0]
+        else:
+            signature = res["signature"]["Continuous"][0] 
         if resultsPath and os.path.isdir(resultsPath):
             imgPath = os.path.join(resultsPath,"significance_"+str(idx)+"_"+str(time.time()).replace(".",'')+".png")
         else:
             imgPath = ""
-        # Call the method to create the image/mol specifying the color of the hilighted atoms    
-        res["imgPath"] , res["molStr"], res["atoms"], res["color"] = self.createSignImg(smi,res["signature"],atomColor,imgPath)
+        # Call the method to create the image/mol specifying the color of the hilighted atoms   
+        res["imgPath"] , res["molStr"], res["atoms"], res["color"] = self.createSignImg(smi,signature,atomColor,imgPath)
+        #Fix the significant descriptors so that it is a formated string
+        MSDstr = ""
+        if len(res["signature"]["Continuous"]):
+            MSDstr += "Continuous: \n"
+            for attr in res["signature"]["Continuous"]:
+                MSDstr += "   "+attr
+                if attr == signature and res["atoms"]:    # Signal with * the signature that is being highlited
+                    MSDstr += " (*)"
+                MSDstr += "\n"
+            MSDstr += "\n"
+        if len(res["signature"]["Discrete"]):
+            MSDstr += "Discrete: \n"
+            for attr in res["signature"]["Discrete"]: 
+                MSDstr += "   "+attr
+                if attr == signature and res["atoms"]:   # Signal with * the signature that is being highlited
+                    MSDstr += " (*)"
+                MSDstr += "\n"
+            MSDstr += "\n"
+        res["signature"] = MSDstr
 
 
 
-    def getSDs(self, smi, prediction, resultsPath = "", idx = 0):
+    def getSDs(self, smi, prediction, resultsPath = "", idx = 0, c_step = None):
         # descs will  have a list containg the first most significant non-signature descriptor, 
         #   and the first most significant signatures descriptor in the respective order. Ex:
         #               ["LogP","[So2]"]
@@ -456,42 +562,42 @@ class AZOrangePredictor:
         # Calculate the signatures id SMILES
         CLabDesc,signList = self.getClabDescSignList(smi)
         if hasattr(self.model,'getTopImportantVars') and self.exToPred:
-            orderedDesc = self.model.getTopImportantVars(self.exToPred[0],0, absGradient = False)
+            orderedDesc = self.model.getTopImportantVars(self.exToPred[0],0, absGradient = False, c_step = c_step)
+            
+            #orderedDesc = {'Discrete':   {'DOWN': [['SELMA_GC_type_058', 'SELMA_GC_type_025'], ['SELMA_GC_type_060'], ...]
+            #                              'UP':   [['SELMA_GC_type_011'], ['SELMA_GC_type_026'], ...]},
+            #               'Continuous': {'DOWN': [['SELMA_GC_type_002'], ['SELMA_GC_type_053'], ...]
+            #                              'UP':   [['SELMA_GC_type_006'], ['SELMA_GC_type_024'], ...]} }                    
+            # or None
+            # or     {'Discrete': [], 'Continuous': []}
+
             if not orderedDesc:
                 print "Model does not have the information needed to compute the Significance"
                 return res
-            # find the first signature and non-signature descriptors with positive Gradient
-            for desc in orderedDesc["UP"]:
-                if "sign" in DescMethodsAvailable and getSignatures.getSignatureHeight(desc) is not None:
-                    if not descsUP[1] and desc in signList:
-                        descsUP[1] = desc
-                elif not descsUP[0]:
-                    descsUP[0] = desc
-            # find the first signature and non-signature descriptors with negative Gradient
-            for desc in orderedDesc["DOWN"]:
-                if "sign" in DescMethodsAvailable and getSignatures.getSignatureHeight(desc) is not None:
-                    if not descsDOWN[1] and desc in signList:
-                        descsDOWN[1] = desc
-                elif not descsDOWN[0]:
-                    descsDOWN[0] = desc
-            self.processSignificance(smi, prediction, descsUP, descsDOWN, res, resultsPath, idx = idx)
+
+            self.processSignificance(smi, prediction, orderedDesc, res, resultsPath, idx = idx)
 
         return res
         
 
 if __name__ == "__main__":
     #modelPath = "../../tests/source/data/DescModel.model"  # Just RDK descriptors and RDK Fingerprints
-    modelPath = "../../tests/source/data/BBRC_RDK_RDKFP.model"
+    #modelPath = "../../tests/source/data/BBRC_RDK_RDKFP.model"
     #modelPath = "/home/palmeida/RFmodel"  # with webel descriptors
-    smi = "C123C5C(O)C=CC2C(N(C)CC1)Cc(ccc4O)c3c4O5"  # NEG
+    #modelPath = "/home/azorangeLive/liveModels_V2/geneTox/currentModelVersion/liveModel/Model"
+    #modelPath = "/home/palmeida/liveModels/NaV1.5/currentModelVersion/liveModel/Model/"
+    #modelPath = "/home/palmeida/liveModels/hERG/currentModelVersion/liveModel//Model/C0.model/"
+    modelPath = "/home/palmeida/liveModels/AhRrat/currentModelVersion/liveModel/Model/"
+    #smi = "C123C5C(O)C=CC2C(N(C)CC1)Cc(ccc4O)c3c4O5"  # NEG
     #smi = "CCC"  # POS
+    smi = "CC(C)Cc1ccc(cc1)C(C)C(=O)O"
 
     predictor = AZOrangePredictor(modelPath)
     #Needed for classification
-    predictor.predictionOutcomes = ["POS", "NEG"]
+    predictor.predictionOutcomes = ["NEG","POS"]#["POS", "NEG"]
 
     #Needed for Regression
-    #predictor.significanceThreshold = 0.4
+    predictor.significanceThreshold = 5.0
     
     print "========== Running =========="
     print "Calculating descriptors..."
