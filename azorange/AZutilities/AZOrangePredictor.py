@@ -558,7 +558,7 @@ class AZOrangePredictor:
                  "non-signature" : "",
                  "molStr"        : "", 
                  "atoms"         : [],
-                 "color"         : (0,0,0)}
+                 "color"         : []}
         # Calculate the signatures id SMILES
         CLabDesc,signList = self.getClabDescSignList(smi)
         if hasattr(self.model,'getTopImportantVars') and self.exToPred:
