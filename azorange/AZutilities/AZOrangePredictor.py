@@ -563,7 +563,6 @@ class AZOrangePredictor:
         CLabDesc,signList = self.getClabDescSignList(smi)
         if hasattr(self.model,'getTopImportantVars') and self.exToPred:
             orderedDesc = self.model.getTopImportantVars(self.exToPred[0],0, absGradient = False, c_step = c_step)
-            
             #orderedDesc = {'Discrete':   {'DOWN': [['SELMA_GC_type_058', 'SELMA_GC_type_025'], ['SELMA_GC_type_060'], ...]
             #                              'UP':   [['SELMA_GC_type_011'], ['SELMA_GC_type_026'], ...]},
             #               'Continuous': {'DOWN': [['SELMA_GC_type_002'], ['SELMA_GC_type_053'], ...]
@@ -571,11 +570,10 @@ class AZOrangePredictor:
             # or None
             # or     {'Discrete': [], 'Continuous': []}
 
-            if not orderedDesc:
+            if orderedDesc and "NA" not in orderedDesc:
+                self.processSignificance(smi, prediction, orderedDesc, res, resultsPath, idx = idx)
+            else:
                 print "Model does not have the information needed to compute the Significance"
-                return res
-
-            self.processSignificance(smi, prediction, orderedDesc, res, resultsPath, idx = idx)
 
         return res
         

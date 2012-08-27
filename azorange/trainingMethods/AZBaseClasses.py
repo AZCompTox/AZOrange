@@ -403,17 +403,13 @@ class AZClassifier(object):
         return self.NTrainEx
 
 
-    def getTopImportantVars(self, inEx, nVars = 1, gradRef = None, absGradient = True, c_step = None, regThreshold = None):
+    def getTopImportantVars(self, inEx, nVars = 1, gradRef = None, absGradient = True, c_step = None):
         """Return the n top important variables (n = nVars) for the given example
             if nVars is 0, it returns all variables ordered by importance
             if c_step (costume step) is passed, force it instead of hardcoded
         """
         varGrad = []
 
-        #if self.domain.classVar.varType == orange.VarTypes.Continuous and regThreshold is None:
-                #print "ERROR: Regression models must define a threshold!"
-                #return None
-        
         ExFix = dataUtilities.ExFix()
         ExFix.set_domain(self.domain)
         ex = ExFix.fixExample(inEx)
