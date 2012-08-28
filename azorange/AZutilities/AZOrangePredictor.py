@@ -62,12 +62,18 @@ class AZOrangePredictor:
     significanceThreshold = None # to be used in regression models
     predictionOutcomes =  None   # to be used in Classification: [PosGradComponent, NegGradComponent]
 
-    def getDef(self, section, option):
+    def getDef(self, section, option=None):
+        """
+                If Option is None, it will return True or False depending on the section being present or not.
+        """
         if not self.modelDef: return ""
         if self.modelDef.has_section(section):
+            if option is None:
+                return True
             if self.modelDef.has_option(section,option):
                 return self.modelDef.get(section, option)
-
+        elif option is None:
+            return False
         return ""
 
 
@@ -96,7 +102,6 @@ class AZOrangePredictor:
             self.significanceThreshold = eval(significanceThreshold)
         else:
             self.significanceThreshold = None
-        self.significanceColors = eval(self.getDef("significance","colors"))
 
 
     def __init__(self, modelPath):
