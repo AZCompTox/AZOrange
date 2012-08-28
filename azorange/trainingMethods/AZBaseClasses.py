@@ -483,6 +483,7 @@ class AZClassifier(object):
              else:
                  return 0
 
+        eps = 10E-5   # epsilon: amplitude of derivatives that will be considered 0. Attributes with derivative amplitude less than eps will not be considered.
         # Print used for algorithm final confirmation
         #print "  %s  " % (str(gradRef)),
 
@@ -494,7 +495,7 @@ class AZClassifier(object):
             # Print used for algorithm final confirmation
             #print "  %s  " % (str(grad[1])),
 
-            if grad[0] != 0:
+            if abs(grad[0]) > eps: # only consider attributes with derivative greatest than eps
                 #                  f'(x)                  x             f(a) 
                 #                derivative value     direction      f(a) farest away from f(x) only setted for classification
                 varGrad.append( (grad[0],             attr.name,     grad[1]) )
