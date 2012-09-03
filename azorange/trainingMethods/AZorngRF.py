@@ -336,7 +336,7 @@ class RFClassifier(AZBaseClasses.AZClassifier):
                 return self.varImportance[var.name] 
 
 
-    def __call__(self, origExample = None, resultType = orange.GetValue, returnDFV = False):
+    def _singlePredict(self, origExample = None, resultType = orange.GetValue, returnDFV = False):
         """
         orange.GetBoth -          <type 'tuple'>                     ->    (<orange.Value 'Act'='3.44158792'>, <3.442: 1.000>)
         orange.GetValue -         <type 'orange.Value'>              ->    <orange.Value 'Act'='3.44158792'>

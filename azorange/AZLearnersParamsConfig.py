@@ -194,6 +194,15 @@ RRFLearner = {'maxDepth':["types.StringType", "values", "[int(round(x)) for x in
              'nTrees':["types.IntType", "values", "miscUtilities.Range(10,1000,10)",[],AZOrangeConfig.RRFDEFAULTDICT["nTrees"],False,True,"Integer from 10 to 1000 with increments of 10"],\
             }
 
+#SignSVM parameters
+SignSVMLearner = {
+        'startHeight':["types.IntType", "values", "[0]",[],str(AZOrangeConfig.SIGNSVMDEFAULTDICT["startHeight"]),False,True,"The start Height"],\
+        'endHeight':["types.IntType", "values", "[3]",[],str(AZOrangeConfig.SIGNSVMDEFAULTDICT["endHeight"]),False,True,"The end Height"],\
+        'nrFolds':["types.IntType", "values", "[2, 7, 10]",[],str(AZOrangeConfig.SIGNSVMDEFAULTDICT["nrFolds"]),False,True,"Number of Folds for parameters selection.\n-1 disables optimization"],\
+        'nrThreads':["types.IntType", "values", "[2,8]",[],str(AZOrangeConfig.SIGNSVMDEFAULTDICT["nrThreads"]),False,True,"Number of nrThreads to ne\nused in parameters selection"],\
+        'priors' : ["types.StringType", "values",  "[None]",[],str(AZOrangeConfig.CVANNDEFAULTDICT["priors"]),False,False,"Do not use for optimization, just to change the default values of priors"],\
+        'scaleClass':["types.BooleanType", "values", "[False , True]",[],str(AZOrangeConfig.CVANNDEFAULTDICT["scaleClass"]),False,False,"No and Yes"]
+ }
 
 #CvANN parameters
 CvANNLearner = {'nHidden':["[types.IntType]", "values", "(1.0/30.0)*N_EX<3 and [2] or [int(round(x)) for x in miscUtilities.Range(2,((1/30.0)*N_EX))]",[],str(AZOrangeConfig.CVANNDEFAULTDICT["nHidden"]),True,True,"2-N_EX/30"],\

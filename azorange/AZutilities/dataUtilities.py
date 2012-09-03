@@ -44,7 +44,7 @@ def getSMILESAttr(data):
 def makeTempSDF(data, smilesAsName=None):
         """     create temporary SFD file for usage with, e.g., structural clustering or other integrated algorithms
                 that need SDF input.
-                returns a file object that still has to be closed!
+                returns the path to the tmp sdf file
         """
         smilesName = getSMILESAttr(data)
         if not smilesName: return None

@@ -168,13 +168,24 @@ CVSVMDEFAULTDICT = {
         'coef0'        : 5     ,
         'degree'       : 5     }
 
+#SignSVM
+SIGNSVMDEFAULTDICT = {
+        'startHeight'  :0      , 
+        'endHeight'    :3      ,
+        'nrFolds'      :-1     ,   # -1 makes the selection automatic based on number of train examples
+        'nrThreads'    :8      ,
+        'scaleClass'   : 0     ,
+        'priors'       : None  }
+
+
 #QSAR definitions
 #MLMETHODS: {"MethodNAme": [<MLmodule>, <Learnerobject>], ...}
 MLMETHODS = {"CvRF":{"module":"trainingMethods.AZorngRF","object":"RFLearner"},
              "CvANN":{"module":"trainingMethods.AZorngCvANN","object":"CvANNLearner"},
              "CvSVM":{"module":"trainingMethods.AZorngCvSVM","object":"CvSVMLearner"},
              "CvBoost":{"module":"trainingMethods.AZorngCvBoost","object":"CvBoostLearner"},
-             "PLS":{"module":"trainingMethods.AZorngPLS","object":"PLSLearner"}
+             "PLS":{"module":"trainingMethods.AZorngPLS","object":"PLSLearner"},
+             "SignSVM":{"module":"trainingMethods.AZorngSignSVM","object":"SignSVMLearner"}
                 }
 QSARNEXTFOLDS = 10     #Number of Folds for the outer loop where data is splitted into External test and Modeling Set
 QSARNINNERFOLDS = 10   #Number of Folds to use in getUnbiasedAccuracy when data is splitted into train and test

@@ -156,7 +156,7 @@ def modelRead(modelFile=None,verbose = 0,retrunClassifier = True):
             modelRead (modelFile [, verbose = 0] [, retrunClassifier = True] )"""
 
     if not modelFile:
-        return ("CvSVM", "CvANN", "PLS", "CvRF", "CvBoost", "CvBayes", "Consensus")
+        return ("SignSVM","CvSVM", "CvANN", "PLS", "CvRF", "CvBoost", "CvBayes", "Consensus")
 
     modelType = None
     loadedModel = None
@@ -165,6 +165,11 @@ def modelRead(modelFile=None,verbose = 0,retrunClassifier = True):
         if not retrunClassifier: return modelType
         from trainingMethods import AZorngCvSVM    
         loadedModel = AZorngCvSVM.CvSVMread(modelFile,verbose)
+    elif os.path.isdir(os.path.join(modelFile,"model.SignSvm")):
+        modelType =  "SignSVM"
+        if not retrunClassifier: return modelType
+        from trainingMethods import AZorngSignSVM    
+        loadedModel = AZorngSignSVM.SignSVMread(modelFile,verbose)
     elif os.path.isfile(os.path.join(modelFile,"model.ann")):
         modelType =  "CvANN"
         if not retrunClassifier: return modelType
@@ -232,7 +237,7 @@ class AZLearner(orange.Learner):
         return True
 
  
-    def __call__(self, trainingData = None, weight = None): 
+    def __call__(self, trainingData = None, weight = None, allowMetas = False): 
         self.basicStat = None
         if not trainingData:
             print "AZBaseClasses ERROR: Missing training data!"
@@ -253,7 +258,7 @@ class AZLearner(orange.Learner):
 
 
         possibleMetas = dataUtilities.getPossibleMetas(trainingData, checkIndividuality = True)
-        if possibleMetas:
+        if not allowMetas and possibleMetas:
             msg="\nAZBaseClasses ERROR: Detected attributes that should be considered meta-attributes:"
             for attr in possibleMetas:
                 msg += "\n    "+attr
@@ -263,7 +268,7 @@ class AZLearner(orange.Learner):
         basicStat = orange.DomainBasicAttrStat(trainingData)
         self.basicStat = {}
         for attr in trainingData.domain:
-            if attr.varType == orange.VarTypes.Discrete:
+            if attr.varType in [orange.VarTypes.Discrete, orange.VarTypes.String]:
                 self.basicStat[attr.name] = None
             else:       
                 self.basicStat[attr.name] = {"dev":basicStat[attr].dev, "min":basicStat[attr].min, "max":basicStat[attr].max, "avg":basicStat[attr].avg}
@@ -372,6 +377,24 @@ class AZClassifier(object):
         self.NTrainEx = 0
         return self
 
+    def __call__(self, origExample = None, resultType = orange.GetValue, returnDFV = False):
+        if type(origExample)==orange.Example:
+            return self._singlePredict(origExample, resultType, returnDFV)
+        else:
+            return self._bulkPredict(origExample, resultType, returnDFV)
+
+
+    def _singlePredict(self, origExample = None, resultType = orange.GetValue, returnDFV = False):
+        print "Undefined method for AZBaseClasses::___singlePredict"
+
+    def _bulkPredict(self, origExamples = None, resultType = orange.GetValue, returnDFV = False):
+        res = []
+        for ex in origExamples:
+            res.append(self._singlePredict(ex,resultType, returnDFV))
+        if len(res) != len(origExamples):
+            print "ERROR: Output predictions did not match inpout counting!"
+            return None
+        return res
 
     def _saveParameters(self, path):
         fileh = open(path, 'w') 

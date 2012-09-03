@@ -184,7 +184,7 @@ class CvSVMClassifier(AZBaseClasses.AZClassifier):
             if self.verbose > 0: print "Warning! - No impute data defined"
 
 
-    def __call__(self, origExamples = None, resultType = orange.GetValue, returnDFV = False):
+    def _singlePredict(self, origExamples = None, resultType = orange.GetValue, returnDFV = False):
         """
         orange.GetBoth -          <type 'tuple'>                     ->    (<orange.Value 'Act'='3.44158792'>, <3.442: 1.000>)
         orange.GetValue -         <type 'orange.Value'>              ->    <orange.Value 'Act'='3.44158792'>

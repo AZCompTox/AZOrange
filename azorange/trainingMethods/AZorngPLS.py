@@ -163,7 +163,7 @@ class PLSClassifier(AZBaseClasses.AZClassifier):
 	    if self.verbose > 0: print "Warning! - No impute data defined"
 
 
-    def __call__(self, origExamples = None, resultType = orange.GetValue, returnDFV = False):
+    def _singlePredict(self, origExamples = None, resultType = orange.GetValue, returnDFV = False):
         if origExamples == None:
             return self.classifier(None, resultType)
         else:
