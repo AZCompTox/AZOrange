@@ -1454,3 +1454,16 @@ diff -crBN AZOrange/orangeDependencies/src/opencv/src/ml/mlsvm.cpp AZOrangeExpor
   }
   
   float
+diff -crBN AZOrange/orangeDependencies/src/opencv/src/highgui/loadsave.cpp AZOrangeExported/orangeDependencies/src/opencv/src/highgui/loadsave.cpp
+*** AZOrange/orangeDependencies/src/opencv/src/highgui/loadsave.cpp  2012-09-06 02:20:59.000000000 +0200
+--- AZOrangeExported/orangeDependencies/src/opencv/src/highgui/loadsave.cpp   2012-09-06 13:44:10.000000000 +0200
+***************
+*** 45,50 ****
+--- 45,51 ----
+  
+  #include "_highgui.h"
+  #include "grfmts.h"
++ #include <unistd.h>
+  #undef min
+  #undef max
+  
