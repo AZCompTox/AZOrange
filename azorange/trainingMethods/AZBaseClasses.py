@@ -233,7 +233,10 @@ class AZLearner(orange.Learner):
         return self
       
     def isCompatible(self, classVar):
-        """Checks if the learner is compatiblue with thw passed class variable"""
+        """Checks if the learner is compatible with the passed class variable.
+           By default, all learners all compatible with both categorical and continuous response.
+           Must be override in the derived class if cannot handle some response type
+        """
         return True
 
  
