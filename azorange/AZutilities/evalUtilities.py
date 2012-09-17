@@ -184,9 +184,8 @@ def ConfMat(res = None):
             retCM.append(cm)
         return retCM
 
-
 def getConfMat(testData, model):
-        return ConfMat(orngTest.testOnData([model], testData))[0]
+        return ConfMat(testOnData([model], testData))[0]
 
 def calcKappa(_CM):
     """Returns the Kappa statistical coefficient for the agreement between measured and predicted classes"""
@@ -219,7 +218,7 @@ def generalCVconfMat(data, learners, nFolds = 5):
     with any number of classes. learners is a list of AZorange learners.
     """
 
-    res = orngTest.crossValidation(learners, data, strat=orange.MakeRandomIndices.StratifiedIfPossible, folds = nFolds)
+    res = crossValidation(learners, data, stratified=orange.MakeRandomIndices.StratifiedIfPossible, folds = nFolds)
     classes = data.domain.classVar.values
 
     for idx in range(len(learners)):
@@ -234,8 +233,11 @@ def getClassificationAccuracy(testData, classifier):
     if not len(testData):
         return 0.0
     exp_pred = []
-    for ex in testData:
-        exp_pred.append( (str(ex.getclass()), str(classifier(ex))) )
+    # Predict using bulk-predict
+    predictions = classifier(testData)
+    # Gather predictions 
+    for n,ex in enumerate(testData):
+        exp_pred.append( (str(ex.getclass()), str(predictions[n])) )
     return calcClassificationAccuracy(exp_pred)
 
 def calcClassificationAccuracy(exp_pred_Val):
@@ -800,6 +802,31 @@ def WilcoxonRankTest(accLearner1, accLearner2):
 from Orange.evaluation.testing  import Evaluation
 import Orange
 from Orange.misc import demangle_examples,getobjectname
+
+def testOnData(models,testData, store_classifiers=False, store_examples=False):
+        """ Makes used of Bulk-Predict"""
+        evaluator = VarCtrlVal()
+
+        test_results = orngTest.ExperimentResults(1,
+                                        classifierNames = [getobjectname(l) for l in models],
+                                        domain=testData.domain)#,
+                                    #    test_type = test_type,
+                                    #    weights=weight)
+        test_results.classifiers = []
+        if store_examples:
+            test_results.examples = testData
+        if store_classifiers:
+            test_results.classifiers = models
+
+        results = evaluator._test_on_data(models, testData, example_ids=None)
+        test_results.results.extend(test_results.create_tested_example(0, example)
+                                        for i, example in enumerate(testData))
+        for nEx, nModel, res in results:
+            test_results.results[nEx].set_result(nModel, *res)
+
+        return test_results
+
+
 def crossValidation(learners, data, folds=10,
             stratified=Orange.core.MakeRandomIndices.StratifiedIfPossible,
             preprocessors=(), random_generator=0, callback=None,
@@ -821,6 +848,9 @@ def proportionTest(learners, data, learningProportion, times=10,
     return evaluator.proportion_test(learners, data, learningProportion, times,
                    stratification, preprocessors, randomGenerator,
                    callback, storeClassifiers, storeExamples, testAttrFilter, testFilterVal)
+
+
+
 
 class VarCtrlVal(Evaluation):
     trainBias = None # Exampels to be added everytime a train is performed! Should always be set using the getExamplesAndSetTrainBias method
@@ -1013,4 +1043,33 @@ class VarCtrlVal(Evaluation):
 
 
 
+    def _test_on_data(self, classifiers, examples, example_ids=None):
+        results = []
+
+        if example_ids is None:
+            numbered_examples = zip(range(len(examples)),examples)
+        else:
+            numbered_examples = zip(example_ids, examples) # itertools.izip(example_ids, examples)
+        # For classifiers with _bulkPredict method, call with all examples at once
+        bulkEnabledClassifiers = {}
+        for c,model in enumerate(classifiers):
+            if hasattr(model,"_bulkPredict"):
+                bulkEnabledClassifiers[c] = {}
+                testData = Orange.core.ExampleTable(examples[0].domain, [ex[1] for ex in numbered_examples])
+                res = model(testData, Orange.core.GetBoth)
+                for i, e in enumerate([ex[0] for ex in numbered_examples]):
+                    bulkEnabledClassifiers[c][e] = copy.deepcopy(res[i])
+
+        for e, example in numbered_examples:
+            for c, classifier in enumerate(classifiers):
+                if c in bulkEnabledClassifiers:
+                    result = bulkEnabledClassifiers[c][e]
+                else:
+                    # Hide actual class to prevent cheating
+                    ex2 = Orange.data.Instance(example)
+                    if ex2.domain.class_var: ex2.setclass("?")
+                    if ex2.domain.class_vars: ex2.set_classes(["?" for cv in ex2.domain.class_vars])
+                    result = classifier(ex2, Orange.core.GetBoth)
+                results.append((e, c, result))
+        return results
 
