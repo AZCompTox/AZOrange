@@ -229,6 +229,7 @@ class AZLearner(orange.Learner):
         self.__dict__.update(kwds)
         self.name = name
         self.basicStat = None
+        self.specialType = 0
         self.parameters = {}
         return self
       
@@ -378,6 +379,7 @@ class AZClassifier(object):
         self.nPredictions = 0                    # Number of predictions made with this Classifier
         self.basicStat = None
         self.NTrainEx = 0
+        self.specialType = 0
         return self
 
     def __call__(self, origExample = None, resultType = orange.GetValue, returnDFV = False):

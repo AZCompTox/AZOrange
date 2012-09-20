@@ -153,6 +153,17 @@ def buildConsensus(trainData, learners, MLMethods, logFile = None):
         
         learner = AZorngConsensus.ConsensusLearner(learners = consensusLearners, expression = expression)
         log(logFile, "  Training Consensus Learner")
+        smilesAttr = dataUtilities.getSMILESAttr(trainData)
+        if smilesAttr:
+            log(logFile,"Found SMILES attribute:"+smilesAttr)
+            if learner.specialType == 1:
+               trainData = dataUtilities.attributeSelectionData(trainData, [smilesAttr, trainData.domain.classVar.name])
+               log(logFile,"Selected attrs: "+str([attr.name for attr in trainData.domain]))
+            else:
+               trainData = dataUtilities.attributeDeselectionData(trainData, [smilesAttr])
+               log(logFile,"Selected attrs: "+str([attr.name for attr in trainData.domain[0:3]] + ["..."] +\
+                                              [attr.name for attr in trainData.domain[len(trainData.domain)-3:]]))
+
         return learner(trainData)
 
                     
@@ -164,11 +175,25 @@ def buildModel(trainData, MLMethod, queueType = "NoSGE", verbose = 0, logFile = 
         log(logFile, "Building and optimizing learner: "+MLMethod["MLMethod"]+"...")
         learners = {}
         MLMethods = {}
-        if "IndividualStatistics"  in MLMethod:                        #It is a consensus
+        if "IndividualStatistics"  in MLMethod:         #It is a consensus and will certaily not contain any 
+                                                        #special model as it was filtered in the getUnbiasedAcc
             for ML in MLMethod["IndividualStatistics"]:
                 MLMethods[ML] = copy.deepcopy(MLMethod["IndividualStatistics"][ML])
         else:
-            MLMethods[MLMethod["MLMethod"]] = MLMethod
+            if MLMethod.specialType == 1:  # If is a special model and has a built-in optimizaer
+                log(logFile, "       This is a special model")
+                smilesAttr = dataUtilities.getSMILESAttr(trainData)
+                if smilesAttr:
+                    log(logFile,"Found SMILES attribute:"+smilesAttr)
+                    trainData = dataUtilities.attributeSelectionData(trainData, [smilesAttr, trainData.domain.classVar.name])
+                optInfo, SpecialModel = MLMethod.optimizePars(trainData, folds = 5)
+                return SpecialModel
+            else:
+                MLMethods[MLMethod["MLMethod"]] = MLMethod
+
+        smilesAttr = dataUtilities.getSMILESAttr(trainData)
+        if smilesAttr:
+            trainData = dataUtilities.attributeDeselectionData(trainData, [smilesAttr])
 
         # optimize all MLMethods
         for ML in MLMethods:
@@ -212,10 +237,10 @@ def buildModel(trainData, MLMethod, queueType = "NoSGE", verbose = 0, logFile = 
                 miscUtilities.removeDir(runPath)
         #Train the model
         if len(learners) == 1:
-            log(logFile, "  Building the learner:"+learners.keys()[0])
+            log(logFile, "  Building the model:"+learners.keys()[0])
             model = learners[learners.keys()[0]](trainData)
         elif len(learners) >= 1:
-            model = buildConsensus(trainData,learners,MLMethods)
+            model = buildConsensus(trainData,learners,MLMethods)  
         else:
             print "ERROR: No Learners were selected!"
             return None
@@ -242,7 +267,13 @@ def getModel(trainData, savePath = None, queueType = "NoSGE", verbose = 0, getAl
             file.close()
         else:
             logFile = None
-        MLStatistics = getMLStatistics(trainData, savePath, queueType = queueType, verbose = verbose, logFile = logFile, callBack = callBack)
+
+        #DEBUG
+        print "DEBUG mode: loading MLStatistics from /home/palmeida/WorkSpace/SignCombo/My/UnbiasedRes.pkl"
+        fh = open("/home/palmeida/WorkSpace/SignCombo/My/UnbiasedRes.pkl",'r')
+        MLStatistics = pickle.load(fh)
+        fh.close()
+        #MLStatistics = getMLStatistics(trainData, savePath, queueType = queueType, verbose = verbose, logFile = logFile, callBack = callBack)
         MLMethod = selectModel(MLStatistics, logFile = logFile)
         #Save again the MLStatistics to update the selected flag
         saveMLStatistics(savePath, MLStatistics, logFile) 

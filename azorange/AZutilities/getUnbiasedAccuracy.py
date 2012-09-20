@@ -7,7 +7,7 @@ from trainingMethods import AZorngConsensus
 import AZLearnersParamsConfig
 from AZutilities import evalUtilities
 from AZutilities import miscUtilities
-import orngTest, orngStat
+import orngStat
 import os,random
 from pprint import pprint
 import statc
@@ -316,6 +316,7 @@ class UnbiasedAccuracyGetter():
         stepsDone = 0
         nTotalSteps = len(sortedML) * self.nExtFolds  
         for ml in sortedML:
+          startTime = time.time()
           self.__log("    > "+str(ml)+"...")
           try:
             #Var for saving each Fols result
@@ -325,13 +326,25 @@ class UnbiasedAccuracyGetter():
             nTrainEx[ml] = []
             nTestEx[ml] = []
             optAcc[ml] = []
-            logTxt = "" 
+            logTxt = ""
             for foldN in foldsN:
                 if type(self.learner) == dict:
                     self.paramList = None
 
                 trainData = self.data.select(DataIdxs,foldN,negate=1)
                 testData = self.data.select(DataIdxs,foldN)
+                smilesAttr = dataUtilities.getSMILESAttr(trainData)
+                if smilesAttr:
+                    self.__log("Found SMILES attribute:"+smilesAttr)
+                    if MLmethods[ml].specialType == 1:
+                       trainData = dataUtilities.attributeSelectionData(trainData, [smilesAttr, trainData.domain.classVar.name]) 
+                       testData = dataUtilities.attributeSelectionData(testData, [smilesAttr, testData.domain.classVar.name]) 
+                       self.__log("Selected attrs: "+str([attr.name for attr in trainData.domain]))
+                    else:
+                       trainData = dataUtilities.attributeDeselectionData(trainData, [smilesAttr]) 
+                       testData = dataUtilities.attributeDeselectionData(testData, [smilesAttr]) 
+                       self.__log("Selected attrs: "+str([attr.name for attr in trainData.domain[0:3]] + ["..."] + [attr.name for attr in trainData.domain[len(trainData.domain)-3:]]))
+
                 nTrainEx[ml].append(len(trainData))
                 nTestEx[ml].append(len(testData))
                 #Test if trainsets inside optimizer will respect dataSize criterias.
@@ -345,61 +358,76 @@ class UnbiasedAccuracyGetter():
                     if not self.__checkTrainData(tmpTrainData, False):
                         dontOptimize = True
 
+                SpecialModel = None
                 if dontOptimize:
                     logTxt += "       Fold "+str(foldN)+": Too few compounds to optimize model hyper-parameters\n"
                     self.__log(logTxt)
                     if trainData.domain.classVar.varType == orange.VarTypes.Discrete:
-                        res = orngTest.crossValidation([MLmethods[ml]], trainData, folds=5, strat=orange.MakeRandomIndices.StratifiedIfPossible, randomGenerator = random.randint(0, 100))
+                        res = evalUtilities.crossValidation([MLmethods[ml]], trainData, folds=5, stratified=orange.MakeRandomIndices.StratifiedIfPossible, random_generator = random.randint(0, 100))
                         CA = evalUtilities.CA(res)[0]
                         optAcc[ml].append(CA)
                     else:
-                        res = orngTest.crossValidation([MLmethods[ml]], trainData, folds=5, strat=orange.MakeRandomIndices.StratifiedIfPossible, randomGenerator = random.randint(0, 100))
+                        res = evalUtilities.crossValidation([MLmethods[ml]], trainData, folds=5, stratified=orange.MakeRandomIndices.StratifiedIfPossible, random_generator = random.randint(0, 100))
                         R2 = evalUtilities.R2(res)[0]
                         optAcc[ml].append(R2)
                 else:
-                    runPath = miscUtilities.createScratchDir(baseDir = AZOC.NFS_SCRATCHDIR, desc = "AccWOptParam", seed = id(trainData))
-                    trainData.save(os.path.join(runPath,"trainData.tab"))
-
-                    tunedPars = paramOptUtilities.getOptParam(
-                        learner = MLmethods[ml], 
-                        trainDataFile = os.path.join(runPath,"trainData.tab"), 
-                        paramList = self.paramList, 
-                        useGrid = False, 
-                        verbose = self.verbose, 
-                        queueType = self.queueType, 
-                        runPath = runPath, 
-                        nExtFolds = None, 
-                        nFolds = self.nInnerFolds,
-                        logFile = self.logFile,
-                        getTunedPars = True,
-                        fixedParams = self.fixedParams)
-                    if not MLmethods[ml] or not MLmethods[ml].optimized:
-                        self.__log("       WARNING: GETACCWOPTPARAM: The learner "+str(ml)+" was not optimized.")
-                        self.__log("                It will be ignored")
-                        #self.__log("                It will be set to default parameters")
-                        self.__log("                    DEBUG can be done in: "+runPath)
-                        #Set learner back to default 
-                        #MLmethods[ml] = MLmethods[ml].__class__()
-                        raise Exception("The learner "+str(ml)+" was not optimized.")
+                    if MLmethods[ml].specialType == 1: 
+                            if trainData.domain.classVar.varType == orange.VarTypes.Discrete:
+                                    optInfo, SpecialModel = MLmethods[ml].optimizePars(trainData, folds = 5)
+                                    optAcc[ml].append(optInfo["Acc"])
+                            else:
+                                    res = evalUtilities.crossValidation([MLmethods[ml]], trainData, folds=5, stratified=orange.MakeRandomIndices.StratifiedIfPossible, random_generator = random.randint(0, 100))
+                                    R2 = evalUtilities.R2(res)[0]
+                                    optAcc[ml].append(R2)
                     else:
-                        if trainData.domain.classVar.varType == orange.VarTypes.Discrete:
-                            optAcc[ml].append(tunedPars[0])
-                        else:
-                            res = orngTest.crossValidation([MLmethods[ml]], trainData, folds=5, strat=orange.MakeRandomIndices.StratifiedIfPossible, randomGenerator = random.randint(0, 100))
-                            R2 = evalUtilities.R2(res)[0]
-                            optAcc[ml].append(R2)
+                            runPath = miscUtilities.createScratchDir(baseDir = AZOC.NFS_SCRATCHDIR, desc = "AccWOptParam", seed = id(trainData))
+                            trainData.save(os.path.join(runPath,"trainData.tab"))
+                            tunedPars = paramOptUtilities.getOptParam(
+                                learner = MLmethods[ml], 
+                                trainDataFile = os.path.join(runPath,"trainData.tab"), 
+                                paramList = self.paramList, 
+                                useGrid = False, 
+                                verbose = self.verbose, 
+                                queueType = self.queueType, 
+                                runPath = runPath, 
+                                nExtFolds = None, 
+                                nFolds = self.nInnerFolds,
+                                logFile = self.logFile,
+                                getTunedPars = True,
+                                fixedParams = self.fixedParams)
+                            if not MLmethods[ml] or not MLmethods[ml].optimized:
+                                self.__log("       WARNING: GETACCWOPTPARAM: The learner "+str(ml)+" was not optimized.")
+                                self.__log("                It will be ignored")
+                                #self.__log("                It will be set to default parameters")
+                                self.__log("                    DEBUG can be done in: "+runPath)
+                                #Set learner back to default 
+                                #MLmethods[ml] = MLmethods[ml].__class__()
+                                raise Exception("The learner "+str(ml)+" was not optimized.")
+                            else:
+                                if trainData.domain.classVar.varType == orange.VarTypes.Discrete:
+                                    optAcc[ml].append(tunedPars[0])
+                                else:
+                                    res = evalUtilities.crossValidation([MLmethods[ml]], trainData, folds=5, stratified=orange.MakeRandomIndices.StratifiedIfPossible, random_generator = random.randint(0, 100))
+                                    R2 = evalUtilities.R2(res)[0]
+                                    optAcc[ml].append(R2)
 
-                        miscUtilities.removeDir(runPath) 
+                                miscUtilities.removeDir(runPath) 
                 #Train the model
-                model = MLmethods[ml](trainData)
+                if SpecialModel is not None:
+                    model = SpecialModel 
+                else:
+                    model = MLmethods[ml](trainData)
                 models[ml].append(model)
                 #Test the model
                 if self.responseType == "Classification":
                     results[ml].append((evalUtilities.getClassificationAccuracy(testData, model), evalUtilities.getConfMat(testData, model) ) )
                 else:
                     local_exp_pred = []
-                    for ex in testData:
-                        local_exp_pred.append((ex.getclass(), model(ex)))
+                    # Predict using bulk-predict
+                    predictions = model(testData)
+                    # Gather predictions
+                    for n,ex in enumerate(testData):
+                        local_exp_pred.append((ex.getclass().value, predictions[n].value))
                     results[ml].append((evalUtilities.calcRMSE(local_exp_pred), evalUtilities.calcRsqrt(local_exp_pred) ) )
                     #Save the experimental value and correspondent predicted value
                     exp_pred[ml] += local_exp_pred
@@ -415,6 +443,7 @@ class UnbiasedAccuracyGetter():
                 pprint(res)
             if not res:
                 raise Exception("No results available!")
+            res["runningTime"] = time.time() - startTime
             statistics[ml] = copy.deepcopy(res)
             self.__writeResults(statistics)
             self.__log("       OK")
@@ -436,6 +465,7 @@ class UnbiasedAccuracyGetter():
             #We still need to build a consensus model out of the stable models 
             #   ONLY if there are more that one model stable!
             #   When only one or no stable models, build a consensus based on all models
+            # ALWAYS exclude specialType models (MLmethods[ml].specialType > 0)
             consensusMLs={}
             for modelName in statistics:
                 StabilityValue = statistics[modelName]["StabilityValue"]
@@ -448,9 +478,20 @@ class UnbiasedAccuracyGetter():
                 consensusMLs={}
                 for modelName in statistics:
                     consensusMLs[modelName] = copy.deepcopy(statistics[modelName])
- 
+
+            # Exclude specialType models 
+            excludeThis = []
+            for learnerName in consensusMLs:
+                if models[learnerName][0].specialType > 0:
+                    excludeThis.append(learnerName)
+            for learnerName in excludeThis:
+                consensusMLs.pop(learnerName)
+                self.__log("    > Excluded special model " + learnerName)
+            self.__log("    > Stable modules: " + str(consensusMLs.keys()))
+
             if len(consensusMLs) >= 2:
                 #Var for saving each Fols result
+                startTime = time.time()
                 Cresults = []
                 Cexp_pred = []
                 CnTrainEx = []
@@ -485,7 +526,13 @@ class UnbiasedAccuracyGetter():
                             expression += " + "+str(optAcc[ml][foldN])+" * "+ml+" "
                         expression += ")"
 
-                    testData = self.data.select(DataIdxs,foldN)
+                    testData = self.data.select(DataIdxs,foldN+1)  # fold 0 if for the train Bias!!
+                    smilesAttr = dataUtilities.getSMILESAttr(testData)
+                    if smilesAttr:
+                        self.__log("Found SMILES attribute:"+smilesAttr)
+                        testData = dataUtilities.attributeDeselectionData(testData, [smilesAttr])
+                        self.__log("Selected attrs: "+str([attr.name for attr in trainData.domain[0:3]] + ["..."] + [attr.name for attr in trainData.domain[len(trainData.domain)-3:]]))
+
                     CnTestEx.append(len(testData))
                     consensusClassifiers = {}
                     for learnerName in consensusMLs:
@@ -498,13 +545,17 @@ class UnbiasedAccuracyGetter():
                         Cresults.append((evalUtilities.getClassificationAccuracy(testData, model), evalUtilities.getConfMat(testData, model) ) )
                     else:
                         local_exp_pred = []
-                        for ex in testData:
-                            local_exp_pred.append((ex.getclass(), model(ex)))
+                        # Predict using bulk-predict
+                        predictions = model(testData)
+                        # Gather predictions
+                        for n,ex in enumerate(testData):
+                            local_exp_pred.append((ex.getclass().value, predictions[n].value))
                         Cresults.append((evalUtilities.calcRMSE(local_exp_pred), evalUtilities.calcRsqrt(local_exp_pred) ) )
                         #Save the experimental value and correspondent predicted value
                         Cexp_pred += local_exp_pred
 
                 res = self.createStatObj(Cresults, Cexp_pred, CnTrainEx, CnTestEx, self.responseType, self.nExtFolds, labels = hasattr(self.data.domain.classVar,"values") and list(self.data.domain.classVar.values) or None )
+                res["runningTime"] = time.time() - startTime
                 statistics["Consensus"] = copy.deepcopy(res)
                 statistics["Consensus"]["IndividualStatistics"] = copy.deepcopy(consensusMLs)
                 self.__writeResults(statistics)
