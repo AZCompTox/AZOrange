@@ -172,7 +172,9 @@ CVSVMDEFAULTDICT = {
 SIGNSVMDEFAULTDICT = {
         'startHeight'  :0      , 
         'endHeight'    :3      ,
-        'nrFolds'      :-1     ,   # -1 makes the selection automatic based on number of train examples
+        'nrFolds'      :-1     ,   # -1 makes the selection automatic based on number of train examples when doing optimization
+                                   #  0 disables optimizatrion of c and gamma
+                                   #  Optimizes C and Gamma
         'nrThreads'    :8      ,
         'scaleClass'   : 0     ,
         'priors'       : None  }
