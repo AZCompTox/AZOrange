@@ -51,7 +51,7 @@ class GetAccWOptParam(AZorngTestUtil.AZorngTestUtil):
         paramList = ["nActVars"]
         evaluator = getUnbiasedAccuracy.UnbiasedAccuracyGetter(data = self.irisContData, learner = learner, paramList = paramList ,nExtFolds = 3, nInnerFolds = 3)
         res = evaluator.getAcc()
-        expectedRes = [0.27741430697239661, 0.27945999999999999, 0.276116805384, 0.277488734272, 0.276164200118]  # [InHouse, Ubuntu, Ubuntu 64 bits]
+        expectedRes = [0.27741430697239661, 0.27945999999999999, 0.276116805384, 0.277488734272, 0.276164200118,0.276028683916]  # [InHouse, Ubuntu, Ubuntu 64 bits]
         self.log.info("")
         self.log.info("res.keys()" + str(res.keys()))
         expected = [round(x,5) for x in expectedRes]
@@ -69,7 +69,7 @@ class GetAccWOptParam(AZorngTestUtil.AZorngTestUtil):
         res = evaluator.getAcc()
         expectedRes = [
                        0.97464488216654444, 0.97420405774, 0.974887867109, 0.97510044677,        # [InHouse, Ubuntu, Ubuntu 64 bits]
-                       0.97533758502003
+                       0.97533758502003, 0.97536
                       ] 
         self.log.info("")
         self.log.info("res.keys()" + str(res.keys()))
