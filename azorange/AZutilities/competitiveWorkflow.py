@@ -49,10 +49,14 @@ def getMLStatistics(trainData, savePath = None, queueType = "NoSGE", verbose = 0
         log(logFile, "Running getMLStatistics...")
         MLStatistics = {}
         learners = {}
+        smilesAttr = dataUtilities.getSMILESAttr(trainData) 
         for ml in MLMETHODS:
             learner = MLMETHODS[ml](name = ml)
-            if not learner.isCompatible(trainData.domain.classVar):
-                print "Ignored learner ",ml," since it's not compatible with this class."
+            if not learner.isCompatible(trainData.domain.classVar) :
+                log(logFile, "Ignored learner "+str(ml)+" since it's not compatible with this class.")
+                continue
+            if learner.specialType == 1 and not smilesAttr:
+                log(logFile, "Ignored learner "+str(ml)+" since it's special and requires a SMILES attribute.")
                 continue
             learners[ml] = learner
         # Forced queueType to NoSGE so that appspack do not fload the cluster
@@ -180,13 +184,13 @@ def buildModel(trainData, MLMethod, queueType = "NoSGE", verbose = 0, logFile = 
             for ML in MLMethod["IndividualStatistics"]:
                 MLMethods[ML] = copy.deepcopy(MLMethod["IndividualStatistics"][ML])
         else:
-            if MLMethod.specialType == 1:  # If is a special model and has a built-in optimizaer
+            if MLMETHODS[MLMethod["MLMethod"]].specialType == 1:  # If is a special model and has a built-in optimizaer
                 log(logFile, "       This is a special model")
                 smilesAttr = dataUtilities.getSMILESAttr(trainData)
                 if smilesAttr:
                     log(logFile,"Found SMILES attribute:"+smilesAttr)
                     trainData = dataUtilities.attributeSelectionData(trainData, [smilesAttr, trainData.domain.classVar.name])
-                optInfo, SpecialModel = MLMethod.optimizePars(trainData, folds = 5)
+                optInfo, SpecialModel = MLMETHODS[MLMethod["MLMethod"]].optimizePars(trainData, folds = 5)
                 return SpecialModel
             else:
                 MLMethods[MLMethod["MLMethod"]] = MLMethod
@@ -268,12 +272,8 @@ def getModel(trainData, savePath = None, queueType = "NoSGE", verbose = 0, getAl
         else:
             logFile = None
 
-        #DEBUG
-        print "DEBUG mode: loading MLStatistics from /home/palmeida/WorkSpace/SignCombo/My/UnbiasedRes.pkl"
-        fh = open("/home/palmeida/WorkSpace/SignCombo/My/UnbiasedRes.pkl",'r')
-        MLStatistics = pickle.load(fh)
-        fh.close()
-        #MLStatistics = getMLStatistics(trainData, savePath, queueType = queueType, verbose = verbose, logFile = logFile, callBack = callBack)
+
+        MLStatistics = getMLStatistics(trainData, savePath, queueType = queueType, verbose = verbose, logFile = logFile, callBack = callBack)
         MLMethod = selectModel(MLStatistics, logFile = logFile)
         #Save again the MLStatistics to update the selected flag
         saveMLStatistics(savePath, MLStatistics, logFile) 

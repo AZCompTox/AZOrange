@@ -29,7 +29,7 @@ class OWCombiQSAR(OWWidget):
         self.outputs = [("Classifier", orange.Classifier), ("Examples", ExampleTable)]
 
         self.queueTypes = ["NoSGE","batch.q","quick.q"] 
-        self.outputModes = ["Statistics for all available algorithms. Please note, no model selection.", "Model and statistics (unbiased wrt model selection). Please note, time consuming."]
+        self.outputModes = ["Model and statistics for all available algorithms (with model selection).", "Model and statistics (unbiased wrt model selection). Please note, time consuming."]
         self.name = name
 	self.dataset = None
 	self.classifier = None
@@ -201,6 +201,10 @@ class OWCombiQSAR(OWWidget):
     def changeOutputMode(self):
         self.warning(0)
         self.error(0)
+
+        return
+
+        # Always ebabled. We return alays a model!
         if self.outputSel == 0:
             state = False
         else:
@@ -403,6 +407,11 @@ class OWCombiQSAR(OWWidget):
 
         statistics = competitiveWorkflow.getMLStatistics(self.dataset, savePath = statPath, queueType = self.queueTypes[self.queueType], verbose = 0, logFile = None, callBack = self.advance)
 
+        #select the best model
+        MLMethod = competitiveWorkflow.selectModel(statistics, logFile = None)
+        self.classifier = competitiveWorkflow.buildModel(self.dataset, MLMethod, queueType = self.queueTypes[self.queueType], verbose = 0, logFile = None)
+        if not self.classifier:
+            self.statInfo = "Could not get a classifier. Please check the output window."
 
         if not statistics:
             self.statInfo = "Some error occured. Please check the output window"
@@ -417,7 +426,8 @@ class OWCombiQSAR(OWWidget):
                               "You can also use or view the statistics by connecting \n"+\
                               " the appropriate widget to this widget output" 
         self.statInfoBox.setText(self.statInfo)
-        self.send("Classifier", None)
+        self.classifier.name = str(self.name)
+        self.send("Classifier", self.classifier)
         self.send("Examples", self.statistics)
 
 
