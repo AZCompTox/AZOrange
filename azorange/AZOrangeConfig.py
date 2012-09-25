@@ -182,13 +182,21 @@ SIGNSVMDEFAULTDICT = {
 
 #QSAR definitions
 #MLMETHODS: {"MethodNAme": [<MLmodule>, <Learnerobject>], ...}
-MLMETHODS = {"CvRF":{"module":"trainingMethods.AZorngRF","object":"RFLearner"},
+_MLMETHODS = {"CvRF":{"module":"trainingMethods.AZorngRF","object":"RFLearner"},
              "CvANN":{"module":"trainingMethods.AZorngCvANN","object":"CvANNLearner"},
              "CvSVM":{"module":"trainingMethods.AZorngCvSVM","object":"CvSVMLearner"},
              "CvBoost":{"module":"trainingMethods.AZorngCvBoost","object":"CvBoostLearner"},
-             "PLS":{"module":"trainingMethods.AZorngPLS","object":"PLSLearner"},
-             "SignSVM":{"module":"trainingMethods.AZorngSignSVM","object":"SignSVMLearner"}
+             "PLS":{"module":"trainingMethods.AZorngPLS","object":"PLSLearner"}
                 }
+
+if "MLMETHODS" in locals():
+    # Extend the dictionary with metods defined for example in AZOrangeExtraConfig
+    # When same key exists in both, the one from 2nd argument is used instead!
+    MLMETHODS = dict(_MLMETHODS.items() + MLMETHODS.items())
+else:
+    MLMETHODS = _MLMETHODS
+
+
 QSARNEXTFOLDS = 10     #Number of Folds for the outer loop where data is splitted into External test and Modeling Set
 QSARNINNERFOLDS = 10   #Number of Folds to use in getUnbiasedAccuracy when data is splitted into train and test
 QSARNCVFOLDS = 5       #Number of CrossValidation folds used in getUnbiasedAccuracy when optimizing the MLmethods
