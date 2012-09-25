@@ -184,13 +184,14 @@ def buildModel(trainData, MLMethod, queueType = "NoSGE", verbose = 0, logFile = 
             for ML in MLMethod["IndividualStatistics"]:
                 MLMethods[ML] = copy.deepcopy(MLMethod["IndividualStatistics"][ML])
         else:
-            if MLMETHODS[MLMethod["MLMethod"]].specialType == 1:  # If is a special model and has a built-in optimizaer
+            ML = MLMethod["MLMethod"]
+            if MLMETHODS[ML](name = ML).specialType == 1:  # If is a special model and has a built-in optimizaer
                 log(logFile, "       This is a special model")
                 smilesAttr = dataUtilities.getSMILESAttr(trainData)
                 if smilesAttr:
                     log(logFile,"Found SMILES attribute:"+smilesAttr)
                     trainData = dataUtilities.attributeSelectionData(trainData, [smilesAttr, trainData.domain.classVar.name])
-                optInfo, SpecialModel = MLMETHODS[MLMethod["MLMethod"]].optimizePars(trainData, folds = 5)
+                optInfo, SpecialModel = MLMETHODS[ML](name = ML).optimizePars(trainData, folds = 5)
                 return SpecialModel
             else:
                 MLMethods[MLMethod["MLMethod"]] = MLMethod
