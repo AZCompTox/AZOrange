@@ -305,11 +305,13 @@ class AZOrangePredictor:
         errorDesc = "" 
         while nTry > 0:
            try:
+                traceLog = "Model Location:"+str(self.modelLocation)+"\n"
                 nBadEx = 0        
                 # Determine Signature and non-Signature descriptor names
                 cinfonyDesc, clabDesc, signatureHeight, bbrcDesc = self.getDescTypes(descList)
                 # Signatures
                 if "sign" in DescMethodsAvailable and signatureHeight:
+                    traceLog += "Calculating signatures...\n"
                     print "Calculating signatures...."
                     preCalcData = dataUtilities.DataTable(self.preDefSignatureFile)
                     startHeight = 0                # Not used desc ignored in model prediction
@@ -318,16 +320,19 @@ class AZOrangePredictor:
 
                 # C-Lab desc
                 if "clab" in DescMethodsAvailable and clabDesc:
+                    traceLog += "Calculating C-Lab...\n"
                     print "Calculating C-Lab desc...."
                     self.smilesData = ClabUtilities.appendCLabDesc(clabDesc, self.smilesData)
 
                 # Cinfony
                 if cinfonyDesc:
+                    traceLog += "Calculating Cinfony...\n"
                     print "Calculating Cinfony desc..."
                     self.smilesData = getCinfonyDesc.getCinfonyDescResults(self.smilesData, cinfonyDesc, radius = 5)
 
                 # bbrcDesc
                 if "bbrc" in DescMethodsAvailable and bbrcDesc:
+                    traceLog += "Calculating BBRC...\n"
                     print "Calculating BBRC desc..."
                     self.smilesData = getBBRCDesc.getBBRCDescResult(self.smilesData, algo = "FTM", minSupPar = 1, descList = bbrcDesc)
 
@@ -336,6 +341,7 @@ class AZOrangePredictor:
                    if sum([ex[attr].isSpecial() for attr in self.smilesData.domain.attributes]) == len(self.smilesData.domain.attributes):
                         nBadEx +=1
                 if nBadEx:
+                    traceLog += "WARNING: Desc. Calculation: From the "+str(len(self.smilesData))+" compounds, "+str(nBadEx)+" could not be calculated!\n"
                     print "WARNING: Desc. Calculation: From the "+str(len(self.smilesData))+" compounds, "+str(nBadEx)+" could not be calculated!"
                     print "WARNING:   Tying again..."
                     self.smilesData = dataUtilities.DataTable(savedSmilesData)
@@ -343,7 +349,7 @@ class AZOrangePredictor:
                 else:
                     nTry = 0
            except Exception, e:
-                errorDesc = "Error Calculating Descriptors:;  "+str(e)+";"
+                errorDesc = "Error Calculating Descriptors:;"+traceLog+str(e)+";"
                 nTry -= 1
         if errorDesc:
            raise Exception(errorDesc)
