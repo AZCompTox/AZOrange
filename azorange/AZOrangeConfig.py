@@ -175,7 +175,7 @@ SIGNSVMDEFAULTDICT = {
         'nrFolds'      :-1     ,   # -1 makes the selection automatic based on number of train examples when doing optimization
                                    #  0 disables optimizatrion of c and gamma
                                    #  Optimizes C and Gamma
-        'nrThreads'    :8      ,
+        'nrThreads'    : 0     ,   # 0 will use half of the cores available if there are more than 1
         'scaleClass'   : 0     ,
         'priors'       : None  }
 
