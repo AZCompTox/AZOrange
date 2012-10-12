@@ -419,7 +419,7 @@ class AZOrangePredictor:
                 outComeIsRev = True
             else:
                 print "ERROR: User outcome ordered list is not consistens toth model: ",\
-                      self.predictionOutcomes, "<-->",self.model.classVar.valuesi
+                      self.predictionOutcomes, "<-->",self.model.classVar.values
             # Choose from proper vector according Documentation
             #if the  labels at the model are oposite to the self.predictionOutcomes, switch
             if (prediction == theGoodPred and not outComeIsRev) or (prediction == theBadPred and outComeIsRev):
@@ -592,32 +592,44 @@ class AZOrangePredictor:
 if __name__ == "__main__":
     #modelPath = "../../tests/source/data/DescModel.model"  # Just RDK descriptors and RDK Fingerprints
     #modelPath = "../../tests/source/data/BBRC_RDK_RDKFP.model"
+    modelPath = "/home/palmeida/Workspace/BBRC/model"
     #modelPath = "/home/palmeida/RFmodel"  # with webel descriptors
     #modelPath = "/home/azorangeLive/liveModels_V2/geneTox/currentModelVersion/liveModel/Model"
     #modelPath = "/home/palmeida/liveModels/NaV1.5/currentModelVersion/liveModel/Model/"
     #modelPath = "/home/palmeida/liveModels/hERG/currentModelVersion/liveModel//Model/C0.model/"
-    modelPath = "/home/palmeida/liveModels/AhRrat/currentModelVersion/liveModel/Model/"
+    #modelPath = "/home/palmeida/liveModels/AhRrat/currentModelVersion/liveModel/Model/"
     #smi = "C123C5C(O)C=CC2C(N(C)CC1)Cc(ccc4O)c3c4O5"  # NEG
     #smi = "CCC"  # POS
     smi = "CC(C)Cc1ccc(cc1)C(C)C(=O)O"
+    #testData = orange.ExampleTable("../../tests/source/data/QSAR_10mols.tab")
+    #testData = orange.ExampleTable("/home/palmeida/Workspace/BBRC/train.tab")
+    #res = []
+    #for ex in testData:
+    if True:
+            #print "-------------------------------------------------------------------"
+            #smi = ex["SMILES"].value
+            print "SMILES: ",smi
+            predictor = AZOrangePredictor(modelPath)
+            #Needed for classification
+            #predictor.predictionOutcomes = ["NEG","POS"]#["POS", "NEG"]
+            predictor.predictionOutcomes = ["1","2"]#["POS", "NEG"]
 
-    predictor = AZOrangePredictor(modelPath)
-    #Needed for classification
-    predictor.predictionOutcomes = ["NEG","POS"]#["POS", "NEG"]
+            #Needed for Regression
+            predictor.significanceThreshold = 5.0
+            
+            print "========== Running =========="
+            print "Calculating descriptors..."
+            predictor.getDescriptors(smi)
+            print "Predicting...", smi, "..."
+            prediction = predictor.predict()
+            print prediction
+            print "Finding significant descriptors..."
+            significance = predictor.getSDs(smi, prediction)
+            print "========== Results =========="
+            print "Prediction:",prediction
+            print "Significant descriptors:",significance
+            #res.append(str(significance)+" : "+prediction)
+            print
 
-    #Needed for Regression
-    predictor.significanceThreshold = 5.0
-    
-    print "========== Running =========="
-    print "Calculating descriptors..."
-    predictor.getDescriptors(smi)
-    print "Predicting...", smi, "..."
-    prediction = predictor.predict()
-    print prediction
-    print "Finding significant descriptors..."
-    significance = predictor.getSDs(smi, prediction)
-    print "========== Results =========="
-    print "Prediction:",prediction
-    print "Significant descriptors:",significance
-    print
-
+#    for r in res:
+#        print r
