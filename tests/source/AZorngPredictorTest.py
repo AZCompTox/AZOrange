@@ -10,7 +10,7 @@ class AZOrangePredictorTest(unittest.TestCase):
 
     def setUp(self):
         #self.modelPath = "data/DescModel.model"  # Just RDK descriptors and RDK Fingerprints
-        self.modelPath = "data/BBRC_RDK_RDKFP.model"
+        self.modelPath = "data/BBRC.model"
         self.smi = "C123C5C(O)C=CC2C(N(C)CC1)Cc(ccc4O)c3c4O5"  # NEG
         #self.smi = "CCC"  # POS
 
@@ -19,7 +19,7 @@ class AZOrangePredictorTest(unittest.TestCase):
         """
         predictor = AZOrangePredictor.AZOrangePredictor(self.modelPath)
         #Needed for classification
-        predictor.predictionOutcomes = ["POS", "NEG"]
+        predictor.predictionOutcomes = ["1", "2"]
 
         #Needed for Regression
         #predictor.significanceThreshold = 0.4
@@ -27,10 +27,10 @@ class AZOrangePredictorTest(unittest.TestCase):
         predictor.getDescriptors(self.smi)
         prediction = predictor.predict()
         significance = predictor.getSDs(self.smi, prediction)
-        self.assert_(prediction == "POS", "Got:"+str(prediction))   
+        self.assert_(prediction == "1", "Got:"+str(prediction))   
 
         # Expecting: {'color': (0, 0, 0), 'imgPath': '', 'signature': '', 'atoms': [], 'non-signature': 'rdk.FP_1510328189', 'molStr': ''}
-        self.assert_(significance['non-signature'] == 'rdk.FP_1510328189', "Got: "+str(significance))   
+        self.assert_(significance['non-signature'] ==  'Continuous: \n   [#7&A]-[#6&A]-[#6&A]-[#7&A]\n\n', "Got: "+str(significance))   
 
 
 
