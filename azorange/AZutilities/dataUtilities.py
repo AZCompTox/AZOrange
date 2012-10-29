@@ -41,6 +41,35 @@ def getSMILESAttr(data):
     return smilesName
 
 
+def fixSDF(sdfFile,data):
+            """Fix SDF file by including the response property in each molblock.
+                It returns the property name used.
+                The sdfFile must have been created with data!!
+                It will match data examples with molblocks in sdfFile by it's index!
+            """
+            os.system("cp "+sdfFile+" "+sdfFile+"_orig")
+            smilesAttr = getSMILESAttr(data)
+            property = data.domain.classVar.name
+            fhDest = open(sdfFile,'w')
+            fhSrc = open(sdfFile+"_orig",'r')
+            line = " "
+            nEx = 0
+            while line:
+                line = fhSrc.readline()
+                fhDest.write(line)
+                if "M  END" in line:
+                    #fhDest.write("> <Molecular Signature>\n")
+                    #fhDest.write(str(data[nEx][smilesAttr].value)+"\n\n")
+                    fhDest.write("\n> <"+property+">\n")
+                    fhDest.write(str(data[nEx].getclass().value)+"\n\n")
+                elif "$$$$" in line:
+                    nEx += 1
+            fhDest.close()
+            fhSrc.close()
+            os.system("rm -f "+sdfFile+"_orig")
+            return property
+
+
 def makeTempSDF(data, smilesAsName=None):
         """     create temporary SFD file for usage with, e.g., structural clustering or other integrated algorithms
                 that need SDF input.
