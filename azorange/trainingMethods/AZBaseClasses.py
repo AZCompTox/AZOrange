@@ -431,7 +431,7 @@ class AZClassifier(object):
         return self.NTrainEx
 
 
-    def getTopImportantVars(self, inEx, nVars = 1, gradRef = None, absGradient = True, c_step = None):
+    def getTopImportantVars(self, inEx, nVars = 1, gradRef = None, absGradient = True, c_step = None, getGrad = False):
         """Return the n top important variables (n = nVars) for the given example
             if nVars is 0, it returns all variables ordered by importance
             if c_step (costume step) is passed, force it instead of hardcoded
@@ -546,9 +546,9 @@ class AZClassifier(object):
         #Order the vars in terms of importance
         if absGradient:
             contVars.sort(reverse=1, cmp=lambda x,y: compareABS(x[0], y[0]))
-            contVars = getVarNames(groupTiedScores(contVars,0))
+            contVars = getVarNames(groupTiedScores(contVars,0), getGrad=getGrad)
             discVars.sort(reverse=1, cmp=lambda x,y: compareABS(x[0], y[0]))
-            discVars = getVarNames(groupTiedScores(discVars,0))
+            discVars = getVarNames(groupTiedScores(discVars,0), getGrad=getGrad)
             return {"Continuous":contVars[0:min(nRet,len(contVars))] ,\
                     "Discrete"  :discVars[0:min(nRet,len(discVars))] }
 
@@ -576,21 +576,20 @@ class AZClassifier(object):
         # Now we will be looking only to the actual derivative value; [0]
         UPd = [v for v in discVars if v[0] > 0]
         UPd.sort(reverse=1, cmp=lambda x,y: compareABS(x[0], y[0]))
-        UPd = getVarNames(groupTiedScores(UPd,0))
+        UPd = getVarNames(groupTiedScores(UPd,0), getGrad=getGrad)
 
         DOWNd = [v for v in discVars if v[0] < 0]
         DOWNd.sort(reverse=1, cmp=lambda x,y: compareABS(x[0], y[0]))
-        DOWNd = getVarNames(groupTiedScores(DOWNd,0))
+        DOWNd = getVarNames(groupTiedScores(DOWNd,0), getGrad=getGrad)
 
 
 
         UPc = [v for v in contVars if v[0] > 0]
         UPc.sort(reverse=1, cmp=lambda x,y: compareABS(x[0], y[0]))
-        UPc = getVarNames(groupTiedScores(UPc,0))
-
+        UPc = getVarNames(groupTiedScores(UPc,0), getGrad=getGrad)
         DOWNc = [v for v in contVars if v[0] < 0]
         DOWNc.sort(reverse=1, cmp=lambda x,y: compareABS(x[0], y[0]))
-        DOWNc = getVarNames(groupTiedScores(DOWNc,0))
+        DOWNc = getVarNames(groupTiedScores(DOWNc,0), getGrad=getGrad)
 
 
         return {"Continuous":{"UP":   UPc[0:min(nRet,len(  UPc))],\
@@ -619,12 +618,18 @@ def groupTiedScores(theList, n):
     return retList        
         
 
-def getVarNames(theList, n = 1):
+def getVarNames(theList, n = 1, getGrad = False):
     """ returns a list with only the respective values in elements of order [n]
+        [0] - DerivValue
+        [1] - VarName 
     """
     retList = []
-    for el in theList:
-        retList.append([x[n] for x in el])
+    if getGrad:
+        for el in theList:
+            retList.append([(x[n],x[0]) for x in el])
+    else:
+        for el in theList:
+            retList.append([x[n] for x in el])
         
     return retList
 
