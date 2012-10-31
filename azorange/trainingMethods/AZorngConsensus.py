@@ -150,7 +150,7 @@ class ConsensusClassifier(AZBaseClasses.AZClassifier):
         self = AZBaseClasses.AZClassifier.__new__(cls, name = name,  **kwds)      
         return self
 
-    def getTopImportantVars(self, inEx, nVars = 1, gradRef = None, absGradient = True, c_step = None):
+    def getTopImportantVars(self, inEx, nVars = 1, gradRef = None, absGradient = True, c_step = None, getGrad = False):
         return {"NA":"Not aplicable: No harmonized DFV"}
 
     def __init__(self, name = "Consensus classifier", **kwds):

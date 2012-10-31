@@ -137,11 +137,11 @@ class PLSClassifier(AZBaseClasses.AZClassifier):
         #self.__init__(name, **kwds)
 	return self
 
-    def getTopImportantVars(self, inEx, nVars = 1, gradRef = None, absGradient = True, c_step = None):
+    def getTopImportantVars(self, inEx, nVars = 1, gradRef = None, absGradient = True, c_step = None, getGrad = False):
         if self.classVar.varType == orange.VarTypes.Discrete:
             return {"NA":"Not aplicable: No true DFV"}
         else:
-            return AZBaseClasses.AZClassifier.getTopImportantVars(self, inEx, nVars, gradRef, absGradient, c_step)
+            return AZBaseClasses.AZClassifier.getTopImportantVars(self, inEx, nVars, gradRef, absGradient, c_step, getGrad)
 
     def __init__(self, name = "PLS classifier", **kwds): 
         self.verbose = 0
