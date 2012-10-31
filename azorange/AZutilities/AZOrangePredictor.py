@@ -218,7 +218,6 @@ class AZOrangePredictor:
         try:
                 #Draw the image
                 MolDrawing.elemDict=defaultdict(lambda : (0,0,0))
-                print "highlightAtoms:",atoms
                 Draw.MolToImageFile(mol,imgPath,size=(300, 300), kekulize=True, wedgeBonds=True, highlightAtoms=atoms)
                 #Color the Highlighted atoms with the choosen atomColor.
                 # Only using one color
@@ -424,7 +423,6 @@ class AZOrangePredictor:
 
         orderedDesc_nonSign = {'Continuous': {'DOWN': [], 'UP': []},
                                'Discrete': {'DOWN': [], 'UP': []}}
-        print "Oredered DESCs:"
         for attrType in ['Continuous', 'Discrete']:
             for vector in ['UP','DOWN']:
                 for ord in range(len(orderedDesc[attrType][vector])):
@@ -451,9 +449,6 @@ class AZOrangePredictor:
                 return
             theGoodPred = str(self.predictionOutcomes[1])
             theBadPred = str(self.predictionOutcomes[0])
-            print "list Provided by modeler:",str(self.predictionOutcomes)
-            print "GOOD:",theGoodPred
-            print "BAD:",theBadPred
             if [str(p) for p in self.model.classVar.values] == self.predictionOutcomes:
                 outComeIsRev = False
             elif [str(p) for p in self.model.classVar.values][::-1] == self.predictionOutcomes:
@@ -474,11 +469,6 @@ class AZOrangePredictor:
                 atomColor = 'g'
             else:
                 atomColor = 'r'
-        print "outCome Reverse? ",str(outComeIsRev)
-        print "\norderedDesc_sign:"
-        pprint(orderedDesc_sign)
-        print "\norderedDesc_nonSign"
-        pprint(orderedDesc_nonSign)
         #Process Signatures
         if len(orderedDesc_sign["Continuous"]["DOWN"]):
             downAbs = abs(orderedDesc_sign["Continuous"]["DOWN"][0][0][1])

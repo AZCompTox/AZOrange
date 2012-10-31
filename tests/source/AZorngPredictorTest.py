@@ -30,8 +30,7 @@ class AZOrangePredictorTest(unittest.TestCase):
         self.assert_(prediction == "1", "Got:"+str(prediction))   
 
         # Expecting: {'color': (0, 0, 0), 'imgPath': '', 'signature': '', 'atoms': [], 'non-signature': 'rdk.FP_1510328189', 'molStr': ''}
-        self.assert_(significance['non-signature'] ==  'Continuous: \n   [#7&A]-[#6&A]-[#6&A]-[#7&A]\n\n', "Got: "+str(significance))   
-
+        self.assert_(significance['non-signature'] =='Increase [#6&A]-[#7&A](-[#6&A])(-[#6&A])\n'  , "Got: "+str(significance))   
 
 
 		
