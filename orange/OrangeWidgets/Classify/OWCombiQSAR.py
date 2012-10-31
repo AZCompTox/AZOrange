@@ -38,6 +38,7 @@ class OWCombiQSAR(OWWidget):
         self.queueType = 0
         self.outputSel = 0
         self.isClassDiscrete = None
+        self.OptimizeChBox = {}
 
         #Paths
         self.modelFile = ""
@@ -160,6 +161,20 @@ class OWCombiQSAR(OWWidget):
                                              btnLabels=self.queueTypes,
                                              callback=None)
 
+
+        # create table with selectable ML methods
+        self.colNames = ["ML method","Enabled"]
+        mainRight = OWGUI.widgetBox(self.controlArea, "ML methods selection")
+        mainRight.setSizePolicy(QSizePolicy(QSizePolicy.MinimumExpanding, QSizePolicy.MinimumExpanding))
+
+        self.mlTable = OWGUI.table(self.controlArea, rows = 0, columns = 0, selectionMode = QTableWidget.MultiSelection, addToLayout = 1)
+        self.mlTable.verticalHeader().hide()
+        self.mlTable.setSelectionMode(QTableWidget.NoSelection)
+        self.mlTable.setColumnCount(len(self.colNames))
+        self.mlTable.setHorizontalHeaderLabels(self.colNames)
+
+
+
         # Set location of statistics file
         boxFile = OWGUI.widgetBox(self.controlArea, "Path for saving the results", addSpace = True, orientation=0)
         L1 = OWGUI.lineEdit(boxFile, self, "statPath", labelWidth=80,  orientation = "horizontal", tooltip = "Please use full path to results file to be created.")
@@ -191,10 +206,36 @@ class OWCombiQSAR(OWWidget):
         OWGUI.button(self.mainArea, self,"&Save statistics", callback=self.saveStat)
 
 
+        self.fillMLtable()
 
 
         self.changeOutputMode()
 	self.adjustSize()
+
+
+    def fillMLtable(self):
+        self.mlTable.setRowCount(len(AZOC.MLMETHODS))
+        for row,ml in enumerate(AZOC.MLMETHODS): 
+            col = 0
+            self.setCellText(self.mlTable, row, col, str(ml))
+
+            col = 1
+            self.mlTable.removeCellWidget( row, col)
+            self.OptimizeChBox[str(ml)] = QCheckBox()
+            self.OptimizeChBox[str(ml)].setTristate(False)
+            self.OptimizeChBox[str(ml)].setCheckState(int(AZOC.MLMETHODS[ml]["useByDefault"])*2)   #0-Unchecked    1-Partially checked    2-Checked
+            self.mlTable.setCellWidget(row,col,self.OptimizeChBox[str(ml)])
+
+                
+        
+    def setCellText(self,table,row,col,text):
+        table.removeCellWidget( row, col)
+        it = QTableWidgetItem()
+        it.setFlags(Qt.ItemIsEnabled | (Qt.ItemIsSelectable or Qt.NoItemFlags))
+        it.setTextAlignment(Qt.AlignRight)
+        it.setText(text)
+        table.setItem(row, col, it)
+        return it
 
 
 
@@ -350,7 +391,6 @@ class OWCombiQSAR(OWWidget):
         else:
             statPath = os.path.join(str(self.statPath),"statistics.pkl")
             modelPath = os.path.join(str(self.statPath),"Model")
-        
         res = competitiveWorkflow.competitiveWorkflow(self.dataset, modelSavePath = modelPath, statisticsSavePath = statPath, runningDir = AZOC.NFS_SCRATCHDIR, queueType = self.queueTypes[self.queueType], callBack = self.advance)
         if not res:
             self.error("Errors occurred. Please check the output window.")
@@ -403,9 +443,14 @@ class OWCombiQSAR(OWWidget):
         #fileh = open("/home/palmeida/dev/AZOrange/orange/OrangeWidgets/Classify/stat.pkl")
         #statistics = pickle.load(fileh)
         #fileh.close()
-
-
-        statistics = competitiveWorkflow.getMLStatistics(self.dataset, savePath = statPath, queueType = self.queueTypes[self.queueType], verbose = 0, logFile = None, callBack = self.advance)
+        
+        print  "OptimizeChBox",self.OptimizeChBox
+        mlList = []
+        for row in range(self.mlTable.rowCount()):
+            if self.mlTable.cellWidget(row,1).checkState()==2:
+                mlList.append(str(self.mlTable.item(row,0).text()).strip())
+        
+        statistics = competitiveWorkflow.getMLStatistics(self.dataset, mlList = mlList, savePath = statPath, queueType = self.queueTypes[self.queueType], verbose = 0, logFile = None, callBack = self.advance)
 
         #select the best model
         MLMethod = competitiveWorkflow.selectModel(statistics, logFile = None)
