@@ -1,4 +1,5 @@
 from AZutilities import dataUtilities
+from AZutilities import miscUtilities
 from AZutilities import competitiveWorkflow
 import unittest
 import os
@@ -25,7 +26,7 @@ class competitiveWFTest(AZorngTestUtil.AZorngTestUtil):
 
         
 
-    def no_testClass_SGE(self):
+    def disabled_testClass_SGE(self):
         """Test classification in serial mode
         """
         res = competitiveWorkflow.competitiveWorkflow(self.Dtrain_data, queueType = "batch.q")
@@ -38,7 +39,7 @@ class competitiveWFTest(AZorngTestUtil.AZorngTestUtil):
         self.assert_(res["statistics"]["selectedML"]["CA"] > 0 )
 
 
-    def no_testReg_SGE(self):
+    def disabled_testReg_SGE(self):
         """Test regression in serial mode
         """
         res = competitiveWorkflow.competitiveWorkflow(self.Ctrain_data, queueType = "batch.q")
@@ -55,8 +56,10 @@ class competitiveWFTest(AZorngTestUtil.AZorngTestUtil):
         print model
 
     def test_getStatistics(self):
+        runPath = miscUtilities.createScratchDir(desc="StatisitcsTest") 
         statistics = competitiveWorkflow.getStatistics(self.Ctrain_data, runPath, None, queueType = "batch.q", getAllModels = False)
         pprint(statistics)
+        os.system("rm -rf "+runPath)
 
 
 if __name__ == "__main__":

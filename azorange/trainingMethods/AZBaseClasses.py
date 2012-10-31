@@ -467,7 +467,7 @@ class AZClassifier(object):
         def calcContVarGrad(var,ex,gradRef):
             localEx = orange.Example(ex)
             if c_step is None:
-                coef_step = 0.5   # Needs confirmation!
+                coef_step = 0.5   # Needs confirmation! Coefficient step: c
             else:
                 #  used for testing significance: comment next and uncomment next-next
                 raise(Exception("This mode should only be used for debugging! Comment this line if debugging."))
@@ -511,7 +511,7 @@ class AZClassifier(object):
              else:
                  return 0
 
-        eps = 10E-5   # epsilon: amplitude of derivatives that will be considered 0. Attributes with derivative amplitude less than eps will not be considered.
+        eps = 10E-5   # epsilon: amplitude of derivatives that will be considered 0. Attributes with derivative amplitude less than epsilon will not be considered.
         # Print used for algorithm final confirmation
         #print "  %s  " % (str(gradRef)),
 
@@ -523,7 +523,7 @@ class AZClassifier(object):
             # Print used for algorithm final confirmation
             #print "  %s  " % (str(grad[1])),
 
-            if abs(grad[0]) > eps: # only consider attributes with derivative greatest than eps
+            if abs(grad[0]) > eps: # only consider attributes with derivative greatest than epsilon
                 #                  f'(x)                  x             f(a) 
                 #                derivative value     direction      f(a) farest away from f(x) only setted for classification
                 varGrad.append( (grad[0],             attr.name,     grad[1]) )
