@@ -197,8 +197,8 @@ else:
     MLMETHODS = _MLMETHODS
 
 
-QSARNEXTFOLDS = 3     #Number of Folds for the outer loop where data is splitted into External test and Modeling Set
-QSARNINNERFOLDS = 3   #Number of Folds to use in getUnbiasedAccuracy when data is splitted into train and test
+QSARNEXTFOLDS = 10     #Number of Folds for the outer loop where data is splitted into External test and Modeling Set
+QSARNINNERFOLDS = 10   #Number of Folds to use in getUnbiasedAccuracy when data is splitted into train and test
 QSARNCVFOLDS = 5       #Number of CrossValidation folds used in getUnbiasedAccuracy when optimizing the MLmethods
 QSARSTABILITYTHRESHOLD_CLASS_L = 0.1    #Max stability value for a model to be considered stable when testset has more than 50 cmpds
 QSARSTABILITYTHRESHOLD_CLASS_H = 0.1    #Max stability value for a model to be considered stable when testset has less than 50 cmpds
