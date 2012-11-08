@@ -7,6 +7,7 @@ import orange
 import types,os
 from AZutilities import dataUtilities
 import pickle
+import copy
 #from trainingMethods import AZorngConsensus 
 
 def getCorrespondingLearner(modelPath, getParameters = True):
@@ -155,7 +156,7 @@ def modelRead(modelFile=None,verbose = 0,retrunClassifier = True):
             modelRead (modelFile [, verbose = 0] [, retrunClassifier = True] )"""
 
     if not modelFile:
-        return ("CvSVM", "CvANN", "PLS", "CvRF", "CvBoost", "CvBayes", "Consensus")
+        return ("SignSVM","CvSVM", "CvANN", "PLS", "CvRF", "CvBoost", "CvBayes", "Consensus")
 
     modelType = None
     loadedModel = None
@@ -164,6 +165,11 @@ def modelRead(modelFile=None,verbose = 0,retrunClassifier = True):
         if not retrunClassifier: return modelType
         from trainingMethods import AZorngCvSVM    
         loadedModel = AZorngCvSVM.CvSVMread(modelFile,verbose)
+    elif os.path.isdir(os.path.join(modelFile,"model.SignSvm")):
+        modelType =  "SignSVM"
+        if not retrunClassifier: return modelType
+        from trainingMethods import AZorngSignSVM    
+        loadedModel = AZorngSignSVM.SignSVMread(modelFile,verbose)
     elif os.path.isfile(os.path.join(modelFile,"model.ann")):
         modelType =  "CvANN"
         if not retrunClassifier: return modelType
@@ -223,15 +229,19 @@ class AZLearner(orange.Learner):
         self.__dict__.update(kwds)
         self.name = name
         self.basicStat = None
+        self.specialType = 0
         self.parameters = {}
         return self
       
     def isCompatible(self, classVar):
-        """Checks if the learner is compatiblue with thw passed class variable"""
+        """Checks if the learner is compatible with the passed class variable.
+           By default, all learners all compatible with both categorical and continuous response.
+           Must be override in the derived class if cannot handle some response type
+        """
         return True
 
  
-    def __call__(self, trainingData = None, weight = None): 
+    def __call__(self, trainingData = None, weight = None, allowMetas = False): 
         self.basicStat = None
         if not trainingData:
             print "AZBaseClasses ERROR: Missing training data!"
@@ -252,7 +262,7 @@ class AZLearner(orange.Learner):
 
 
         possibleMetas = dataUtilities.getPossibleMetas(trainingData, checkIndividuality = True)
-        if possibleMetas:
+        if not allowMetas and possibleMetas:
             msg="\nAZBaseClasses ERROR: Detected attributes that should be considered meta-attributes:"
             for attr in possibleMetas:
                 msg += "\n    "+attr
@@ -262,10 +272,10 @@ class AZLearner(orange.Learner):
         basicStat = orange.DomainBasicAttrStat(trainingData)
         self.basicStat = {}
         for attr in trainingData.domain:
-            if attr.varType == orange.VarTypes.Discrete:
+            if attr.varType in [orange.VarTypes.Discrete, orange.VarTypes.String]:
                 self.basicStat[attr.name] = None
             else:       
-                self.basicStat[attr.name] = {"min":basicStat[attr].min, "max":basicStat[attr].max, "avg":basicStat[attr].avg}
+                self.basicStat[attr.name] = {"dev":basicStat[attr].dev, "min":basicStat[attr].min, "max":basicStat[attr].max, "avg":basicStat[attr].avg}
         # Gather all the learner parameters to be stored along with the classifier 
         # Find the name of the Learner
         learnerName = str(self.__class__)[:str(self.__class__).rfind("'")].split(".")[-1] 
@@ -369,8 +379,27 @@ class AZClassifier(object):
         self.nPredictions = 0                    # Number of predictions made with this Classifier
         self.basicStat = None
         self.NTrainEx = 0
+        self.specialType = 0
         return self
 
+    def __call__(self, origExample = None, resultType = orange.GetValue, returnDFV = False):
+        if type(origExample)==orange.Example:
+            return self._singlePredict(origExample, resultType, returnDFV)
+        else:
+            return self._bulkPredict(origExample, resultType, returnDFV)
+
+
+    def _singlePredict(self, origExample = None, resultType = orange.GetValue, returnDFV = False):
+        print "Undefined method for AZBaseClasses::___singlePredict"
+
+    def _bulkPredict(self, origExamples = None, resultType = orange.GetValue, returnDFV = False):
+        res = []
+        for ex in origExamples:
+            res.append(self._singlePredict(ex,resultType, returnDFV))
+        if len(res) != len(origExamples):
+            print "ERROR: Output predictions did not match inpout counting!"
+            return None
+        return res
 
     def _saveParameters(self, path):
         fileh = open(path, 'w') 
@@ -402,15 +431,12 @@ class AZClassifier(object):
         return self.NTrainEx
 
 
-    def getTopImportantVars(self, inEx, nVars = 1, gradRef = None, absGradient = True):
+    def getTopImportantVars(self, inEx, nVars = 1, gradRef = None, absGradient = True, c_step = None, getGrad = False):
         """Return the n top important variables (n = nVars) for the given example
             if nVars is 0, it returns all variables ordered by importance
+            if c_step (costume step) is passed, force it instead of hardcoded
         """
-        varGradValUP = []
-        varGradValDOWN = []
-        varGradNameUP = []
-        varGradNameDOWN = []
-
+        varGrad = []
 
         ExFix = dataUtilities.ExFix()
         ExFix.set_domain(self.domain)
@@ -419,102 +445,206 @@ class AZClassifier(object):
             return None
         if gradRef == None:
             gradRef = self(ex,returnDFV = True)[1]
-        # the calcDiscVarGrad and calcContVarGrad will return 
+        
         def calcDiscVarGrad(var,ex,gradRef):
-            step = 1
+            step = 1   # MUST be 1!!
             if ex[var].isSpecial():
-                return (gradRef,step)
-            localVarGrad = 0
-            localMaxGrad = gradRef
+                return ([gradRef, gradRef],step)
+            localMaxDiff = 0
+            localMaxPred = gradRef
             #Uncomment next line to skip discrete variables
-            #return localMaxGrad
+            #return localMaxPred
             for val in self.domain[var].values:
                 localEx = orange.Example(ex)
                 localEx[var] = val
                 pred = self(localEx,returnDFV = True)[1]
-                if abs(gradRef-pred) > localVarGrad:
-                    localVarGrad = abs(gradRef-pred)
-                    localMaxGrad = pred
-            return (localMaxGrad, step)
+                if abs(pred - gradRef) > localMaxDiff:
+                    localMaxDiff = abs(pred - gradRef)
+                    localMaxPred = pred
+            return ([localMaxPred, gradRef], step)
 
 
         def calcContVarGrad(var,ex,gradRef):
             localEx = orange.Example(ex)
-            step = 1 #((self.basicStat[var]["max"]-self.basicStat[var]["min"])/(self.getNTrainEx()+1))
+            if c_step is None:
+                coef_step = 0.5   # Needs confirmation! Coefficient step: c
+            else:
+                #  used for testing significance: comment next and uncomment next-next
+                raise(Exception("This mode should only be used for debugging! Comment this line if debugging."))
+                #coef_step = float(c_step)
+            #   dev - Standard deviation:  http://orange.biolab.si/doc/reference/Orange.statistics.basic/
+            if "dev" in self.basicStat[var]:
+                step = self.basicStat[var]["dev"] * coef_step
+            else:
+                return ([gradRef, gradRef], 0) 
+
             if ex[var].isSpecial():
-                return (gradRef, step)
+                return ([gradRef, gradRef], step)
+            # step UP
             localEx[var] = ex[var] + step
-            localPred = self(localEx,returnDFV = True)[1]
-            ResUp = (localPred, step)
-            # Print used for testing significance
-            #print "%10s%10s" % ( round(step,2),round(localPred,2)),
-            #single direction step:
-            return ResUp
-            # double direction steps: 
-            #localEx[var] = ex[var] - step 
-            #ResDown = (self(localEx,returnDFV = True)[1], step)
-            #if abs(ResUp[0]-gradRef) > abs(ResDown[0]-gradRef):
-            #    return ResUp
-            #else:
-            #    return ResDown
+            ResUp = self(localEx,returnDFV = True)[1]
+            # step DOWN
+            localEx[var] = ex[var] - step 
+            ResDown = self(localEx,returnDFV = True)[1]
+            return ([ResUp, ResDown], step)
 
         def calcVarGrad(var,ex,gradRef):
             if attr.varType == orange.VarTypes.Discrete:
-                return calcDiscVarGrad(attr.name,ex,gradRef)
+                res,step = calcDiscVarGrad(attr.name,ex,gradRef)
+                #          f(a)   f(x)
+                _grad = (res[0]-res[1])  # /step   ... but step MUST be 1!!
+                _faMax = res[0]
             else:
-                return calcContVarGrad(attr.name,ex,gradRef)
- 
-        def insSort(list, IDlist):
-            # Sorts both lists simultaniously with reference to list
-            # insertion sort algorithm descendent
-            for i in range(1, len(list)):
-              save = list[i]
-              saveName = IDlist[i]
-              j = i
-              while j > 0 and list[j - 1] < save:
-                  list[j] = list[j - 1]
-                  IDlist[j] = IDlist[j - 1]
-                  j -= 1
-              list[j] = save
-              IDlist[j] = saveName
+                res,step = calcContVarGrad(attr.name,ex,gradRef)
+                if step == 0:
+                    _grad = 0
+                else:
+                    _grad =  (res[0]-res[1])/(2.0*step)
+                _faMax = None
+            return (_grad, _faMax)
+
+        def compareABS(x,y):
+             if abs(x) > abs(y):
+                 return 1
+             elif abs(x) < abs(y):
+                 return -1
+             else:
+                 return 0
+
+        eps = 10E-5   # epsilon: amplitude of derivatives that will be considered 0. Attributes with derivative amplitude less than epsilon will not be considered.
+        # Print used for algorithm final confirmation
+        #print "  %s  " % (str(gradRef)),
 
         for attr in self.domain.attributes:
-            res,step = calcVarGrad(attr.name,ex,gradRef)
-
-            #if self.domain.classVar.varType == orange.VarTypes.Discrete:
-                # IMPORTANT: A positive gradient component means the predicted value will be "more strong"
-                #            A Nagative one means the predicted value will be weak and may lead towrds the other class value
-            #    grad = (abs(res) - abs(gradRef))/step
-            #else:
-            grad = (res-gradRef)/step
+            grad = calcVarGrad(attr.name,ex,gradRef)
             # Print used for testing significance
-            #print  "%10s" % (round(grad,2)),
-            if grad == 0:
-                continue
-            if grad > 0:
-                varGradNameUP.append(attr.name)
-                varGradValUP.append(abs(grad))
+            #print  "  %s  " % (str(grad[0])),
+
+            # Print used for algorithm final confirmation
+            #print "  %s  " % (str(grad[1])),
+
+            if abs(grad[0]) > eps: # only consider attributes with derivative greatest than epsilon
+                #                  f'(x)                  x             f(a) 
+                #                derivative value     direction      f(a) farest away from f(x) only setted for classification
+                varGrad.append( (grad[0],             attr.name,     grad[1]) )
+
+        #Separate continuous from categorical variables
+        contVars = []
+        discVars = []
+        for var in varGrad:
+            if self.domain[var[1]].varType == orange.VarTypes.Discrete:
+                discVars.append(var)
             else:
-                varGradNameDOWN.append(attr.name)
-                varGradValDOWN.append(abs(grad))
-        #print "%6s" % (round(gradRef,2)),
+                contVars.append(var)
+        
+
+        if nVars == 0:
+            nRet = None
+        else:
+            nRet = nVars
+
         #Order the vars in terms of importance
-        nRet = min(int(nVars),len(self.domain.attributes))
         if absGradient:
-            varGradVal = varGradValUP + varGradValDOWN 
-            varGradName = varGradNameUP + varGradNameDOWN
-            insSort(varGradVal ,varGradName)
-            if nVars == 0:
-                return varGradName
+            contVars.sort(reverse=1, cmp=lambda x,y: compareABS(x[0], y[0]))
+            contVars = getVarNames(groupTiedScores(contVars,0), getGrad=getGrad)
+            discVars.sort(reverse=1, cmp=lambda x,y: compareABS(x[0], y[0]))
+            discVars = getVarNames(groupTiedScores(discVars,0), getGrad=getGrad)
+            return {"Continuous":contVars[0:min(nRet,len(contVars))] ,\
+                    "Discrete"  :discVars[0:min(nRet,len(discVars))] }
+
+
+        if self.domain.classVar.varType == orange.VarTypes.Discrete:  # Classificatio
+                # We will be looking to the max f(a) [2]
+                # Will be excluding attributes for which f(a) was between 0 and f(x):  |f(a)| < |f(x)| AND f(x)*f(a)>0
+                idx4Rem = []
+                for idx,v in enumerate(discVars):
+                    fx = gradRef 
+                    fa = v[2]
+                    if abs(fa) < abs(fx) and (fx * fa) > 0:
+                        idx4Rem.append(idx)
+                idx4Rem.sort(reverse=True)
+                for idx in idx4Rem:
+                    discVars.pop(idx)
+
+        # (3 lines) Print used for algorithm final confirmation
+        #        print "   %s   " % (idx4Rem),
+        #else:
+        #        print "   %s   " % ([]),
+
+                     
+
+        # Now we will be looking only to the actual derivative value; [0]
+        UPd = [v for v in discVars if v[0] > 0]
+        UPd.sort(reverse=1, cmp=lambda x,y: compareABS(x[0], y[0]))
+        UPd = getVarNames(groupTiedScores(UPd,0), getGrad=getGrad)
+
+        DOWNd = [v for v in discVars if v[0] < 0]
+        DOWNd.sort(reverse=1, cmp=lambda x,y: compareABS(x[0], y[0]))
+        DOWNd = getVarNames(groupTiedScores(DOWNd,0), getGrad=getGrad)
+
+
+
+        UPc = [v for v in contVars if v[0] > 0]
+        UPc.sort(reverse=1, cmp=lambda x,y: compareABS(x[0], y[0]))
+        UPc = getVarNames(groupTiedScores(UPc,0), getGrad=getGrad)
+        DOWNc = [v for v in contVars if v[0] < 0]
+        DOWNc.sort(reverse=1, cmp=lambda x,y: compareABS(x[0], y[0]))
+        DOWNc = getVarNames(groupTiedScores(DOWNc,0), getGrad=getGrad)
+
+
+        return {"Continuous":{"UP":   UPc[0:min(nRet,len(  UPc))],\
+                              "DOWN": DOWNc[0:min(nRet,len(DOWNc))]},\
+                "Discrete":  {"UP":   UPd[0:min(nRet,len(  UPd))],\
+                              "DOWN": DOWNd[0:min(nRet,len(DOWNd))]}   } 
+
+
+def groupTiedScores(theList, n):
+    """Goup elements which were tied according the measure [n]
+        theList is expected to be a list of lists and will output a list of lists of lists
+    """
+    buffer = copy.deepcopy(theList)
+    retList = [] 
+
+    while len(buffer):
+        nTied = 0   
+        retList.append([buffer.pop(0)])
+        for el in buffer:
+            if el[n] == retList[-1][0][n]:
+                nTied += 1
             else:
-                return varGradName[0:nRet]
-        else:  
-            insSort(varGradValUP ,varGradNameUP)
-            insSort(varGradValDOWN ,varGradNameDOWN)
-            if nVars == 0:
-                return { "UP":varGradNameUP,  "DOWN":varGradNameDOWN}
-            else:
-                return { "UP":varGradNameUP[0:nRet], "DOWN":varGradNameUP[0:nRet] }
+                break
+        for i in range(nTied):
+            retList[-1].append(buffer.pop(0))
+    return retList        
+        
+
+def getVarNames(theList, n = 1, getGrad = False):
+    """ returns a list with only the respective values in elements of order [n]
+        [0] - DerivValue
+        [1] - VarName 
+    """
+    retList = []
+    if getGrad:
+        for el in theList:
+            retList.append([(x[n],x[0]) for x in el])
+    else:
+        for el in theList:
+            retList.append([x[n] for x in el])
+        
+    return retList
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

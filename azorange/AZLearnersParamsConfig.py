@@ -76,7 +76,7 @@ AZOrangeConfig.CVBOOSTDEFAULTDICT = {"boost_type":"DISCRETE","weak_count":100,"s
 """
 CvBoostLearner = {
              'max_depth':["types.IntType", "values", "[int(round(x)) or 1 for x in miscUtilities.Range(1,20)]",[],AZOrangeConfig.CVBOOSTDEFAULTDICT["max_depth"],True,True,"Integer from 1 to 20.\nMinimum is 1"],\
-             'weak_count':["types.IntType", "values", "miscUtilities.Range(1,1000)",[],AZOrangeConfig.CVBOOSTDEFAULTDICT["weak_count"],True,True,"Integer from 1 to 1000"],\
+             'weak_count':["types.IntType", "values", "miscUtilities.Range(1,1000)",[],AZOrangeConfig.CVBOOSTDEFAULTDICT["weak_count"],False,True,"Integer from 1 to 1000"],\
              'weight_trim_rate':["types.FloatType", "interval", "[0 , 1]",[],AZOrangeConfig.CVBOOSTDEFAULTDICT["weight_trim_rate"],False,True,"Continious between"],\
              'boost_type':["types.StringType", "values", "['DISCRETE' , 'REAL' , 'LOGIT' , 'GENTLE']",['DISCRETE','REAL','LOGIT','GENTLE'],AZOrangeConfig.CVBOOSTDEFAULTDICT["boost_type"],False,False,"DISCRETE\nREAL\nLOGIT\nGENTLE"],\
              'split_criteria':["types.StringType", "values", "['DEFAULT' , 'GINI' , 'MISCLASS' , 'SQERR']",['DEFAULT' , 'GINI' , 'MISCLASS' , 'SQERR'],AZOrangeConfig.CVBOOSTDEFAULTDICT["split_criteria"],False,False,"DEFAULT\nGINI\nMISCLASS\nSQERR"],\
@@ -194,14 +194,15 @@ RRFLearner = {'maxDepth':["types.StringType", "values", "[int(round(x)) for x in
              'nTrees':["types.IntType", "values", "miscUtilities.Range(10,1000,10)",[],AZOrangeConfig.RRFDEFAULTDICT["nTrees"],False,True,"Integer from 10 to 1000 with increments of 10"],\
             }
 
-#ANN parameters
-ANNLearner = {'nHidden':["[types.IntType]", "values", "(1.0/10.0)*N_EX<3 and [2] or [int(round(x)) for x in miscUtilities.Range(2,((1/10.0)*N_EX))]",[],str(AZOrangeConfig.ANNDEFAULTDICT["nHidden"]),True,True,"2-N_EX/10"],\
-              'randomWeights':["types.BooleanType", "values", "[False , True]",[],"False",False,False,"False and True"],\
-              'nEpochs':["types.IntType", "values", "[int(x) for x in miscUtilities.Range(100,10000)]",[],str(AZOrangeConfig.ANNDEFAULTDICT["nEpochs"]),False,True,"100-10000"],\
-              'optAlg':["types.IntType", "values", "[0 , 1 , 2 , 3]",["Incremental","Batch","RProp","QuickProp"],str(AZOrangeConfig.OPTALGDICT[AZOrangeConfig.ANNDEFAULTDICT["optAlg"]]),False,False,"Incremental\nBatch\nRProp\nQuickProp"],\
-              'MSE':["types.FloatType", "interval", "[0.001 ,  0.1]",[],str(AZOrangeConfig.ANNDEFAULTDICT["MSE"]),False,True,"0.001-0.1"],\
-              'scale':["types.BooleanType", "values", "[False , True]",[],str(AZOrangeConfig.ANNDEFAULTDICT["scale"]),False,False,"No and Yes"]\
-             }
+#SignSVM parameters
+SignSVMLearner = {
+        'startHeight':["types.IntType", "values", "[0]",[],str(AZOrangeConfig.SIGNSVMDEFAULTDICT["startHeight"]),False,True,"The start Height"],\
+        'endHeight':["types.IntType", "values", "[3]",[],str(AZOrangeConfig.SIGNSVMDEFAULTDICT["endHeight"]),False,True,"The end Height"],\
+        'nrFolds':["types.IntType", "values", "[2, 7, 10]",[],str(AZOrangeConfig.SIGNSVMDEFAULTDICT["nrFolds"]),False,True,"Number of Folds for parameters selection.\n-1 disables optimization"],\
+        'nrThreads':["types.IntType", "values", "[2,8]",[],str(AZOrangeConfig.SIGNSVMDEFAULTDICT["nrThreads"]),False,True,"Number of nrThreads to ne\nused in parameters selection"],\
+        'priors' : ["types.StringType", "values",  "[None]",[],str(AZOrangeConfig.CVANNDEFAULTDICT["priors"]),False,False,"Do not use for optimization, just to change the default values of priors"],\
+        'scaleClass':["types.BooleanType", "values", "[False , True]",[],str(AZOrangeConfig.CVANNDEFAULTDICT["scaleClass"]),False,False,"No and Yes"]
+ }
 
 #CvANN parameters
 CvANNLearner = {'nHidden':["[types.IntType]", "values", "(1.0/30.0)*N_EX<3 and [2] or [int(round(x)) for x in miscUtilities.Range(2,((1/30.0)*N_EX))]",[],str(AZOrangeConfig.CVANNDEFAULTDICT["nHidden"]),True,True,"2-N_EX/30"],\

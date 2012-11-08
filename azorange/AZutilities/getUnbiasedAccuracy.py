@@ -1,4 +1,5 @@
 import orange, time, pickle, copy
+import sys, traceback
 import AZOrangeConfig as AZOC
 from AZutilities import paramOptUtilities
 from AZutilities import dataUtilities
@@ -6,7 +7,7 @@ from trainingMethods import AZorngConsensus
 import AZLearnersParamsConfig
 from AZutilities import evalUtilities
 from AZutilities import miscUtilities
-import orngTest, orngStat
+import orngStat
 import os,random
 from pprint import pprint
 import statc
@@ -25,10 +26,58 @@ class UnbiasedAccuracyGetter():
         self.paramList = None
         self.queueType = "NoSGE"
         self.responseType = None
+        self.fixedParams = {} 
+        self.testAttrFilter = None
+        self.testFilterVal = None
         self.sampler = dataUtilities.SeedDataSampler
         # Append arguments to the __dict__ member variable 
         self.__dict__.update(kwds)
         self.learnerName = ""
+
+        self.preDefIndices = orange.LongList()
+        self.usePreDefFolds = False 
+        self.useVarCtrlCV = False
+        if self.testAttrFilter and self.testAttrFilter in self.data.domain:
+            if self.testFilterVal and type(self.testFilterVal) == list and type(self.testAttrFilter) == str:
+                self.useVarCtrlCV = True
+                self.usePreDefFolds = False
+                for ex in self.data:
+                    if ex[self.testAttrFilter].value in self.testFilterVal: # Compound selected to be allowed in the test set
+                        self.preDefIndices.append(1)
+                    else:                                                 # Compound to not include in the test set. Always to be shifted to the train
+                        self.preDefIndices.append(0)
+            elif self.testFilterVal is None:
+                    self.usePreDefFolds = True
+                    self.useVarCtrlCV = False
+                    #Enable pre-selected-indices  ( index 0 will be set for train Bias)
+                    foldsCounter = {}
+                    for ex in self.data:
+                        value = str(ex[self.testAttrFilter].value)
+                        if not miscUtilities.isNumber(value):
+                            self.__log("Invalid fold value:"+str(value)+". It must be str convertable to an int.")
+                            return False
+                        value = int(float(value))
+                        if value not in foldsCounter:
+                            foldsCounter[value] = 1
+                        else:
+                            foldsCounter[value] += 1
+                        self.preDefIndices.append(value)
+
+                    self.__log( "INFO: Pre-selected "+str(len([f for f in foldsCounter.keys() if f != 0]))+" folds for CV:")
+                    self.__log( "      Examples in data: "+str(sum(foldsCounter.values())))
+                    self.__log( "      Examples selected for validation: "+str(sum([foldsCounter[f] for f in foldsCounter if f != 0])))
+                    self.__log( "      Examples to be appended to the train set: "+ str(0 in foldsCounter.keys() and foldsCounter[0] or 0))
+            else:
+                self.__log("ERROR: Attribute Filter Ctrl was selected, but attribute is not in expected format: " + str(self.testAttrFilter))
+                return False
+            self.data = dataUtilities.attributeDeselectionData(self.data, [self.testAttrFilter]) 
+        else:
+            self.usePreDefFolds = False
+            self.useVarCtrlCV = False
+            self.testAttrFilter = None
+            self.testFilterVal = None
+
+
 
     def __checkTrainData(self, trainData, stopIfError = True):
         """
@@ -114,13 +163,14 @@ class UnbiasedAccuracyGetter():
                     return False
         return True
 
-    def createStatObj(self, results=None, exp_pred=None, nTrainCmpds=None, nTestCmpds=None, responseType=None, nExtFolds=None, userAlert = ""):
+    def createStatObj(self, results=None, exp_pred=None, nTrainCmpds=None, nTestCmpds=None, responseType=None, nExtFolds=None, userAlert = "", labels = None):
         #Initialize res (statObj) for statistic results
         res = {}
         # Classification
         res["CA"] = None
         res["CM"] = None
         res["MCC"] = None
+        res["labels"] = None
         #Regression
         res["Q2"] = None
         res["RMSE"] = None
@@ -155,6 +205,7 @@ class UnbiasedAccuracyGetter():
                         res["CM"][Lidx][idx] = res["CM"][Lidx][idx] + val   #Add each same ConfMat position
             #Compute MCC 
             res["MCC"] = evalUtilities.calcMCC(res["CM"])
+            res["labels"] = labels
             #Compute foldStat
             res["foldStat"]["nTrainCmpds"] = [n for n in nTrainCmpds]
             res["foldStat"]["nTestCmpds"] = [n for n in nTestCmpds]
@@ -193,7 +244,7 @@ class UnbiasedAccuracyGetter():
 
         return res
         
-    def getAcc(self, callBack = None):
+    def getAcc(self, callBack = None, callBackWithFoldModel = None):
         """ For regression problems, it returns the RMSE and the Q2 
             For Classification problems, it returns CA and the ConfMat
             The return is made in a Dict: {"RMSE":0.2,"Q2":0.1,"CA":0.98,"CM":[[TP, FP],[FN,TN]]}
@@ -213,8 +264,24 @@ class UnbiasedAccuracyGetter():
         self.__log("  "+str(self.responseType))
 
         #Create the Train and test sets
-        DataIdxs = dataUtilities.SeedDataSampler(self.data, self.nExtFolds) 
-        
+        if self.usePreDefFolds:
+            DataIdxs = self.preDefIndices 
+        else:
+            DataIdxs = self.sampler(self.data, self.nExtFolds) 
+        foldsN = [f for f in dict.fromkeys(DataIdxs) if f != 0] #Folds used only from 1 on ... 0 are for fixed train Bias
+        nFolds = len(foldsN)
+        #Fix the Indexes based on DataIdxs
+        # (0s) represents the train set  ( >= 1s) represents the test set folds
+        if self.useVarCtrlCV:
+            nShifted = [0] * nFolds
+            for idx,isTest in enumerate(self.preDefIndices):  # self.preDefIndices == 0 are to be used in TrainBias
+                if not isTest:
+                    if DataIdxs[idx]:
+                        nShifted[DataIdxs[idx]] += 1
+                        DataIdxs[idx] = 0
+            for idx,shift in enumerate(nShifted):
+                self.__log("In fold "+str(idx)+", "+str(shift)+" examples were shifted to the train set.")
+
         #Var for saving each Fols result
         optAcc = {}
         results = {}
@@ -235,8 +302,8 @@ class UnbiasedAccuracyGetter():
         self.__log("  "+str([x for x in MLmethods]))
 
         #Check data in advance so that, by chance, it will not faill at the last fold!
-        for foldN in range(self.nExtFolds):
-            trainData = self.data.select(DataIdxs[foldN],negate=1)
+        for foldN in foldsN:
+            trainData = self.data.select(DataIdxs,foldN,negate=1)
             self.__checkTrainData(trainData)
 
         #Optional!!
@@ -249,6 +316,7 @@ class UnbiasedAccuracyGetter():
         stepsDone = 0
         nTotalSteps = len(sortedML) * self.nExtFolds  
         for ml in sortedML:
+          startTime = time.time()
           self.__log("    > "+str(ml)+"...")
           try:
             #Var for saving each Fols result
@@ -258,13 +326,25 @@ class UnbiasedAccuracyGetter():
             nTrainEx[ml] = []
             nTestEx[ml] = []
             optAcc[ml] = []
-            logTxt = "" 
-            for foldN in range(self.nExtFolds):
+            logTxt = ""
+            for foldN in foldsN:
                 if type(self.learner) == dict:
                     self.paramList = None
 
-                trainData = self.data.select(DataIdxs[foldN],negate=1)
-                testData = self.data.select(DataIdxs[foldN])
+                trainData = self.data.select(DataIdxs,foldN,negate=1)
+                testData = self.data.select(DataIdxs,foldN)
+                smilesAttr = dataUtilities.getSMILESAttr(trainData)
+                if smilesAttr:
+                    self.__log("Found SMILES attribute:"+smilesAttr)
+                    if MLmethods[ml].specialType == 1:
+                       trainData = dataUtilities.attributeSelectionData(trainData, [smilesAttr, trainData.domain.classVar.name]) 
+                       testData = dataUtilities.attributeSelectionData(testData, [smilesAttr, testData.domain.classVar.name]) 
+                       self.__log("Selected attrs: "+str([attr.name for attr in trainData.domain]))
+                    else:
+                       trainData = dataUtilities.attributeDeselectionData(trainData, [smilesAttr]) 
+                       testData = dataUtilities.attributeDeselectionData(testData, [smilesAttr]) 
+                       self.__log("Selected attrs: "+str([attr.name for attr in trainData.domain[0:3]] + ["..."] + [attr.name for attr in trainData.domain[len(trainData.domain)-3:]]))
+
                 nTrainEx[ml].append(len(trainData))
                 nTestEx[ml].append(len(testData))
                 #Test if trainsets inside optimizer will respect dataSize criterias.
@@ -273,84 +353,107 @@ class UnbiasedAccuracyGetter():
                 if self.responseType != "Classification" and (len(trainData)*(1-1.0/self.nInnerFolds) < 20):
                     dontOptimize = True
                 else:                      
-                    tmpDataIdxs = dataUtilities.SeedDataSampler(trainData, self.nInnerFolds)
-                    tmpTrainData = trainData.select(tmpDataIdxs[0],negate=1)
+                    tmpDataIdxs = self.sampler(trainData, self.nInnerFolds)
+                    tmpTrainData = trainData.select(tmpDataIdxs,1,negate=1)
                     if not self.__checkTrainData(tmpTrainData, False):
                         dontOptimize = True
 
+                SpecialModel = None
                 if dontOptimize:
                     logTxt += "       Fold "+str(foldN)+": Too few compounds to optimize model hyper-parameters\n"
                     self.__log(logTxt)
                     if trainData.domain.classVar.varType == orange.VarTypes.Discrete:
-                        res = orngTest.crossValidation([MLmethods[ml]], trainData, folds=5, strat=orange.MakeRandomIndices.StratifiedIfPossible, randomGenerator = random.randint(0, 100))
+                        res = evalUtilities.crossValidation([MLmethods[ml]], trainData, folds=5, stratified=orange.MakeRandomIndices.StratifiedIfPossible, random_generator = random.randint(0, 100))
                         CA = evalUtilities.CA(res)[0]
                         optAcc[ml].append(CA)
                     else:
-                        res = orngTest.crossValidation([MLmethods[ml]], trainData, folds=5, strat=orange.MakeRandomIndices.StratifiedIfPossible, randomGenerator = random.randint(0, 100))
+                        res = evalUtilities.crossValidation([MLmethods[ml]], trainData, folds=5, stratified=orange.MakeRandomIndices.StratifiedIfPossible, random_generator = random.randint(0, 100))
                         R2 = evalUtilities.R2(res)[0]
                         optAcc[ml].append(R2)
                 else:
-                    runPath = miscUtilities.createScratchDir(baseDir = AZOC.NFS_SCRATCHDIR, desc = "AccWOptParam", seed = id(trainData))
-                    trainData.save(os.path.join(runPath,"trainData.tab"))
-
-                    tunedPars = paramOptUtilities.getOptParam(
-                        learner = MLmethods[ml], 
-                        trainDataFile = os.path.join(runPath,"trainData.tab"), 
-                        paramList = self.paramList, 
-                        useGrid = False, 
-                        verbose = self.verbose, 
-                        queueType = self.queueType, 
-                        runPath = runPath, 
-                        nExtFolds = None, 
-                        nFolds = self.nInnerFolds,
-                        logFile = self.logFile,
-                        getTunedPars = True)
-                    if not MLmethods[ml] or not MLmethods[ml].optimized:
-                        self.__log("       WARNING: GETACCWOPTPARAM: The learner "+str(ml)+" was not optimized.")
-                        self.__log("                It will be ignored")
-                        #self.__log("                It will be set to default parameters")
-                        self.__log("                    DEBUG can be done in: "+runPath)
-                        #Set learner back to default 
-                        #MLmethods[ml] = MLmethods[ml].__class__()
-                        raise Exception("The learner "+str(ml)+" was not optimized.")
+                    if MLmethods[ml].specialType == 1: 
+                            if trainData.domain.classVar.varType == orange.VarTypes.Discrete:
+                                    optInfo, SpecialModel = MLmethods[ml].optimizePars(trainData, folds = 5)
+                                    optAcc[ml].append(optInfo["Acc"])
+                            else:
+                                    res = evalUtilities.crossValidation([MLmethods[ml]], trainData, folds=5, stratified=orange.MakeRandomIndices.StratifiedIfPossible, random_generator = random.randint(0, 100))
+                                    R2 = evalUtilities.R2(res)[0]
+                                    optAcc[ml].append(R2)
                     else:
-                        if trainData.domain.classVar.varType == orange.VarTypes.Discrete:
-                            optAcc[ml].append(tunedPars[0])
-                        else:
-                            res = orngTest.crossValidation([MLmethods[ml]], trainData, folds=5, strat=orange.MakeRandomIndices.StratifiedIfPossible, randomGenerator = random.randint(0, 100))
-                            R2 = evalUtilities.R2(res)[0]
-                            optAcc[ml].append(R2)
+                            runPath = miscUtilities.createScratchDir(baseDir = AZOC.NFS_SCRATCHDIR, desc = "AccWOptParam", seed = id(trainData))
+                            trainData.save(os.path.join(runPath,"trainData.tab"))
+                            tunedPars = paramOptUtilities.getOptParam(
+                                learner = MLmethods[ml], 
+                                trainDataFile = os.path.join(runPath,"trainData.tab"), 
+                                paramList = self.paramList, 
+                                useGrid = False, 
+                                verbose = self.verbose, 
+                                queueType = self.queueType, 
+                                runPath = runPath, 
+                                nExtFolds = None, 
+                                nFolds = self.nInnerFolds,
+                                logFile = self.logFile,
+                                getTunedPars = True,
+                                fixedParams = self.fixedParams)
+                            if not MLmethods[ml] or not MLmethods[ml].optimized:
+                                self.__log("       WARNING: GETACCWOPTPARAM: The learner "+str(ml)+" was not optimized.")
+                                self.__log("                It will be ignored")
+                                #self.__log("                It will be set to default parameters")
+                                self.__log("                    DEBUG can be done in: "+runPath)
+                                #Set learner back to default 
+                                #MLmethods[ml] = MLmethods[ml].__class__()
+                                raise Exception("The learner "+str(ml)+" was not optimized.")
+                            else:
+                                if trainData.domain.classVar.varType == orange.VarTypes.Discrete:
+                                    optAcc[ml].append(tunedPars[0])
+                                else:
+                                    res = evalUtilities.crossValidation([MLmethods[ml]], trainData, folds=5, stratified=orange.MakeRandomIndices.StratifiedIfPossible, random_generator = random.randint(0, 100))
+                                    R2 = evalUtilities.R2(res)[0]
+                                    optAcc[ml].append(R2)
 
-                        miscUtilities.removeDir(runPath) 
+                                miscUtilities.removeDir(runPath) 
                 #Train the model
-                model = MLmethods[ml](trainData)
+                if SpecialModel is not None:
+                    model = SpecialModel 
+                else:
+                    model = MLmethods[ml](trainData)
                 models[ml].append(model)
                 #Test the model
                 if self.responseType == "Classification":
                     results[ml].append((evalUtilities.getClassificationAccuracy(testData, model), evalUtilities.getConfMat(testData, model) ) )
                 else:
                     local_exp_pred = []
-                    for ex in testData:
-                        local_exp_pred.append((ex.getclass(), model(ex)))
+                    # Predict using bulk-predict
+                    predictions = model(testData)
+                    # Gather predictions
+                    for n,ex in enumerate(testData):
+                        local_exp_pred.append((ex.getclass().value, predictions[n].value))
                     results[ml].append((evalUtilities.calcRMSE(local_exp_pred), evalUtilities.calcRsqrt(local_exp_pred) ) )
                     #Save the experimental value and correspondent predicted value
                     exp_pred[ml] += local_exp_pred
                 if callBack:
                      stepsDone += 1
                      if not callBack((100*stepsDone)/nTotalSteps): return None
-   
+                if callBackWithFoldModel:
+                    callBackWithFoldModel(model) 
 
-            res = self.createStatObj(results[ml], exp_pred[ml], nTrainEx[ml], nTestEx[ml],self.responseType, self.nExtFolds, logTxt)
+            res = self.createStatObj(results[ml], exp_pred[ml], nTrainEx[ml], nTestEx[ml],self.responseType, self.nExtFolds, logTxt, labels = hasattr(self.data.domain.classVar,"values") and list(self.data.domain.classVar.values) or None )
             if self.verbose > 0: 
                 print "UnbiasedAccuracyGetter!Results  "+ml+":\n"
                 pprint(res)
             if not res:
                 raise Exception("No results available!")
+            res["runningTime"] = time.time() - startTime
             statistics[ml] = copy.deepcopy(res)
             self.__writeResults(statistics)
             self.__log("       OK")
           except:
             self.__log("       Learner "+str(ml)+" failed to create/optimize the model!")
+            error = str(sys.exc_info()[0]) +" "+\
+                        str(sys.exc_info()[1]) +" "+\
+                        str(traceback.extract_tb(sys.exc_info()[2]))
+            self.__log(error)
+ 
             res = self.createStatObj()
             statistics[ml] = copy.deepcopy(res)
             self.__writeResults(statistics)
@@ -362,6 +465,7 @@ class UnbiasedAccuracyGetter():
             #We still need to build a consensus model out of the stable models 
             #   ONLY if there are more that one model stable!
             #   When only one or no stable models, build a consensus based on all models
+            # ALWAYS exclude specialType models (MLmethods[ml].specialType > 0)
             consensusMLs={}
             for modelName in statistics:
                 StabilityValue = statistics[modelName]["StabilityValue"]
@@ -374,9 +478,20 @@ class UnbiasedAccuracyGetter():
                 consensusMLs={}
                 for modelName in statistics:
                     consensusMLs[modelName] = copy.deepcopy(statistics[modelName])
- 
+
+            # Exclude specialType models 
+            excludeThis = []
+            for learnerName in consensusMLs:
+                if models[learnerName][0].specialType > 0:
+                    excludeThis.append(learnerName)
+            for learnerName in excludeThis:
+                consensusMLs.pop(learnerName)
+                self.__log("    > Excluded special model " + learnerName)
+            self.__log("    > Stable modules: " + str(consensusMLs.keys()))
+
             if len(consensusMLs) >= 2:
                 #Var for saving each Fols result
+                startTime = time.time()
                 Cresults = []
                 Cexp_pred = []
                 CnTrainEx = []
@@ -386,6 +501,7 @@ class UnbiasedAccuracyGetter():
                     if self.responseType == "Classification":
                         CLASS0 = str(self.data.domain.classVar.values[0])
                         CLASS1 = str(self.data.domain.classVar.values[1])
+                        # exprTest0
                         exprTest0 = "(0"
                         for ml in consensusMLs:
                             exprTest0 += "+( "+ml+" == "+CLASS0+" )*"+str(optAcc[ml][foldN])+" "
@@ -393,7 +509,15 @@ class UnbiasedAccuracyGetter():
                         for ml in consensusMLs:
                             exprTest0 += ", "+ml+" == "+CLASS0+" "
                         exprTest0 += "]),1)"
-                        exprTest1 = exprTest0.replace(CLASS0,CLASS1)
+                        # exprTest1
+                        exprTest1 = "(0"
+                        for ml in consensusMLs:
+                            exprTest1 += "+( "+ml+" == "+CLASS1+" )*"+str(optAcc[ml][foldN])+" "
+                        exprTest1 += ")/IF0(sum([False"
+                        for ml in consensusMLs:
+                            exprTest1 += ", "+ml+" == "+CLASS1+" "
+                        exprTest1 += "]),1)"
+                        # Expression
                         expression = [exprTest0+" >= "+exprTest1+" -> "+CLASS0," -> "+CLASS1]
                     else:
                         Q2sum = sum([optAcc[ml][foldN] for ml in consensusMLs])
@@ -402,7 +526,13 @@ class UnbiasedAccuracyGetter():
                             expression += " + "+str(optAcc[ml][foldN])+" * "+ml+" "
                         expression += ")"
 
-                    testData = self.data.select(DataIdxs[foldN])
+                    testData = self.data.select(DataIdxs,foldN+1)  # fold 0 if for the train Bias!!
+                    smilesAttr = dataUtilities.getSMILESAttr(testData)
+                    if smilesAttr:
+                        self.__log("Found SMILES attribute:"+smilesAttr)
+                        testData = dataUtilities.attributeDeselectionData(testData, [smilesAttr])
+                        self.__log("Selected attrs: "+str([attr.name for attr in trainData.domain[0:3]] + ["..."] + [attr.name for attr in trainData.domain[len(trainData.domain)-3:]]))
+
                     CnTestEx.append(len(testData))
                     consensusClassifiers = {}
                     for learnerName in consensusMLs:
@@ -415,13 +545,17 @@ class UnbiasedAccuracyGetter():
                         Cresults.append((evalUtilities.getClassificationAccuracy(testData, model), evalUtilities.getConfMat(testData, model) ) )
                     else:
                         local_exp_pred = []
-                        for ex in testData:
-                            local_exp_pred.append((ex.getclass(), model(ex)))
+                        # Predict using bulk-predict
+                        predictions = model(testData)
+                        # Gather predictions
+                        for n,ex in enumerate(testData):
+                            local_exp_pred.append((ex.getclass().value, predictions[n].value))
                         Cresults.append((evalUtilities.calcRMSE(local_exp_pred), evalUtilities.calcRsqrt(local_exp_pred) ) )
                         #Save the experimental value and correspondent predicted value
                         Cexp_pred += local_exp_pred
 
-                res = self.createStatObj(Cresults, Cexp_pred, CnTrainEx, CnTestEx, self.responseType, self.nExtFolds)
+                res = self.createStatObj(Cresults, Cexp_pred, CnTrainEx, CnTestEx, self.responseType, self.nExtFolds, labels = hasattr(self.data.domain.classVar,"values") and list(self.data.domain.classVar.values) or None )
+                res["runningTime"] = time.time() - startTime
                 statistics["Consensus"] = copy.deepcopy(res)
                 statistics["Consensus"]["IndividualStatistics"] = copy.deepcopy(consensusMLs)
                 self.__writeResults(statistics)

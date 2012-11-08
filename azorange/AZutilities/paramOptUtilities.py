@@ -394,7 +394,9 @@ paramFile.close()
 data = dataUtilities.DataTable(dataSet)
 res = orngTest.crossValidation([learner], data, folds=nFolds, strat=orange.MakeRandomIndices.StratifiedIfPossible, randomGenerator = random.randint(0, 100))
 evalMethod = evaluateMethod[evaluateMethod.find(".")+1:len(evaluateMethod)]
-print cPickle.dumps(eval(evalMethod)(res)[0])
+fh = open("RES_out"+os.environ["SGE_TASK_ID"]+".pkl","w")
+cPickle.dump(eval(evalMethod)(res)[0], fh)
+fh.close()
 """
  
         extEvalList = []
@@ -449,6 +451,10 @@ print cPickle.dumps(eval(evalMethod)(res)[0])
                 file = open(part,"r")
                 intResTxt = intResTxt + file.readlines()
                 file.close()
+                # When running appspack_mpi on multiple nodes (> 4), crap is sometimes written to the last line.
+                # Expecting all lines to have same n. of columns. Allow to continue if crap was writen to the last line
+                if len(intResTxt[-1].split()) != len(intResTxt[0].split()):
+                    intResTxt.pop(-1) 
 
         #Retrieve Domain from the first line of intRes (This remover first line from intRes itself)
         resDomain = intResTxt.pop(0).split()
@@ -469,9 +475,6 @@ print cPickle.dumps(eval(evalMethod)(res)[0])
             print "============== Intermediate results at intRes file ("+str(len(intRes))+" lines) =============="
         for line in intRes:
             if self.verbose > 0: print line
-            # When running appspack_mpi on multiple nodes (> 4), crap is sometimes written to the last line. 
-            #try: intResFile.write(string.join([line.split()[idx] for idx in [resDomain.index(i) for i in userResDomain]],"\t")+"\n")
-            #except: pass
             intResFile.write(string.join([str(line[idx]) for idx in [resDomain.index(i) for i in userResDomain]],"\t")+"\n")
         if self.verbose > 0: print "\n"
         intResFile.close()
@@ -1029,7 +1032,7 @@ print cPickle.dumps(eval(evalMethod)(res)[0])
         # Assess the memory requirements
         memSize = dataUtilities.getApproxMemReq(self.dataSet)
 
-        presentDir = os.getcwd()
+        presentDir = os.getcwd()   
         os.chdir(self.runPath)
         command = "qsub" + " -q " + self.queueType + AZOC.SGE_QSUB_ARCH_OPTION_CURRENT + " -l mf=" + str(memSize) + "M " + " " + self.qsubFile
         if self.verbose > 1:
@@ -1211,7 +1214,7 @@ echo "end mpirun"
         return True
 
 
-def getOptParam(learner, trainDataFile, paramList = None, useGrid = False, verbose = 0, queueType = "NoSGE", runPath = None, nExtFolds = None, nFolds = 5, logFile = "", getTunedPars = False):
+def getOptParam(learner, trainDataFile, paramList = None, useGrid = False, verbose = 0, queueType = "NoSGE", runPath = None, nExtFolds = None, nFolds = 5, logFile = "", getTunedPars = False, fixedParams = {}):
     """
     Optimize the parameters in paramList. If no parametres defines, optimize defauld parameters (defined in AZLearnersParmsConfig). 
     Run optimization in parallel.
@@ -1241,6 +1244,11 @@ def getOptParam(learner, trainDataFile, paramList = None, useGrid = False, verbo
     # Create an interface for setting optimizer parameters
     pars = AZLearnersParamsConfig.API(learnerName)
     
+    # Set user defined fixed parameters (do not set for optimization)
+    if fixedParams:
+        for parameter in fixedParams:
+                pars.setParameter(parameter,"optimize",False)
+                pars.setParameter(parameter,"default",fixedParams[parameter])
     # If no parameters passed, optimize default ones
     if paramList:
         # Set all parameters to not be optimized

@@ -1,4 +1,5 @@
 import orange
+import Orange
 import string
 import types
 import sys
@@ -6,6 +7,7 @@ import os
 import time
 import commands
 import random
+from cinfony import rdk
 from opencv import ml
 from opencv import cv
 import AZOrangeConfig as AZOC
@@ -30,16 +32,86 @@ def getIsMissing(ex):
     return isMissing
 
 ##scPA
+def getSMILESAttr(data):
+    """Find the SMILES attribute in data"""
+    smilesName = None
+    for attr in [a.name for a in  data.domain] + [a.name for a in data.domain.getmetas().values()]:
+        if attr.lower() in [a.lower() for a in AZOC.SMILESNAMES]:
+            smilesName = attr
+    return smilesName
+
+
+def fixSDF(sdfFile,data):
+            """Fix SDF file by including the response property in each molblock.
+                It returns the property name used.
+                The sdfFile must have been created with data!!
+                It will match data examples with molblocks in sdfFile by it's index!
+            """
+            os.system("cp "+sdfFile+" "+sdfFile+"_orig")
+            smilesAttr = getSMILESAttr(data)
+            property = data.domain.classVar.name
+            fhDest = open(sdfFile,'w')
+            fhSrc = open(sdfFile+"_orig",'r')
+            line = " "
+            nEx = 0
+            while line:
+                line = fhSrc.readline()
+                fhDest.write(line)
+                if "M  END" in line:
+                    #fhDest.write("> <Molecular Signature>\n")
+                    #fhDest.write(str(data[nEx][smilesAttr].value)+"\n\n")
+                    fhDest.write("\n> <"+property+">\n")
+                    fhDest.write(str(data[nEx].getclass().value)+"\n\n")
+                elif "$$$$" in line:
+                    nEx += 1
+            fhDest.close()
+            fhSrc.close()
+            os.system("rm -f "+sdfFile+"_orig")
+            return property
+
+
+def makeTempSDF(data, smilesAsName=None):
+        """     create temporary SFD file for usage with, e.g., structural clustering or other integrated algorithms
+                that need SDF input.
+                returns the path to the tmp sdf file
+        """
+        smilesName = getSMILESAttr(data)
+        if not smilesName: return None
+
+        sdf_molsName = miscUtilities.generateUniqueFile(desc = "tempSDF", ext = "sdf")
+        sdf_mols = open(sdf_molsName,"w+b")
+        # write structures in sdf format to this file
+        count = 0
+        w = rdk.Chem.SDWriter(sdf_molsName)
+        #w = rdk.Chem.SDWriter('testftm.sdf')
+        count_mols = 0
+        for a in data:
+            smile = str(a[smilesName].value)
+            m = rdk.Chem.MolFromSmiles(smile)
+            if m is None:
+                count += 1
+                #print "ALERT"
+                continue
+            if (smilesAsName):
+                # set smiles as molname (just to have any name) 
+                m.SetProp("_Name", smile)
+            w.write(m)
+
+            count_mols+=1
+        #print "Number of molecules that could not be read: ", count
+        #print "Number of molecules read: ", count_mols
+        sdf_mols.close()
+        return sdf_molsName
+
+
 def SeedDataSampler(data, nFolds):
     """ Samples the data for being used in Folds: Pseudo-Random Selected based on a Seed
         It assures that the sampling is constant for the same dataset using the same number of folds
         Outputs the respective fold indices, not the actual data.
         Output example for 3 Folds:
-                [ [0 0 1 1 0 1 0 0 0]
-                  [0 1 0 0 0 0 1 0 1]
-                  [1 0 0 0 1 0 0 1 0] ]
-        Where (0s) represents the train set
-              (1s) represents the test set
+                 [0 0 1 1 2 2 3 3 0]
+        Where (0s) represents the train Bias Examples (Will never be in train)
+              (>= 1s) represents the test set fold
            for each fold
         The seed used will be based on data dimensions and nFolds.
         It is assured that examples are used as test exampels in only one testSet.
@@ -48,8 +120,8 @@ def SeedDataSampler(data, nFolds):
         Usage sample:
             DataIdxs = dataUtilities.SeedDataSampler(self.data, self.nExtFolds)
             for foldN in range(self.nExtFolds):
-                trainData = self.data.select(DataIdxs[foldN],negate=1)
-                testData = self.data.select(DataIdxs[foldN]) 
+                trainData = self.data.select(DataIdxs,foldN,negate=1)
+                testData = self.data.select(DataIdxs,foldN) 
     """
     if not data or not nFolds:
         return None
@@ -58,9 +130,7 @@ def SeedDataSampler(data, nFolds):
     if not nTestEx:
         return None
     usedReg = [0] * nEx
-    foldsIdxs = []
-    for n in range(nFolds):
-        foldsIdxs.append([0] * nEx)
+    foldsIdxs = [0] * nEx
 
     random.seed(nEx + nFolds + len(data.domain.attributes))
     for idx in range(nFolds):
@@ -69,7 +139,7 @@ def SeedDataSampler(data, nFolds):
             #Find the index of the Zidx'th Zero  
             realIdx = [idxReg[0] for idxReg in enumerate(usedReg) if idxReg[1]==0][Zidx]
             usedReg[realIdx] = 1
-            foldsIdxs[idx][realIdx] = 1
+            foldsIdxs[realIdx] = idx + 1
 
     return foldsIdxs
 
@@ -409,7 +479,7 @@ def CvMat2orangeResponse(value, classVar, foldClass = False):
         return discreteClass and classVar(int( max(min(value,len(classVar.values)), 0) ) )  or classVar(value)
 
 
-def getQuickDataSize(dataPath):
+def getQuickDataSize(dataPath, getAttrNames = False):
     """ Fast procedure to get the size of data. Returns a Dict:
         returned["N_EX"]             - Number of examples
         returned["N_ATTR"]           - Number of Attributes
@@ -423,6 +493,7 @@ def getQuickDataSize(dataPath):
     NClass = 0
     PossTab = False
     discreteClass = -1
+    attrNames = []
 
     if not os.path.isfile(dataPath):
         return {"N_EX":NLines, "N_ATTR":NVars-NClass, "N_CLASS":NClass, "maybeOrangeTab":PossTab, "discreteClass":discreteClass}
@@ -430,6 +501,7 @@ def getQuickDataSize(dataPath):
         NLines = int(commands.getstatusoutput("wc -l "+dataPath)[1].strip().split()[0])
         headers = commands.getstatusoutput("head -n 3 "+dataPath)[1].split("\n")
         FirstLine = [x.strip() for x in headers[0].split("\t")]
+        if getAttrNames: attrNames = FirstLine
         SecondLine = [x.strip() for x in headers[1].split("\t")]
         ThirdLine = [x.strip() for x in headers[2].split("\t")]
 
@@ -470,8 +542,8 @@ def getQuickDataSize(dataPath):
         else:
             discreteClass = -1
     except:
-        return {"N_EX":NLines, "N_ATTR":NVars-NClass, "N_CLASS":NClass, "maybeOrangeTab":False, "discreteClass":discreteClass,"className":"","metaAndIgnore":-1}
-    return {"N_EX":NLines, "N_ATTR":NVars-NClass, "N_CLASS":NClass, "maybeOrangeTab":PossTab, "discreteClass":discreteClass,"className":className,"metaAndIgnore":metaAndIgnore}
+        return {"N_EX":NLines, "N_ATTR":NVars-NClass, "N_CLASS":NClass, "maybeOrangeTab":False, "discreteClass":discreteClass,"className":"","metaAndIgnore":-1, "attrNames":attrNames}
+    return {"N_EX":NLines, "N_ATTR":NVars-NClass, "N_CLASS":NClass, "maybeOrangeTab":PossTab, "discreteClass":discreteClass,"className":className,"metaAndIgnore":metaAndIgnore, "attrNames":attrNames}
 
 
 
@@ -760,7 +832,7 @@ def concatenate(datasets,useFirstAsLeader=False,mergeDomains=True):
     firstDataIdx = None
     # Use the first valid dataset to start the concatenation
     for idx,data in enumerate(datasets):
-        if data:
+        if data is not None:
             newTable = datasets[idx]
             firstDataIdx = idx
             break
@@ -1477,6 +1549,26 @@ def horizontalMerge(dataAin, dataBin, varAin, varBin):
     return etAB
 
 
+def attributeAddData(data, attributeList, attrType, defaultValue = '?'):
+    """Adds attributes passed in attributeList into data of type attrType (ex: orange.FloatVariable)
+       if defaultValue is set, it will bw assigned to all attrs in attributeList for all examples
+        returns new dataset
+    """
+    newDomainList = [attr for attr in data.domain.attributes] +\
+                    [attrType(name) for name in attributeList if name not in data.domain] 
+    newDomain = orange.Domain(newDomainList, data.domain.classVar)
+    #Handle the Meta Attributes
+    for attrID in data.domain.getmetas():
+        if string.strip(data.domain[attrID].name) not in attributeList:
+                newDomain.addmeta(attrID,data.domain[attrID])
+    outData = data.select(newDomain)
+    if defaultValue != "?":
+        for ex in outData:
+            for attr in attributeList:
+                ex[attr] = defaultValue
+    return outData
+
+
 
 def attributeDeselectionData(data, attributeList):
     """Deselects the attributes passed in attributeList from data"""
@@ -1484,7 +1576,11 @@ def attributeDeselectionData(data, attributeList):
     for idx in range(len(data.domain.attributes)):
         if string.strip(data.domain.attributes[idx].name) not in attributeList:
             newDomainList.append(data.domain[idx])
-    newDomain = orange.Domain(newDomainList, data.domain.classVar)
+    # Handle multiple class labels
+    if not data.domain.class_vars:
+        newDomain = orange.Domain(newDomainList, data.domain.classVar)
+    else:
+        newDomain = Orange.data.Domain(newDomainList, data.domain.classVar, class_vars = data.domain.class_vars)
     #Handle the Meta Attributes
     for attrID in data.domain.getmetas():
         if string.strip(data.domain[attrID].name) not in attributeList:

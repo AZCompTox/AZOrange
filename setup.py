@@ -77,13 +77,14 @@ class Installer:
         # The boost source path is the dir created when uncompressing the orangeDependencies/src/boost_1_34_1.tar.gz
         self.orngBoostDir = None
         self.APPSPackDir = None
-        self.azFannDir = None
         self.opencvDir = None
         self.oasaDir = None
         self.cinfonyDir = None
         self.rdkitDir = None
         self.cdkDir = None
         self.ftmDir = None
+        self.structClustDir = None
+        self.fminerDir = None
         self.plearnDir = None
         self.R8Dir = None
         self.ctoolsDir = None
@@ -164,6 +165,12 @@ class Installer:
         
         # Setup the correct environment.
         self.setEnv()
+        
+        # Compile fminer 
+        self.compileFMINER()
+
+        # Compile structClust
+        self.compileStructClust()
 
         # Compile ftm
         self.compileFTM()
@@ -193,9 +200,6 @@ class Installer:
 
         # Compile and install the oasa.
         self.compileOasa()
-
-        # Compile and install the azFann.
-        self.compileAZFann()
 
         # Compile and install the ctools.
         self.compileCtools()
@@ -245,20 +249,23 @@ class Installer:
             
             raise Exception("Invalid platform.")
 
-        self.orangeDir = os.path.join(self.buildDir,"orange")
+        self.orangeDir = os.path.join(self.buildDir,"orange") # will be Orange in later revision!
+        self.orangeInstallDir = os.path.join(self.installDir)   #It will add orange. In a latter revision it will add /Orange
+        self.orangeSrcDir = os.path.join(self.buildDir,"orangeDependencies/src/orange") # will be Orange in later revision!
         self.azorangeDir = os.path.join(self.buildDir,"azorange")
         self.orngCRSDir = os.path.join(self.buildDir,"orangeDependencies/src/orngCRS")
         self.mpichDir = os.path.join(self.buildDir,"orangeDependencies/src/mpich-1.2.7p1")
         # The boost source path is the dir created when uncompressing the orangeDependencies/src/boost_1_34_1.tar.gz
         self.orngBoostDir = os.path.join(self.buildDir,"orangeDependencies/src/boost")
         self.APPSPackDir = os.path.join(self.buildDir,"orangeDependencies/src/appspack")
-        self.azFannDir = os.path.join(self.buildDir,"orangeDependencies/src/azFann-2.0.0")
         self.opencvDir = os.path.join(self.buildDir,"orangeDependencies/src/opencv")
         self.oasaDir = os.path.join(self.buildDir,"orangeDependencies/src/oasa")
         self.cinfonyDir = os.path.join(self.buildDir,"orangeDependencies/src/cinfony")
         self.rdkitDir = os.path.join(self.buildDir,"orangeDependencies/src/rdkit")
         self.cdkDir = os.path.join(self.buildDir,"orangeDependencies/src/cdk")
         self.ftmDir = os.path.join(self.buildDir,"orangeDependencies/src/ftm")
+        self.structClustDir = os.path.join(self.buildDir,"orangeDependencies/src/structuralClustering")
+        self.fminerDir = os.path.join(self.buildDir,"orangeDependencies/src/fminer")
         self.plearnDir = os.path.join(self.buildDir,"orangeDependencies/src/plearn")
         self.ctoolsDir = os.path.join(self.buildDir,"orangeDependencies/src/Ctools")
         self.R8Dir = os.path.join(self.buildDir,"orangeDependencies/src/R8/Src")
@@ -283,25 +290,34 @@ class Installer:
         print "InstallPythonLayer"
         # Set the python path and install the python layer
         #setupFile = os.path.join(self.orangeDir,"setup.py")
-        os.chdir(self.orangeDir)
-        try:
-            os.system("python setup.py install --orangepath="+self.installDir)
-        except:
-            print "Error installing the orange in the installation directory."
-            sys.exit(1)
-        try:
-            os.remove(os.path.join(self.installDir,"orange","liborange.so"))
-        except:
-            print "Unable to remove orange/liborange.so"
-        savedCwd = os.getcwd()
-        try:
-            os.chdir(os.path.join(self.installDir, "orange"))
-            os.symlink("orange.so", "liborange.so")
-        except:
-            print "Failed to link liborange.so"
-            sys.exit(1)
-        os.chdir(savedCwd)
+        
+        # Remove old link liborange.so
+        commands.getstatusoutput("rm -f "+os.path.join(self.orangeInstallDir, "orange", "liborange.so")) # will be Orange in later revision! 
 
+        #Install now orange in its destination dir
+        installCMD = 'python setup.py install --install-base "'+self.orangeInstallDir+\
+                                           '" --install-platbase "'+self.orangeInstallDir+\
+                                           '" --install-lib "'+self.orangeInstallDir+\
+                                           '" --install-headers "'+self.orangeInstallDir+\
+                                           '" --install-scripts "'+self.orangeInstallDir+\
+                                           '" --install-data "'+self.orangeInstallDir+'"'
+        os.chdir(self.orangeSrcDir)
+        # will install in self.orangeInstallDir/orange # will be Orange in later revision!
+        stat, out = commands.getstatusoutput(installCMD)
+        checkStatus(stat, out,"Error installing orange orange.")
+        self.__prependEnvVar("PYTHONPATH", self.orangeInstallDir+"/")
+        self.__prependEnvVar("PYTHONPATH", os.path.join(self.orangeInstallDir,"orange/orng")) # will be Orange in later revision!
+        self.__prependEnvVar("LD_LIBRARY_PATH", self.orangeInstallDir+"/")
+        self.__prependEnvVar("LD_LIBRARY_PATH",  os.path.join(self.orangeInstallDir,"orange/orng")) # will be Orange in later revision!
+
+        # Check that liborange.so link was created
+        if not os.path.isfile(os.path.join(self.orangeInstallDir, "orange", "liborange.so")): # will be Orange in later revision!
+            print "WARNING: Missing link liborange.so -> orange.so"
+        #    os.symlink(os.path.join(self.orangeInstallDir, "orange", "orange.so"), os.path.join(self.orangeInstallDir, "orange", "liborange.so")) # will be Orange in later revision!
+
+        # Recover any git replaced files from the orange installation
+        commands.getstatusoutput("cp -Rf "+os.path.join(self.buildDir,"orange")+" "+self.orangeInstallDir)
+        os.chdir(self.orangeDir)
         # Also copy the shared libraries that were built separately.
         #print "Copying c45.so and _orngCRS.so to installation directory."
         #try:
@@ -315,7 +331,7 @@ class Installer:
         try:
             ##scPA    Changed the source and destination of these files
             sumStatus += os.system("mkdir -p %s/azorange/trainingMethods" % self.installDir)
-            #Not included in the sumStatus because this command will generate a warning because being sipping directories.
+            #Not included in the sumStatus because this command will generate a warning because being skipping directories.
             os.system("cp -f ../azorange/trainingMethods/* %s/azorange/trainingMethods/" % self.installDir)
             #Not being used... it is still empty
             #sumStatus += os.system("cp -f ../azorange/trainingMethods/bin/* %s/azorange/trainingMethods/bin/" % self.installDir)
@@ -325,14 +341,13 @@ class Installer:
             sumStatus += os.system("cp -Rf ../azorange/bin %s/azorange/." % self.installDir)
             sumStatus += os.system("cp -Rf ../doc %s/." % self.installDir)
             sumStatus += os.system("cp -Rf ../azorange/documentation %s/azorange/." % self.installDir)
-            #Copy missing from orange install script.
-            sumStatus += os.system("cp -Rf ../orange/Orange %s/orange/." % self.installDir)
+            #Copy missing from orange install script. TODO
+            #sumStatus += os.system("cp -Rf ../orange/Orange " + os.path.join(self.orangeInstallDir, ".") )
 
             if self.openInstall:
                 sumStatus += os.system("cp -Rf ../COPYING* %s/." % self.installDir)
-
-            if not self.openInstall:
-                sumStatus += os.system("cp -f ../azorange/*.txt %s/azorange/." % self.installDir)
+            else:
+                sumStatus += os.system("cp -Rf  ../azorange/etc %s/azorange/." % self.installDir)
                 sumStatus += os.system("cp -Rf  ../exampleScripts %s/." % self.installDir)
             #  Added the azorange to pythonpath in order to maintain the use of modules
             #  inside it accessible by the same way
@@ -471,6 +486,39 @@ class Installer:
         self.__prependEnvVar("JPYPE_JVM" , libjvm)
         self.__prependEnvVar("CLASSPATH" , CDKJar)
            
+
+    def compileStructClust(self):
+        if ("clustering" not in self.dependencies):
+            print "Not using the local structural clustering"
+            return
+        structClustinstallDir = os.path.join(self.orangeDependenciesDir,"structuralClustering")  
+        if self.dependencies["clustering"]:   #compile and install
+                # The source Dir will have to be available at running time
+                print "Copying clustering dir to orangeDependencies"
+                stat, out = commands.getstatusoutput("rm -rf " + structClustinstallDir)
+                stat, out = commands.getstatusoutput("cp -R " + self.structClustDir+ " " + structClustinstallDir)
+                checkStatus(stat, out, "Error copying the structural clustering")
+                # compile gSpan
+# gspanpp        g++ -o gspan3 -O2 gspan_all_BB.cpp -Iivy_mike/src/
+# gSpan                gcc -O2 min.c computeSymm.c gSpan.c biconn.c preprocessDB2.c -o gSpan
+                os.chdir(os.path.join(structClustinstallDir, "gSpan/gspanpp"))
+                # If not using the system installed boost, we need to point boost include files location
+                boost_I_flag = ""
+                if "boost" in self.dependencies:
+                    boost_I_flag = " -I"+self.orngBoostDir  
+                else:
+                    boost_I_flag = ""
+                stat, out = commands.getstatusoutput("g++ -o gspan3 -O2 gspan_all_BB.cpp -Iivy_mike/src/ "+boost_I_flag)
+                checkStatus(stat, out, "Error compiling gspan3")
+        
+                os.chdir(os.path.join(structClustinstallDir, "gSpan/gSpan/FeatureVector_nodes"))
+                stat, out = commands.getstatusoutput("gcc -O2 min.c computeSymm.c gSpan.c biconn.c preprocessDB2.c -o gSpan")
+                checkStatus(stat, out, "Error compiling gSpan")
+        else:
+                print "Not reinstalled"
+
+
+
     def compileFTM(self):
         if ("ftm" not in self.dependencies):
             print "Not using the local ftm"
@@ -511,6 +559,48 @@ class Installer:
         else:
                 print "Not reinstalled"
 
+    def compileFMINER(self):
+        if ("fminer" not in self.dependencies):
+            print "Not using the local fminer"
+            return
+        fminerinstallDir = os.path.join(self.orangeDependenciesDir,"fminer")
+        if self.dependencies["fminer"]:   #compile and install
+                os.chdir(os.path.join(self.fminerDir,"libbbrc"))
+                print "Building BBRC in:   ",self.fminerDir
+                stat, out = commands.getstatusoutput("make python")
+
+                os.chdir(os.path.join(self.fminerDir,"liblast"))
+                print "Building LAST in:   ",self.fminerDir
+                stat, out = commands.getstatusoutput("make python")
+
+                stat, out = commands.getstatusoutput("rm -rf " + fminerinstallDir)
+                stat, out = commands.getstatusoutput("mkdir " + fminerinstallDir)
+                checkStatus(stat, out,"Error creating " + fminerinstallDir)
+
+                print "Installing BBRC in: ",fminerinstallDir
+                _file = os.path.join(self.fminerDir,"libbbrc","bbrc.py") 
+                stat, out = commands.getstatusoutput("cp "+ _file +" "+ fminerinstallDir)
+                checkStatus(stat, out,"Could not copy from " + _file)
+                _file = os.path.join(self.fminerDir,"libbbrc","_bbrc.so")
+                stat, out = commands.getstatusoutput("cp "+ _file +" "+ fminerinstallDir)
+                checkStatus(stat, out,"Could not copy from " + _file)
+
+                print "Installing LAST in: ",fminerinstallDir
+                _file = os.path.join(self.fminerDir,"liblast","last.py")
+                stat, out = commands.getstatusoutput("cp "+ _file +" "+ fminerinstallDir)
+                checkStatus(stat, out,"Could not copy from " + _file)
+                _file = os.path.join(self.fminerDir,"liblast","_last.so")
+                stat, out = commands.getstatusoutput("cp "+ _file +" "+ fminerinstallDir)
+                checkStatus(stat, out,"Could not copy from " + _file)
+        
+                #Set Env variables
+                self.__prependEnvVar("PYTHONPATH" , fminerinstallDir)
+                self.__prependEnvVar("FMINER_LAZAR" , "1")
+                self.__prependEnvVar("FMINER_SMARTS" , "1")
+                self.__prependEnvVar("FMINER_PVALUES" , "0")
+        else:
+                print "Not reinstalled"
+
 
     def compileRdkit(self):
         if ("rdkit" not in self.dependencies):
@@ -544,22 +634,14 @@ class Installer:
         
 
     def compileOrange(self):
-        # Orange is being compiled three times because there is something wrong with how the dependencies and the entire orange make procedure is set up.
         print "CompileOrange"
-        os.chdir(self.orangeDir)
-        stat=1
-        c=0
-        stat, out = commands.getstatusoutput("python setup.py compile")
-        #while stat and c<10:
-        #    print "Running orange setup.py ... try " + str(c+1)
-        #    stat, out = commands.getstatusoutput("python setup.py compile")
-        #    c=c+1
+        os.chdir(self.orangeSrcDir)
+        stat, out = commands.getstatusoutput("python setup.py build")
+        checkStatus(stat, out,"Error building orange.")
+        #install in the current build Structure to be used by other software on build if needed
+        #stat, out = commands.getstatusoutput('python setup.py install --prefix "'+self.orangeDir+'"')
+        #checkStatus(stat, out,"Error installing orange in build dir.")
 
-        # checkStatus(stat, out,"Error compiling orange.") Can't check
-        # error here since there is one due to the faulty make
-        # procedure..
-        #stat, out = commands.getstatusoutput("python setup.py compile")
-        checkStatus(stat, out,"Error compiling orange.")
 
 
     def compileOrngCRS(self):
@@ -594,9 +676,9 @@ class Installer:
                     os.environ["LD_LIBRARY_PATH"] =   self.orangeDir
 
                 os.chdir(self.R8Dir)
-                stat, out = commands.getstatusoutput("cp -f %s/buildC45.py ." % self.orangeDir)
+                stat, out = commands.getstatusoutput("cp -f %s/orange/buildC45.py ." % self.orangeDir)
                 checkStatus(stat, out,"Error copying build script for R8 (buildC45.py).")
-                stat, out = commands.getstatusoutput("cp -f %s/ensemble.c ." % self.orangeDir)
+                stat, out = commands.getstatusoutput("cp -f %s/orange/ensemble.c ." % self.orangeDir)
                 checkStatus(stat, out,"Error copying ensemble.c.")
                 print "Build c45 start"
                 stat, out = commands.getstatusoutput("python buildC45.py")
@@ -770,7 +852,7 @@ class Installer:
 
     def setEnv(self):
         print "The buildDir: ",self.buildDir
-        # Add nspr directory to CPATH
+        # Add nspr directory to CPATH  # Used by plearn (PLS)
         if self.platform[0:3] == "GAS":
             try:
                 pcfile=open("/usr/lib/pkgconfig/mozilla-nspr.pc")
@@ -863,7 +945,9 @@ class Installer:
                 print "Building in:   ",self.opencvDir
                 print "Installing in: ",openCVinstallDir
                 # for debug include:    --enable-debug=\"yes\"
-                stat, out = commands.getstatusoutput("./configure --prefix=\"" + openCVinstallDir  + "\" --with-openmp --enable-apps=\"no\"")
+                #stat, out = commands.getstatusoutput("./configure --prefix=\"" + openCVinstallDir  + "\" --with-openmp --enable-apps=\"no\"")
+                # Disabled openmp because of too many cores used in SGE
+                stat, out = commands.getstatusoutput("./configure --prefix=\"" + openCVinstallDir  + "\" --disable-openmp --enable-apps=\"no\"")
                 checkStatus(stat, out,"Error configuring opencv.")
                 stat, out = commands.getstatusoutput("make")
                 checkStatus(stat, out,"Error compiling opencv.")
@@ -893,34 +977,6 @@ class Installer:
         self.__prependEnvVar("PYTHONPATH" , sitePackagesPath)
 
 
-    def compileAZFann(self):
-        if ("azfann-2.0.0" not in self.dependencies):
-            print "Not using the local Fann"
-            return
-        FANNinstallDir = os.path.join(self.orangeDependenciesDir,os.path.split(self.azFannDir)[1])
-        if self.dependencies["azfann-2.0.0"]:   #compile and install
-                print "Compiling Fann"
-                os.chdir(self.azFannDir)
-                print "Building in:   ",self.azFannDir
-                print "Installing in: ",FANNinstallDir
-                stat, out = commands.getstatusoutput("./configure CFLAGS=-fPIC --prefix=\"" + FANNinstallDir  + "\"")
-                checkStatus(stat, out,"Error configuring Fann.")
-                stat, out = commands.getstatusoutput("make")
-                checkStatus(stat, out,"Error compiling Fann.")
-                stat, out = commands.getstatusoutput("make install")
-                checkStatus(stat, out,"Error installing Fann.")
-
-                print "compiling pyfann" # the python bindings
-                os.chdir(os.path.join(self.azFannDir,"python"))
-                stat, out = commands.getstatusoutput("make")
-                checkStatus(stat, out,"Error compiling pyFann.")
-                stat, out = commands.getstatusoutput("python setup.py install --install-lib " + os.path.join(FANNinstallDir,"lib"))
-                checkStatus(stat, out,"Error installing pyfann.")
-        else:
-                print "Not reinstalled"
-        # At runtime we will neew LD_LIBRARY_PATH to include the location of new installed libs
-        self.__prependEnvVar("LD_LIBRARY_PATH" , os.path.join(FANNinstallDir,"lib"))
-        self.__prependEnvVar("PYTHONPATH" , os.path.join(FANNinstallDir,"lib/pyfann"))
 
 
     def compileCtools(self):
@@ -1088,9 +1144,9 @@ class Installer:
                     self.detailsLogFile = options.detailslogfile
                     self.envFile = options.envfile
                     self.modulesToLoad = eval(options.modulestoload)
-                    self.openInstall = options.openinstall
+                    self.openInstall = eval(options.openinstall)
                     self.logFile = options.logfile
-                    self.verbosedLogging = options.verbose
+                    self.verbosedLogging = eval(options.verbose)
                     self.__initialize()
                     self.__build() 
                 else:

@@ -91,7 +91,7 @@ GCCmoduleForAppspackMPI = none
 ;    It must be somehow already installed or being loaded by modules
 ;If the third argument * is present, the respective dependency will not be built and it will use a previous installed one.
 ;    It must already have been installed in a previous azorange full installation (without *) 
-orange = http://orange.biolab.si/svn/orange/trunk,12117
+orange = https://bitbucket.org/biolab/orange,2.5a2
 appspack = http://software.sandia.gov/appspack/downloads/appspack-5.0.1.tar.gz,5.0.1
 boost = http://downloads.sourceforge.net/project/boost/boost/1.34.1/boost_1_34_1.tar.gz,1.34.1
 opencv = http://downloads.sourceforge.net/project/opencvlibrary/opencv-unix/2.0/OpenCV-2.0.0.tar.bz2,2.0.0
@@ -100,7 +100,9 @@ cinfony = http://cinfony.googlecode.com/files/cinfony-1.0.tar.gz,1.0
 rdkit = http://rdkit.googlecode.com/files/RDKit_2011_03_2.tgz,2011.03
 ;rdkit = http://rdkit.googlecode.com/files/RDKit_Q42009_1.tar.gz,Q42009_2
 cdk = http://switch.dl.sourceforge.net/project/cdk/cdk/1.2.7/cdk-1.2.7.jar,1.2.7
-ftm = http://wwwkramer.in.tum.de/projects/ftm.tar.gz,0.1
+ftm = http://infosys.informatik.uni-mainz.de/research/azorange/ftm-for-azorange/at_download/file,0.1
+fminer = https://github.com/amaunz/fminer2.git,0.0
+clustering = http://infosys.informatik.uni-mainz.de/research/azorange/structuralclustering-for-azorange/at_download/file,1.1
 
 [FeedBack]
 ;For sending reports to multiple accounts, separate them by comma

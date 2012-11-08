@@ -469,10 +469,7 @@ def getCIDAttr(data):
                                
 def getSMILESAttr(data):
     # Check that the data contains a SMILES attribute
-    smilesName = None
-    for attr in [a.name for a in  data.domain] + [a.name for a in data.domain.getmetas().values()]:
-        if attr in AZOC.SMILESNAMES:
-            smilesName = attr
+    smilesName = dataUtilities.getSMILESAttr(data)
     if not smilesName:
         print "Warning: The data set does not contain any known smiles attribute!"
         print "No similarity descriptors added!"

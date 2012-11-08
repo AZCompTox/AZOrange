@@ -1,0 +1,9 @@
+RMSE	[1.3275429789733169]
+R2	[0.657770049449856]
+Estimate               r       p
+Mahalanobis absolute   0.098   0.300 
+LCV absolute           0.202   0.031 
+BVCK_absolute         -0.058   0.538 
+BAGV absolute         -0.027   0.777 
+CNK signed             0.150   0.110 
+CNK absolute          -0.057   0.545 

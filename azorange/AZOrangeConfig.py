@@ -18,10 +18,14 @@ AZORANGEHOME = os.environ["AZORANGEHOME"]
 SCRATCHDIR = "/tmp"
 NFS_SCRATCHDIR = os.path.join(os.environ["HOME"],"AZO_NFS_scratchDir")
 
+# environment for structural clustering
+STRUCTCLUSTDIR = os.path.join(os.environ["AZORANGEHOME"], "orangeDependencies/structuralClustering")
+
 # Configurable parameters that can be overwriten by AZOrangeExtraConfig.py
 #cinfonyToolkits = ["cdk","rdk","obabel","webel"]        # NOT so stable!!
 #cinfonyToolkits = ["rdk","obabel","webel"]              # Testing Stability!!
 cinfonyToolkits = ["rdk","webel"]
+#cinfonyToolkits = ["rdk"]
 OWParamOptExecEnvs = [("Local serial", 0)]
  
 
@@ -164,14 +168,35 @@ CVSVMDEFAULTDICT = {
         'coef0'        : 5     ,
         'degree'       : 5     }
 
+#SignSVM
+SIGNSVMDEFAULTDICT = {
+        'startHeight'  :0      , 
+        'endHeight'    :3      ,
+        'nrFolds'      :-1     ,   # -1 makes the selection automatic based on number of train examples when doing optimization
+                                   #  0 disables optimizatrion of c and gamma
+                                   #  Optimizes C and Gamma
+        'nrThreads'    : 0     ,   # 0 will use half of the cores available if there are more than 1
+        'scaleClass'   : 0     ,
+        'priors'       : None  }
+
+
 #QSAR definitions
 #MLMETHODS: {"MethodNAme": [<MLmodule>, <Learnerobject>], ...}
-MLMETHODS = {"CvRF":{"module":"trainingMethods.AZorngRF","object":"RFLearner"},
-             "CvANN":{"module":"trainingMethods.AZorngCvANN","object":"CvANNLearner"},
-             "CvSVM":{"module":"trainingMethods.AZorngCvSVM","object":"CvSVMLearner"},
-             "CvBoost":{"module":"trainingMethods.AZorngCvBoost","object":"CvBoostLearner"},
-             "PLS":{"module":"trainingMethods.AZorngPLS","object":"PLSLearner"}
+_MLMETHODS = {"CvRF":{"module":"trainingMethods.AZorngRF","object":"RFLearner","useByDefault":True},
+             "CvANN":{"module":"trainingMethods.AZorngCvANN","object":"CvANNLearner","useByDefault":False},
+             "CvSVM":{"module":"trainingMethods.AZorngCvSVM","object":"CvSVMLearner","useByDefault":True},
+             "CvBoost":{"module":"trainingMethods.AZorngCvBoost","object":"CvBoostLearner","useByDefault":True},
+             "PLS":{"module":"trainingMethods.AZorngPLS","object":"PLSLearner","useByDefault":False}
                 }
+
+if "MLMETHODS" in locals():
+    # Extend the dictionary with metods defined for example in AZOrangeExtraConfig
+    # When same key exists in both, the one from 2nd argument is used instead!
+    MLMETHODS = dict(_MLMETHODS.items() + MLMETHODS.items())
+else:
+    MLMETHODS = _MLMETHODS
+
+
 QSARNEXTFOLDS = 10     #Number of Folds for the outer loop where data is splitted into External test and Modeling Set
 QSARNINNERFOLDS = 10   #Number of Folds to use in getUnbiasedAccuracy when data is splitted into train and test
 QSARNCVFOLDS = 5       #Number of CrossValidation folds used in getUnbiasedAccuracy when optimizing the MLmethods

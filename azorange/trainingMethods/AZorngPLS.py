@@ -9,7 +9,7 @@ import time
 import pickle 
 
 import pls
-import orange
+import orange,Orange
 import orngTest
 import orngBayes
 import orngStat
@@ -37,6 +37,7 @@ class PLSLearner(AZBaseClasses.AZLearner):
    
     #def setattr(self, name, value):
         #self.__dict__[name] = value
+
 	    
     def __init__(self, name = "PLS learner", **kwds):
         """
@@ -136,6 +137,12 @@ class PLSClassifier(AZBaseClasses.AZClassifier):
         #self.__init__(name, **kwds)
 	return self
 
+    def getTopImportantVars(self, inEx, nVars = 1, gradRef = None, absGradient = True, c_step = None, getGrad = False):
+        if self.classVar.varType == orange.VarTypes.Discrete:
+            return {"NA":"Not aplicable: No true DFV"}
+        else:
+            return AZBaseClasses.AZClassifier.getTopImportantVars(self, inEx, nVars, gradRef, absGradient, c_step, getGrad)
+
     def __init__(self, name = "PLS classifier", **kwds): 
         self.verbose = 0
         self.__dict__.update(kwds)
@@ -156,7 +163,7 @@ class PLSClassifier(AZBaseClasses.AZClassifier):
 	    if self.verbose > 0: print "Warning! - No impute data defined"
 
 
-    def __call__(self, origExamples = None, resultType = orange.GetValue):
+    def _singlePredict(self, origExamples = None, resultType = orange.GetValue, returnDFV = False):
         if origExamples == None:
             return self.classifier(None, resultType)
         else:
@@ -196,7 +203,8 @@ class PLSClassifier(AZBaseClasses.AZClassifier):
                     return None
 	    else:
 	        examplesImp = inExamples
-		
+	
+            DFV = None	
             # Transform the orange data to the PLS prediction data format 
             PLSFeatureVector = self.getFeatureVector(examplesImp)
             # Return the result of the prediction for one feature vector
@@ -228,27 +236,43 @@ class PLSClassifier(AZBaseClasses.AZClassifier):
                 print "Value in orange Format (Would be the last element of PLSout): ",str(orngOut),"  ->  ",str(orngOut[len(orngOut)-1])
                 print "Returning '?'"
                 value=orange.Value(self.classVar,'?')
-	    score = self.getProbabilities(value)
+	    if self.classVar.varType == orange.VarTypes.Discrete: 
+                score = self.getProbabilities(value)
+                probOf1 = score[self.classVar.values[1]]
+                DFV = -(probOf1-0.5)
+                self._updateDFVExtremes(DFV)
+            else:
+                y_hat = self.classVar(value)
+                score = Orange.statistics.distribution.Continuous(self.classVar)
+                score[y_hat] = 1.0
+                if not value.isSpecial():
+                    DFV = float(value.value)
+                    self._updateDFVExtremes(DFV)
 	    # Assure that large local variables are deleted
 	    del examplesImp
 	    del PLSFeatureVector
 
 	    #Return the desired quantity	
             if resultType == orange.GetProbabilities:
-		return score
+		res = score
 	    else:
 	 	if resultType == orange.GetBoth:
-			return value, score
+			res = value, score
 		else:
-            		return value
+            		res = value
+
+            if returnDFV:
+                res = (res,DFV)
+            
+            self.nPredictions += 1
+            return res
+
+
 
     def getProbabilities(self, prediction):
-	try:
-            prob = [0.0]*len(self.classVar.values)
-	    prob[self.classVar.values.index(str(prediction))]=1.0
-	except:
-	    return [0.0]
-	return prob
+        dist = orange.DiscDistribution(self.domain.classVar)
+        dist[prediction]=1
+	return dist
 
     def getFeatureVector(self, orangeVector):
         """ Transforms one orange type of data example ([5.1, 3.5, POS, 0.2, 'Iris-setosa'], special list) 

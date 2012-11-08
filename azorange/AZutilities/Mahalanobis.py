@@ -52,7 +52,8 @@ def createInvCovMat(data, TSDT_file=None, C_file=None, SQRTICM_file = None, MTD_
     
     # Next call to createMahalanobisData.sh is to be removed when the   sqrtm(CI) is working.
     #Thisis known to be working in python 2.7 - Numpy - scipy
-    status,out = commands.getstatusoutput("$AZORANGEHOME/azorange/AZutilities/createMahalanobisData.sh "+TSDT_file+" "+C_file+" "+SQRTICM_file+" "+MTD_file)
+    # not yet solve on module numpy/python2.7-64_1.6.0  (python/64_2.7.1)
+    status,out = commands.getstatusoutput("env -i $AZORANGEHOME/azorange/AZutilities/createMahalanobisData.sh "+TSDT_file+" "+C_file+" "+SQRTICM_file+" "+MTD_file)
     if status:
         print "Error running Advanced Files creator: "+str(out)
         return False

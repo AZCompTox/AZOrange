@@ -11,6 +11,7 @@ import numpy
 import commands
 from statlib import stats
 from AZutilities import miscUtilities
+from AZutilities import dataUtilities
 from rdkit import Chem
 from rdkit.Chem import Draw
 version = 2
@@ -59,7 +60,8 @@ def getNearestNeighbors(query, n, NNDataPath, FPPath = None, resPath = None, idx
                 "expVal"      : ExpValues, 
                 "similarity"  : TanimotoSimilarity, 
                 "smi"         : smiles, 
-                "imgPath"     : imgPath},  ... ]        
+                "imgPath"     : imgPath,
+                "MeanInhib"   : Mean Inhib. },  ... ]        
 
         It will saves the images in resPath:
              NN_1.png    #1 neighbor
@@ -108,7 +110,10 @@ def getNearestNeighbors(query, n, NNDataPath, FPPath = None, resPath = None, idx
     timeStamp=str(time.time()).replace(".",'')
     for fidx,nn in enumerate(TS):
         ID= nn[idxID]
-        expVal = nn[idxExpVal]
+        if miscUtilities.isNumber(nn[idxExpVal]):
+            expVal = str(round(float(nn[idxExpVal]),2))
+        else:
+            expVal = nn[idxExpVal]
         SMILES = nn[idxSMILES]
         if resPath and os.path.isdir(resPath):
             imgPath = os.path.join(resPath,"NN"+str(idx)+"_"+str(fidx+1)+"_"+timeStamp+".png")
@@ -122,9 +127,27 @@ def getNearestNeighbors(query, n, NNDataPath, FPPath = None, resPath = None, idx
                 "expVal": expVal, 
                 "similarity": nn[idxSimilarity], 
                 "smi": SMILES, 
-                "imgPath": imgPath} )
+                "imgPath": imgPath,
+                "MeanInhib": ''} )
     return res
     
+
+def calcConfMat(exp_pred_Val, labels):
+    #exp_pred_Val is a list of lists of strings:
+    #    [[exp_Val, pred_val],
+    #     [exp_Val, pred_val],
+    #    ...
+    #    ]
+    #labels is a list of strings which are the possible class lables ordered as in the original data.domain.classvar.values
+    # The order of the matrix will be acconding to the order of the labels
+    # the output will follow what defined in confMat method.
+    CM = [[0]*len(labels) for x in range(len(labels))]
+    for val in exp_pred_Val:
+        row = labels.index(val[0])  # experimental
+        col = labels.index(val[1])  # Predicted
+        CM[row][col] += 1
+    return [CM]
+        
 
 
 def ConfMat(res = None):
@@ -136,8 +159,8 @@ def ConfMat(res = None):
                                              Predicted class
                                         |   A       B       C
                                      ---------------------------
-                           known     A  |  tpA     eAB     eAC
-                           class     B  |  eBA     tpB     eBC
+                       experimental  A  |  tpA     eAB     eAC     eAB is read as: Error, should be A instead of B
+                          class      B  |  eBA     tpB     eBC                
                                      C  |  eCA     eCB     tpC
 
                     [[tpA, eAB, ..., eAN],
@@ -161,9 +184,8 @@ def ConfMat(res = None):
             retCM.append(cm)
         return retCM
 
-
 def getConfMat(testData, model):
-        return ConfMat(orngTest.testOnData([model], testData))[0]
+        return ConfMat(testOnData([model], testData))[0]
 
 def calcKappa(_CM):
     """Returns the Kappa statistical coefficient for the agreement between measured and predicted classes"""
@@ -196,7 +218,7 @@ def generalCVconfMat(data, learners, nFolds = 5):
     with any number of classes. learners is a list of AZorange learners.
     """
 
-    res = orngTest.crossValidation(learners, data, strat=orange.MakeRandomIndices.StratifiedIfPossible, folds = nFolds)
+    res = crossValidation(learners, data, stratified=orange.MakeRandomIndices.StratifiedIfPossible, folds = nFolds)
     classes = data.domain.classVar.values
 
     for idx in range(len(learners)):
@@ -207,14 +229,24 @@ def generalCVconfMat(data, learners, nFolds = 5):
             print ("%s" + ("\t%i" * len(classes))) % ((className, ) + tuple(classConfusions))
 
 def getClassificationAccuracy(testData, classifier):
+    #Construct the list of experimental and predicted values: [(exp1, pred1), (exp2, pred2), ...]
     if not len(testData):
         return 0.0
+    exp_pred = []
+    # Predict using bulk-predict
+    predictions = classifier(testData)
+    # Gather predictions 
+    for n,ex in enumerate(testData):
+        exp_pred.append( (str(ex.getclass()), str(predictions[n])) )
+    return calcClassificationAccuracy(exp_pred)
+
+def calcClassificationAccuracy(exp_pred_Val):
     correct = 0.0
-    for ex in testData:
+    for val in exp_pred_Val:
         #print str(classifier(ex)) + "->" + str(ex.getclass())
-        if str(classifier(ex)) == str(ex.getclass()):
+        if val[0] == val[1]:
             correct = correct + 1.0
-    ClassificationAccuracy = correct/len(testData)
+    ClassificationAccuracy = correct/len(exp_pred_Val)
     return ClassificationAccuracy
 
 
@@ -358,7 +390,7 @@ def Sensitivity(confMatrixList, classes):
                 sensitivityDict[classes[idx]] = "N/A"
             else:        
 ##ecPA
-                sensitivityDict[classes[idx]] = confMatrix[idx][idx]/sum(confMatrix[idx])
+                sensitivityDict[classes[idx]] = float(confMatrix[idx][idx])/float(sum(confMatrix[idx]))
         sensitivityList.append(sensitivityDict)
 
     #print "End sensitivity "+str(sensitivityList)
@@ -390,7 +422,7 @@ def Predictivity(confMatrixList, classes):
                 PredictivityDict[classes[idx]] = "N/A"
             else:
 ##ecPA
-               PredictivityDict[classes[idx]] = confMatrix[idx][idx]/colSum
+               PredictivityDict[classes[idx]] = float(confMatrix[idx][idx])/float(colSum)
         PredictivityList.append(PredictivityDict)
 
     #print "End Predictivity "+str(PredictivityList)
@@ -765,4 +797,279 @@ def WilcoxonRankTest(accLearner1, accLearner2):
     else:
         return (0, info)
 
+
+
+from Orange.evaluation.testing  import Evaluation
+import Orange
+from Orange.misc import demangle_examples,getobjectname
+
+def testOnData(models,testData, store_classifiers=False, store_examples=False):
+        """ Makes used of Bulk-Predict"""
+        evaluator = VarCtrlVal()
+
+        test_results = orngTest.ExperimentResults(1,
+                                        classifierNames = [getobjectname(l) for l in models],
+                                        domain=testData.domain)#,
+                                    #    test_type = test_type,
+                                    #    weights=weight)
+        test_results.classifiers = []
+        if store_examples:
+            test_results.examples = testData
+        if store_classifiers:
+            test_results.classifiers = models
+
+        results = evaluator._test_on_data(models, testData, example_ids=None)
+        test_results.results.extend(test_results.create_tested_example(0, example)
+                                        for i, example in enumerate(testData))
+        for nEx, nModel, res in results:
+            test_results.results[nEx].set_result(nModel, *res)
+
+        return test_results
+
+
+def crossValidation(learners, data, folds=10,
+            stratified=Orange.core.MakeRandomIndices.StratifiedIfPossible,
+            preprocessors=(), random_generator=0, callback=None,
+            store_classifiers=False, store_examples=False, testAttrFilter=None, testFilterVal=None):
+    evaluator = VarCtrlVal()
+    # Setting in advance the trainBias to be used
+    examples = evaluator.getExamplesAndSetTrainBias(data, testAttrFilter, testFilterVal)
+
+    # Proceeding with examples matching the test criterias
+    return evaluator.cross_validation(learners, examples, folds,
+            stratified, preprocessors, random_generator, callback,
+            store_classifiers, store_examples)
+        
+def proportionTest(learners, data, learningProportion, times=10,
+                   stratification=Orange.core.MakeRandomIndices.StratifiedIfPossible, preprocessors=(), randomGenerator=0,
+                   callback=None, storeClassifiers=False, storeExamples=False,
+                   testAttrFilter=None, testFilterVal=None):
+    evaluator = VarCtrlVal()
+    return evaluator.proportion_test(learners, data, learningProportion, times,
+                   stratification, preprocessors, randomGenerator,
+                   callback, storeClassifiers, storeExamples, testAttrFilter, testFilterVal)
+
+
+
+
+class VarCtrlVal(Evaluation):
+    trainBias = None # Exampels to be added everytime a train is performed! Should always be set using the getExamplesAndSetTrainBias method
+    fixedIdx = None
+
+    def getExamplesAndSetTrainBias(self, data, testAttrFilter, testFilterVal):
+        """
+        Collects and returns the examples that match the filterValue at the Attr defined
+        The remaining examples (that do not match the filterValue at the Attr defined) are
+        placed in the trainBias to be added in all train events.
+        """
+        self.trainBias = None
+        if testAttrFilter is not None and  testFilterVal is not None and testAttrFilter in data.domain:
+            if type(testFilterVal) != list:
+                raise Exception("Invalid Attr filter value. It must be a list of strings")
+            else:
+                allDataEx = len(data)
+                examples = orange.ExampleTable(data.domain)
+                self.trainBias = orange.ExampleTable(data.domain)
+                for ex in data:
+                    inExamples = False
+                    for Vfilter in testFilterVal:
+                        if ex[testAttrFilter].value == Vfilter:
+                            examples.append(ex)
+                            inExamples = True
+                            break
+                    if not inExamples:
+                        self.trainBias.append(ex)
+
+                print "INFO: Variable control validation:"
+                print "      Examples in data: "+str(allDataEx)
+                print "      Examples selected for validation: "+str(len(examples))
+                print "      Examples to be appended to the train set: "+str(len(self.trainBias))
+                examples = dataUtilities.attributeDeselectionData(examples, [testAttrFilter])
+        elif testAttrFilter is not None and testFilterVal is None and testAttrFilter in data.domain:
+            #Enable pre-selected-indices
+            self.fixedIdx = orange.LongList()
+            allDataEx = len(data)
+            examples = orange.ExampleTable(data.domain)
+            self.trainBias = orange.ExampleTable(data.domain)
+            foldsCounter = {}
+            for ex in data:
+                value = str(ex[testAttrFilter].value)
+                if not miscUtilities.isNumber(value):
+                   raise Exception("Invalid fold value:"+str(value)+". It must be str convertable to an int.")
+                value = int(float(value))
+                if value not in foldsCounter:
+                    foldsCounter[value] = 1
+                else:
+                    foldsCounter[value] += 1
+                if not miscUtilities.isNumber:
+                    raise Exception("Invalid fold value:"+str(value)+". It must be str convertable to an int.")
+                if value != 0:
+                    examples.append(ex)
+                    self.fixedIdx.append(value - 1)
+                else:
+                    self.trainBias.append(ex)
+
+            print "INFO: Pre-selected "+str(len([f for f in foldsCounter if f != 0]))+" folds for CV:"
+            print "      Examples in data: "+str(allDataEx)
+            print "      Examples selected for validation: "+str(len(examples))
+            print "      Examples to be appended to the train set: "+str(len(self.trainBias))
+            examples = dataUtilities.attributeDeselectionData(examples, [testAttrFilter])
+
+        else:
+            examples = data
+
+        return examples
+
+
+    def one_fold_with_indices(self, learners, examples, fold, indices, preprocessors=(), weight=0):
+        """Perform one fold of cross-validation like procedure using provided indices."""
+        learn_set = examples.selectref(indices, fold, negate=1)
+        test_set = examples.selectref(indices, fold, negate=0)
+        if len(learn_set)==0 or len(test_set)==0:
+            return (), ()
+
+        # learning
+        learn_set, test_set = self._preprocess_data(learn_set, test_set, preprocessors)
+        #Add train bias to the lear_set
+        if self.trainBias:
+            learn_set = dataUtilities.concatenate([learn_set, self.trainBias], True)[0]
+            
+        if not learn_set:
+            raise SystemError("no training examples after preprocessing")
+        if not test_set:
+            raise SystemError("no test examples after preprocessing")
+
+        classifiers = [learner(learn_set, weight) for learner in learners]
+
+        # testing
+        testset_ids = (i for i, _ in enumerate(examples) if indices[i] == fold)
+        results = self._test_on_data(classifiers, test_set, testset_ids)
+
+        return results, classifiers
+ 
+
+    def proportion_test(self, learners, data, learning_proportion, times=10,
+                   stratification=Orange.core.MakeRandomIndices.StratifiedIfPossible, preprocessors=(), random_generator=0,
+                   callback=None, store_classifiers=False, store_examples=False, testAttrFilter=None, testFilterVal=None):
+        """
+        Perform a test, where learners are trained and tested on different data sets. Training and test sets are
+        generated by proportionally splitting data.
+
+        :param learners: list of learners to be tested
+        :param data: a dataset used for evaluation
+        :param learning_proportion: proportion of examples to be used for training
+        :param times: number of test repetitions
+        :param stratification: use stratification when constructing train and test sets.
+        :param preprocessors: a list of preprocessors to be used on data.
+        :param callback: a function that is be called after each classifier is computed.
+        :param store_classifiers: if True, classifiers will be accessible in test_results.
+        :param store_examples: if True, examples will be accessible in test_results.
+        :return: :obj:`ExperimentResults`
+        """
+        examples = self.getExamplesAndSetTrainBias(data, testAttrFilter, testFilterVal)
+
+        pick = Orange.core.MakeRandomIndices2(stratified = stratification, p0 = learning_proportion, randomGenerator = random_generator)
+
+        examples, weight = demangle_examples(examples)
+
+        test_type = self.check_test_type(examples, learners)
+        
+        test_results = orngTest.ExperimentResults(times,
+                                        classifierNames = [getobjectname(l) for l in learners],
+                                        domain=examples.domain,
+                                        test_type = test_type,
+                                        weights=weight)
+        test_results.classifiers = []
+        offset=0
+        for time in xrange(times):
+            indices = pick(examples)
+            learn_set = examples.selectref(indices, 0)
+            test_set = examples.selectref(indices, 1)
+            #Add train bias to the lear_set
+            if self.trainBias:
+                learn_set = dataUtilities.concatenate([learn_set, self.trainBias], True)[0]
+            classifiers, results = self._learn_and_test_on_test_data(learners, learn_set, weight, test_set, preprocessors)
+            if store_classifiers:
+                test_results.classifiers.append(classifiers)
+
+            test_results.results.extend(test_results.create_tested_example(time, example)
+                                        for i, example in enumerate(test_set))
+            for example, classifier, result in results:
+                test_results.results[offset+example].set_result(classifier, *result)
+            offset += len(test_set)
+
+            if callback:
+                callback()
+        return test_results
+
+    def cross_validation(self, learners, examples, folds=10,
+            stratified=Orange.core.MakeRandomIndices.StratifiedIfPossible,
+            preprocessors=(), random_generator=0, callback=None,
+            store_classifiers=False, store_examples=False):
+        """Perform cross validation with specified number of folds.
+
+        :param learners: list of learners to be tested
+        :param examples: data table on which the learners will be tested
+        :param folds: number of folds to perform
+        :param stratified: sets, whether indices should be stratified
+        :param preprocessors: a list of preprocessors to be used on data.
+        :param random_generator: random seed or random generator for selection
+               of indices
+        :param callback: a function that will be called after each fold is
+               computed.
+        :param store_classifiers: if True, classifiers will be accessible in
+               test_results.
+        :param store_examples: if True, examples will be accessible in
+               test_results.
+        :return: :obj:`ExperimentResults`
+        """
+        (examples, weight) = demangle_examples(examples)
+
+        if self.fixedIdx:
+            # ignore folds
+            indices = self.fixedIdx
+        else:
+            indices = Orange.core.MakeRandomIndicesCV(examples, folds,
+                stratified=stratified, random_generator=random_generator)
+
+        return self.test_with_indices(
+            learners=learners,
+            examples=(examples, weight),
+            indices=indices,
+            preprocessors=preprocessors,
+            callback=callback,
+            store_classifiers=store_classifiers,
+            store_examples=store_examples)
+
+
+
+    def _test_on_data(self, classifiers, examples, example_ids=None):
+        results = []
+
+        if example_ids is None:
+            numbered_examples = zip(range(len(examples)),examples)
+        else:
+            numbered_examples = zip(example_ids, examples) # itertools.izip(example_ids, examples)
+        # For classifiers with _bulkPredict method, call with all examples at once
+        bulkEnabledClassifiers = {}
+        for c,model in enumerate(classifiers):
+            if hasattr(model,"_bulkPredict"):
+                bulkEnabledClassifiers[c] = {}
+                testData = Orange.core.ExampleTable(examples[0].domain, [ex[1] for ex in numbered_examples])
+                res = model(testData, Orange.core.GetBoth)
+                for i, e in enumerate([ex[0] for ex in numbered_examples]):
+                    bulkEnabledClassifiers[c][e] = copy.deepcopy(res[i])
+
+        for e, example in numbered_examples:
+            for c, classifier in enumerate(classifiers):
+                if c in bulkEnabledClassifiers:
+                    result = bulkEnabledClassifiers[c][e]
+                else:
+                    # Hide actual class to prevent cheating
+                    ex2 = Orange.data.Instance(example)
+                    if ex2.domain.class_var: ex2.setclass("?")
+                    if ex2.domain.class_vars: ex2.set_classes(["?" for cv in ex2.domain.class_vars])
+                    result = classifier(ex2, Orange.core.GetBoth)
+                results.append((e, c, result))
+        return results
 

@@ -106,7 +106,7 @@ class CvBayesClassifier(AZBaseClasses.AZClassifier):
                 return None
 
 
-    def __call__(self, origExamples = None, resultType = orange.GetValue, returnDFV = False):
+    def _singlePredict(self, origExamples = None, resultType = orange.GetValue, returnDFV = False):
         res = None
         """
         orange.GetBoth -          <type 'tuple'>                     ->    (<orange.Value 'Act'='3.44158792'>, <3.442: 1.000>)

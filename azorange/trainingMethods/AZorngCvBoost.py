@@ -107,8 +107,6 @@ class CvBoostLearner(AZBaseClasses.AZLearner):
         params.weight_trim_rate = self.weight_trim_rate
         params.max_depth = self.max_depth
         params.use_surrogates = self.use_surrogates
-        if self.priors:
-            params.priors= self.priors
 
         #Create the model it MUST be created with the NON DEFAULT constructor or must call create
         classifier = ml.CvBoost()
@@ -118,30 +116,13 @@ class CvBoostLearner(AZBaseClasses.AZLearner):
         #cv.cvSet(sampleWeights,1.0)
         
         #compute priors (sample weights)
-        priors = self.convertPriors(self.priors, self.trainData.domain.classVar,getDict = True)
+        priors = self.convertPriors(self.priors, self.trainData.domain.classVar)
         if type(priors) == str: #If a string is returned, there was a failure, and it is the respective error mnessage.
             print priors
             return None
- 
-        if priors:
-            #scale priors
-            pSum=sum(priors.values())
-            if pSum==0:
-                print "ERROR: The priors cannot be all 0!"
-                return None
-            map(lambda k,v:priors.update({k: (v+0.0)/pSum}),priors.keys(),priors.values())
-            #Apply the priors to each respective sample
-            sample_weights = [1] * len(self.trainData)
-            for idx,sw in enumerate(sample_weights):
-                actualClass = str(self.trainData[idx].getclass().value)
-                if actualClass in priors:
-                    sample_weights[idx] = sample_weights[idx] * priors[actualClass]
-            CV_sample_weights = dataUtilities.List2CvMat(sample_weights,"CV_32FC1")
-        else:
-            CV_sample_weights = None
         #Train the model
         if self.verbose: self.printParams(params)
-        classifier.train(mat, ml.CV_ROW_SAMPLE, responses, None, None, varTypes, missingDataMask, params, False)
+        classifier.train(mat, ml.CV_ROW_SAMPLE, responses, None, None, varTypes, missingDataMask, params, False, priors and str(priors).replace(","," ") or None)
         return CvBoostClassifier(classifier = classifier, classVar = self.trainData.domain.classVar, imputeData=impData, verbose = self.verbose, varNames = CvMatrices["varNames"], nIter = None, basicStat = self.basicStat, NTrainEx = len(trainingData), parameters = self.parameters)
 
 class CvBoostClassifier(AZBaseClasses.AZClassifier):
@@ -149,6 +130,10 @@ class CvBoostClassifier(AZBaseClasses.AZClassifier):
         self = AZBaseClasses.AZClassifier.__new__(cls, name = name,  **kwds)
         #self.__init__(name, **kwds)
         return self
+
+    def getTopImportantVars(self, inEx, nVars = 1, gradRef = None, absGradient = True, c_step = None, getGrad = False):
+        return {"NA":"Not aplicable: No true DFV"}
+
 
     def __init__(self, name = "CvBoost classifier", **kwds):
         self.verbose = 0
@@ -172,7 +157,7 @@ class CvBoostClassifier(AZBaseClasses.AZClassifier):
                 return None
 
 
-    def __call__(self, origExamples = None, resultType = orange.GetValue, returnDFV = False):
+    def _singlePredict(self, origExamples = None, resultType = orange.GetValue, returnDFV = False):
         res = None
         """
         orange.GetBoth -          <type 'tuple'>                     ->    (<orange.Value 'Act'='3.44158792'>, <3.442: 1.000>)
@@ -210,11 +195,14 @@ class CvBoostClassifier(AZBaseClasses.AZClassifier):
         prediction = dataUtilities.CvMat2orangeResponse(out, self.classVar)
         # Calculate artificial probabilities - not returned by the OpenCV RF algorithm
         if self.classVar.varType == orange.VarTypes.Discrete:
-            if resultType != orange.GetValue:
                 #Need to make sure to return meanful probabilities to the cases where opencvRF does not support probabilities
                 # to be compatible with possible callers asking for probabilities. 
                 probabilities = self.__generateProbabilities(prediction)
                 self._isRealProb = False
+                probOf1 = probabilities[self.classVar.values[1]]
+                DFV = -(probOf1-0.5)
+                self._updateDFVExtremes(DFV)
+
         else:
             #On Regression models assume the DVF as the value predicted
             DFV = prediction
@@ -321,3 +309,31 @@ def CvBoostread(path, verbose = 0):
         if verbose > 0: print "ERROR: Could not read model from ", path
 
 
+
+
+
+
+
+if __name__ == "__main__":
+    trainData = dataUtilities.DataTable("../../tests/source/data/BinClass_No_metas_Test.tab")
+    learner = CvBoostLearner()
+    learner.priors = {"POS":0.7,  "NEG":0.3}
+    classifier = learner(trainData)
+    preds = {}
+    corrects = 0
+    for ex in trainData[0:10]:
+        pred = classifier(ex)
+        print pred," <- ",ex.getclass()
+        if pred.value not in preds:
+            preds[pred.value] = 1
+        else:
+            preds[pred.value] +=1
+        if pred == ex.getclass():
+            corrects +=1
+    print "Acc:",corrects/10.0
+    for p in preds:
+        print p,": ",preds[p]
+
+
+
+ 

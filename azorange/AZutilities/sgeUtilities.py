@@ -5,7 +5,7 @@ from glob import glob
 from shutil import copy
 
 
-def arrayJob(jobName = "AZOarray",jobNumber =1 ,jobParams = [], jobParamFile = "Params.pkl", jobQueue = "quick.q", jobScript = "", memSize = "150M"):   
+def arrayJob(jobName = "AZOarray",jobNumber =1 ,jobParams = [], jobParamFile = "Params.pkl", jobQueue = "quick.q", jobScript = "", memSize = "150M", environSource = os.path.join(os.environ["AZORANGEHOME"],"templateProfile.bash")):   
 
         runPath = miscUtilities.createScratchDir(desc ="optQsub"+jobName, baseDir = AZOC.NFS_SCRATCHDIR)
         cwd = os.getcwd()
@@ -19,16 +19,36 @@ def arrayJob(jobName = "AZOarray",jobNumber =1 ,jobParams = [], jobParamFile = "
         jobFile.write(jobScript)
         jobFile.close()
 
-        cmd = "echo python " + os.path.join(runPath, str(jobName) + ".py") + \
+        if environSource:
+            sgeRunFile = os.path.join(runPath, "sgeRun") 
+            envSetFile = open(sgeRunFile,"w")
+            envSetFile.write("#!/bin/sh\n\n")    
+            envSetFile.write("source " + environSource+"\n")    
+            envSetFile.write("python  " + os.path.join(runPath, str(jobName) + ".py")+"\n")    
+            envSetFile.close()
+            os.system("chmod a+x " + sgeRunFile)
+
+            cmd = "echo " + sgeRunFile + \
+              " | qsub -cwd -q " + str(jobQueue) + \
+              " -p -800 -t 1-" + str(jobNumber) + \
+              " -N " + str(jobName) + \
+              " -S /bin/sh -sync yes" + \
+              AZOC.SGE_QSUB_ARCH_OPTION_CURRENT + \
+              " -l mf=" + str(memSize) # specify shell /bin/sh so not to get warning: no access to tty in output file.
+        else:
+            cmd = "echo python " + os.path.join(runPath, str(jobName) + ".py") + \
               " | qsub -cwd -V -q " + str(jobQueue) + \
               " -p -800 -t 1-" + str(jobNumber) + \
               " -N " + str(jobName) + \
               " -S /bin/sh -sync yes" + \
               AZOC.SGE_QSUB_ARCH_OPTION_CURRENT + \
               " -l mf=" + str(memSize) # specify shell /bin/sh so not to get warning: no access to tty in output file.
+
+
         (status, output) = commands.getstatusoutput(cmd)
 
         # Check exit status of all our jobs
+        print "runDir: ",runPath
         if status != 0:
             print jobName + " failed! Code = " + str(status)
             print output
@@ -40,14 +60,15 @@ def arrayJob(jobName = "AZOarray",jobNumber =1 ,jobParams = [], jobParamFile = "
                 raise ValueError
 
         # Check if error files exist that are not empty.
-        for part in sorted(glob(os.path.join(runPath,jobName+".e*"))):
-            if os.path.getsize(part) != 0:
-                print jobName + " failed! file " + str(part)
-                raise ValueError
+        #   Pedro Almeida: We cannot relie on this since some warnings are writen to the error output...
+        #for part in sorted(glob(os.path.join(runPath,jobName+".e*"))):
+        #    if os.path.getsize(part) != 0:
+        #        print jobName + " failed! file " + str(part)
+        #        raise ValueError
 
         # Build result list from pickle objects
         resList = []
-        for part in sorted(glob(os.path.join(runPath,jobName+".o*"))):
+        for part in sorted(glob(os.path.join(runPath,"RES_out*.pkl"))):
             file = open(part,"r")
             resList.append(cPickle.load(file))
             file.close()
@@ -126,10 +147,11 @@ class Job:
             print self.output
             raise JobError
 
-        for part in sorted(glob(os.path.join(self.wd,self.name+".e*"))):
-            if os.path.getsize(part) != 0:
-                print self.name + " failed! file " + str(part)
-                raise JobError
+        #   Pedro Almeida: We cannot relie on this since some warnings are writen to the error output...
+        #for part in sorted(glob(os.path.join(self.wd,self.name+".e*"))):
+        #    if os.path.getsize(part) != 0:
+        #        print self.name + " failed! file " + str(part)
+        #        raise JobError
 
         if self.range:
             for line in self.output.split("\n"):
@@ -140,7 +162,7 @@ class Job:
 
         if self.action == "picklebuild":  # build return array from pickle objects in output file
                 resList = []
-                for part in sorted(glob(os.path.join(self.wd,self.name+".o*"))):
+                for part in sorted(glob(os.path.join(self.wd,"RES_out*.pkl"))):
                     file = open(part,"r")
                     resList.append(cPickle.load(file))
                     file.close()

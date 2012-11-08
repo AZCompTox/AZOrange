@@ -17,7 +17,7 @@ for ML in AZOC.MLMETHODS:
     exec("import "+AZOC.MLMETHODS[ML]["module"])
     MLMETHODS[ML] = eval(AZOC.MLMETHODS[ML]["module"]+"."+AZOC.MLMETHODS[ML]["object"])
 
-print "Available MLMETHODS:",[ml for ml in MLMETHODS]
+#print "Available MLMETHODS:",[ml for ml in MLMETHODS]
 
 def log(logFile, text):
         """Adds a new line (what's in text) to the logFile"""
@@ -40,7 +40,7 @@ def saveMLStatistics(savePath, MLStatistics, logFile=None):
             log(logFile, "MLStatistics saved to: "+savePath)
 
 
-def getMLStatistics(trainData, savePath = None, queueType = "NoSGE", verbose = 0, logFile = None, callBack = None):
+def getMLStatistics(trainData, mlList=[ml for ml in MLMETHODS if AZOC.MLMETHODS[ml]["useByDefault"]], savePath = None, queueType = "NoSGE", verbose = 0, logFile = None, callBack = None):
         """
         Loop over all MLMETHODS to get their statistics
         Write to disk the full MLStatistics including the consensus model:
@@ -49,10 +49,14 @@ def getMLStatistics(trainData, savePath = None, queueType = "NoSGE", verbose = 0
         log(logFile, "Running getMLStatistics...")
         MLStatistics = {}
         learners = {}
-        for ml in MLMETHODS:
+        smilesAttr = dataUtilities.getSMILESAttr(trainData) 
+        for ml in mlList:
             learner = MLMETHODS[ml](name = ml)
-            if not learner.isCompatible(trainData.domain.classVar):
-                print "Ignored learner ",ml," since it's not compatible with this class."
+            if not learner.isCompatible(trainData.domain.classVar) :
+                log(logFile, "Ignored learner "+str(ml)+" since it's not compatible with this class.")
+                continue
+            if learner.specialType == 1 and not smilesAttr:
+                log(logFile, "Ignored learner "+str(ml)+" since it's special and requires a SMILES attribute.")
                 continue
             learners[ml] = learner
         # Forced queueType to NoSGE so that appspack do not fload the cluster
@@ -122,6 +126,7 @@ def buildConsensus(trainData, learners, MLMethods, logFile = None):
             #    where CAavg_{POS} is the average of classification accuracies of all models predicting POS.
             CLASS0 = str(trainData.domain.classVar.values[0])
             CLASS1 = str(trainData.domain.classVar.values[1])
+            #exprTest0
             exprTest0 = "(0"
             for ml in MLMethods:
                 exprTest0 += "+( "+ml+" == "+CLASS0+" )*"+str(MLMethods[ml]["optAcc"])+" "
@@ -129,7 +134,15 @@ def buildConsensus(trainData, learners, MLMethods, logFile = None):
             for ml in MLMethods:
                 exprTest0 += ", "+ml+" == "+CLASS0+" "
             exprTest0 += "]),1)"
-            exprTest1 = exprTest0.replace(CLASS0,CLASS1)
+            # exprTest1
+            exprTest1 = "(0"
+            for ml in MLMethods:
+                exprTest1 += "+( "+ml+" == "+CLASS1+" )*"+str(MLMethods[ml]["optAcc"])+" "
+            exprTest1 += ")/IF0(sum([False"
+            for ml in MLMethods:
+                exprTest1 += ", "+ml+" == "+CLASS1+" "
+            exprTest1 += "]),1)"
+            # expression
             expression = [exprTest0+" >= "+exprTest1+" -> "+CLASS0," -> "+CLASS1]
         else:
             Q2sum = sum([MLMethods[ml]["optAcc"] for ml in MLMethods])
@@ -144,6 +157,17 @@ def buildConsensus(trainData, learners, MLMethods, logFile = None):
         
         learner = AZorngConsensus.ConsensusLearner(learners = consensusLearners, expression = expression)
         log(logFile, "  Training Consensus Learner")
+        smilesAttr = dataUtilities.getSMILESAttr(trainData)
+        if smilesAttr:
+            log(logFile,"Found SMILES attribute:"+smilesAttr)
+            if learner.specialType == 1:
+               trainData = dataUtilities.attributeSelectionData(trainData, [smilesAttr, trainData.domain.classVar.name])
+               log(logFile,"Selected attrs: "+str([attr.name for attr in trainData.domain]))
+            else:
+               trainData = dataUtilities.attributeDeselectionData(trainData, [smilesAttr])
+               log(logFile,"Selected attrs: "+str([attr.name for attr in trainData.domain[0:3]] + ["..."] +\
+                                              [attr.name for attr in trainData.domain[len(trainData.domain)-3:]]))
+
         return learner(trainData)
 
                     
@@ -155,11 +179,26 @@ def buildModel(trainData, MLMethod, queueType = "NoSGE", verbose = 0, logFile = 
         log(logFile, "Building and optimizing learner: "+MLMethod["MLMethod"]+"...")
         learners = {}
         MLMethods = {}
-        if "IndividualStatistics"  in MLMethod:                        #It is a consensus
+        if "IndividualStatistics"  in MLMethod:         #It is a consensus and will certaily not contain any 
+                                                        #special model as it was filtered in the getUnbiasedAcc
             for ML in MLMethod["IndividualStatistics"]:
                 MLMethods[ML] = copy.deepcopy(MLMethod["IndividualStatistics"][ML])
         else:
-            MLMethods[MLMethod["MLMethod"]] = MLMethod
+            ML = MLMethod["MLMethod"]
+            if MLMETHODS[ML](name = ML).specialType == 1:  # If is a special model and has a built-in optimizaer
+                log(logFile, "       This is a special model")
+                smilesAttr = dataUtilities.getSMILESAttr(trainData)
+                if smilesAttr:
+                    log(logFile,"Found SMILES attribute:"+smilesAttr)
+                    trainData = dataUtilities.attributeSelectionData(trainData, [smilesAttr, trainData.domain.classVar.name])
+                optInfo, SpecialModel = MLMETHODS[ML](name = ML).optimizePars(trainData, folds = 5)
+                return SpecialModel
+            else:
+                MLMethods[MLMethod["MLMethod"]] = MLMethod
+
+        smilesAttr = dataUtilities.getSMILESAttr(trainData)
+        if smilesAttr:
+            trainData = dataUtilities.attributeDeselectionData(trainData, [smilesAttr])
 
         # optimize all MLMethods
         for ML in MLMethods:
@@ -203,10 +242,10 @@ def buildModel(trainData, MLMethod, queueType = "NoSGE", verbose = 0, logFile = 
                 miscUtilities.removeDir(runPath)
         #Train the model
         if len(learners) == 1:
-            log(logFile, "  Building the learner:"+learners.keys()[0])
+            log(logFile, "  Building the model:"+learners.keys()[0])
             model = learners[learners.keys()[0]](trainData)
         elif len(learners) >= 1:
-            model = buildConsensus(trainData,learners,MLMethods)
+            model = buildConsensus(trainData,learners,MLMethods)  
         else:
             print "ERROR: No Learners were selected!"
             return None
@@ -214,7 +253,7 @@ def buildModel(trainData, MLMethod, queueType = "NoSGE", verbose = 0, logFile = 
         return model
 
 
-def getModel(trainData, savePath = None, queueType = "NoSGE", verbose = 0, getAllModels = False, callBack = None):
+def getModel(trainData, mlList=[ml for ml in MLMETHODS if AZOC.MLMETHODS[ml]["useByDefault"]], savePath = None, queueType = "NoSGE", verbose = 0, getAllModels = False, callBack = None):
         """
             Chooses the best model based on calculated MLStatistics
             trainData           Data for calculating the MLStatistics and finaly for training the selected model
@@ -233,7 +272,9 @@ def getModel(trainData, savePath = None, queueType = "NoSGE", verbose = 0, getAl
             file.close()
         else:
             logFile = None
-        MLStatistics = getMLStatistics(trainData, savePath, queueType = queueType, verbose = verbose, logFile = logFile, callBack = callBack)
+
+
+        MLStatistics = getMLStatistics(trainData, mlList, savePath, queueType = queueType, verbose = verbose, logFile = logFile, callBack = callBack)
         MLMethod = selectModel(MLStatistics, logFile = logFile)
         #Save again the MLStatistics to update the selected flag
         saveMLStatistics(savePath, MLStatistics, logFile) 
@@ -338,7 +379,7 @@ def createStatObj(results=None, exp_pred=None, nTrainCmpds=None, nTestCmpds=None
 
 
 
-def getStatistics(dataset, runningDir, resultsFile, queueType = "NoSGE", verbose = 0, getAllModels = False, callBack = None):
+def getStatistics(dataset, runningDir, resultsFile, mlList=[ml for ml in MLMETHODS if AZOC.MLMETHODS[ml]["useByDefault"]], queueType = "NoSGE", verbose = 0, getAllModels = False, callBack = None):
         """
                 runningDir           (An existing dir for creating one job dir per fold)
                     |
@@ -363,7 +404,7 @@ def getStatistics(dataset, runningDir, resultsFile, queueType = "NoSGE", verbose
         DataIdxs = dataUtilities.SeedDataSampler(dataset, AZOC.QSARNEXTFOLDS )
         #Check data in advance so that, by chance, it will not faill at the last fold!
         #for foldN in range(AZOC.QSARNEXTFOLDS):
-            #trainData = dataset.select(DataIdxs[foldN],negate=1)
+            #trainData = dataset.select(DataIdxs,foldN,negate=1)
             #checkTrainData(trainData)
 
         jobs = {}
@@ -379,7 +420,7 @@ def getStatistics(dataset, runningDir, resultsFile, queueType = "NoSGE", verbose
         for fold in range(AZOC.QSARNEXTFOLDS):
             job = str(fold)
             print "Starting job for fold ",job
-            trainData = dataset.select(DataIdxs[fold],negate=1)
+            trainData = dataset.select(DataIdxs,fold,negate=1)
             jobs[job] = {"job":job,"path":os.path.join(runningDir, "fold_"+job), "running":False, "failed":False, "finished":False}
 
             # Uncomment next 3 lines for running in finished jobs dirs
@@ -402,7 +443,7 @@ def getStatistics(dataset, runningDir, resultsFile, queueType = "NoSGE", verbose
             file_h.write("from AZutilities import competitiveWorkflow\n")
             file_h.write("data = dataUtilities.DataTable('"+os.path.join(jobs[job]["path"],"trainData.tab")+"')\n")
             file_h.write('os.system(\'echo "running" > '+os.path.join(jobs[job]["path"],"status")+' \')\n')
-            file_h.write("models = competitiveWorkflow.getModel(data, savePath = '"+os.path.join(jobs[job]["path"],"results.pkl")+"', queueType = '"+queueType+"', getAllModels = "+str(getAllModels)+")\n")
+            file_h.write("models = competitiveWorkflow.getModel(data, mlList="+str(mlList)+", savePath = '"+os.path.join(jobs[job]["path"],"results.pkl")+"', queueType = '"+queueType+"', getAllModels = "+str(getAllModels)+")\n")
             file_h.write("nModelsSaved = 0\n")
             file_h.write("for model in models:\n")
             file_h.write("    if not models[model] is None:\n")
@@ -544,7 +585,7 @@ def getStatistics(dataset, runningDir, resultsFile, queueType = "NoSGE", verbose
                     #load model
                     model = AZBaseClasses.modelRead(modelPath)
                     #Test the model
-                    testData = dataset.select(DataIdxs[int(job)])
+                    testData = dataset.select(DataIdxs,int(job))
                     nTrainEx[ml].append(model.NTrainEx)
                     nTestEx[ml].append(len(testData))
                     if foldStat[ml]["selected"]:
@@ -723,7 +764,7 @@ def isJobProgressingOK(job):
                 
 
 
-def competitiveWorkflow(data, modelSavePath = None, statisticsSavePath = None, runningDir = AZOC.NFS_SCRATCHDIR, queueType = "NoSGE", callBack = None):
+def competitiveWorkflow(data, mlList=[ml for ml in MLMETHODS if AZOC.MLMETHODS[ml]["useByDefault"]], modelSavePath = None, statisticsSavePath = None, runningDir = AZOC.NFS_SCRATCHDIR, queueType = "NoSGE", callBack = None):
     """
         modelSavePath and statisticsSavePath are going to be created and cannot exist
     """
@@ -731,8 +772,8 @@ def competitiveWorkflow(data, modelSavePath = None, statisticsSavePath = None, r
         print "ERROR: modelSavePath or statisticsSavePath already exists."
         return {}
     runPath = miscUtilities.createScratchDir(baseDir = os.path.realpath(runningDir), desc = "competitiveWorkflow")
-    statistics = getStatistics(data, runPath, os.path.join(runPath,"statistics.pkl"), queueType = queueType, getAllModels = False, callBack = callBack)
-    model = getModel(data, savePath = os.path.join(runPath,"modelStat.pkl"), queueType = queueType, callBack = callBack)
+    statistics = getStatistics(data, runPath, os.path.join(runPath,"statistics.pkl"), mlList, queueType = queueType, getAllModels = False, callBack = callBack)
+    model = getModel(data, mlList, savePath = os.path.join(runPath,"modelStat.pkl"), queueType = queueType, callBack = callBack)
     if model and len(model)>=1:
         if modelSavePath:
             model[model.keys()[0]].write(modelSavePath)
@@ -747,19 +788,27 @@ def competitiveWorkflow(data, modelSavePath = None, statisticsSavePath = None, r
 
 
 if __name__ == "__main__":
-        dataReg = orange.ExampleTable(os.path.realpath("./dataReg.tab"))
-        dataClass = orange.ExampleTable(os.path.realpath("./dataClass.tab"))       
+        #dataReg = orange.ExampleTable(os.path.join(AZOC.AZORANGEHOME,"tests/source/data/Reg_No_metas_Train.tab"))
+        #dataClass = orange.ExampleTable(os.path.join(AZOC.AZORANGEHOME,"tests/source/data/BinClass_No_metas_Train.tab"))       
+        dataClass = orange.ExampleTable(os.path.join(AZOC.AZORANGEHOME,"tests/source/data/trainClassWsmiles.tab"))       
 
-        res = competitiveWorkflow(dataClass, queueType = "batch.q")
-        print "Results :  ",res
-        res = competitiveWorkflow(dataReg,"./model", "./stat.pkl", queueType = "batch.q")
-        print "Results :  ",res
+        #res = competitiveWorkflow(dataClass, queueType = "batch.q")
+        #print "Results :  ",res
+        #res = competitiveWorkflow(dataReg,modelSavePath = "./model", statisticsSavePath="./stat.pkl", queueType = "batch.q")
+        #print "Results :  ",res
+        #sys.exit()
+
+
+        statPath = os.path.realpath("./stat.pkl")
+
+        statistics = getMLStatistics(dataClass, mlList= ['SignSVM', 'CvSVM', 'CvRF'], savePath = statPath, queueType = "batch.q", verbose = 0, logFile = None, callBack = None)
+        MLMethod = selectModel(statistics, logFile = None)
+        model = buildModel(dataClass, MLMethod, queueType = "batch.q", verbose = 0, logFile = None)
+        print "Statistics = ",statistics        
+        print model
+        model.write("./model.res")
         sys.exit()
 
-
-
-        statistics = getStatistics(data, os.path.realpath("./runningJobs1"), os.path.realpath("./result1.pkl"), getAllModels = False)
-        print "Statistics = ",statistics
 
         statistics = getStatistics(data, os.path.realpath("./runningJobs2"), os.path.realpath("./results2.pkl"), getAllModels = True)
         print "Statistics = ",statistics

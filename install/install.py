@@ -44,7 +44,7 @@ class Installer(object):
         #Sends the configuration used to the details only!
         self.printConfiguration(True)
         startInstallTime = time.time()
-    
+            
         # Check for some important requirements
         self.addLog("*Requirements and System Info")
         st,out = commands.getstatusoutput('python -c "import distutils.sysconfig; print distutils.sysconfig.get_python_inc()"; uname -a; lsb_release -a')
@@ -59,6 +59,10 @@ class Installer(object):
         #Checkout any 3rd party software to the proper locations
         if self.successInstall:
             self.checkoutFTM()
+        if self.successInstall:
+            self.checkoutStructClust()
+        if self.successInstall:
+            self.checkoutFMINER()
         if self.successInstall:
             self.checkOutOpenAZO()
         if self.successInstall:
@@ -480,7 +484,7 @@ application/xml=AZOrange.desktop;
             #Update the AZO source from GITHub
             os.chdir(self.trunkDir)
             if self.openInstallation:
-                self.addLog("*Using current files.")
+                self.addLog("*OpenAZOrange: Using current files.")
                 self.addLog("#trunk: "+self.trunkDir)
                 #self.__logAndExecute("git pull")
             else:
@@ -565,8 +569,94 @@ application/xml=AZOrange.desktop;
                 self.__logAndExecute("rm -rf " + jarFile)
                 self.__logAndExecute("wget " + URL )
         else:
-                self.addLog("*Using "+name+" in SVN Repo (Not implemented yet)")
+                self.addLog("*Using "+name+" in SVN Repo (Not implemented)")
 
+    def checkoutFMINER(self):
+        # Get the dependency Config
+        name = "fminer"
+        if name not in self.dependencies:
+            URL = None
+            REV = None
+            USE_INSTALLED = True
+        else:
+            depCfg = self.dependencies[name].split(",")
+            URL = depCfg[0]
+            if len(depCfg)<2 or depCfg[1] == "":
+                REV = "HEAD"
+            else:
+                REV = depCfg[1]
+            if len(depCfg)>=3 and depCfg[2] == "*":
+                USE_INSTALLED = True
+            else:
+                USE_INSTALLED = False
+
+        if not URL or USE_INSTALLED or self.repoInter == "no":
+           self.addLog("*Not downloading "+name)
+           return
+
+        self.__logAndExecute("rm -rf " + os.path.join(self.DepSrcDir,name))
+        os.chdir(self.DepSrcDir)
+        tarFile = os.path.split(URL)[-1].strip()
+        if self.openInstallation:
+                self.addLog("*Downloading "+name+" to trunk ("+URL+":"+REV+")")
+                self.__logAndExecute("git clone " + URL + " " + os.path.join(self.DepSrcDir,name))
+        else:
+                self.addLog("*Using "+name+" in SVN Repo (Not implemented)")
+                return
+        if not os.path.isdir(os.path.join(self.DepSrcDir,name,"libbbrc")):
+            self.addLog("#ERROR: Could not fet fminer source code.")
+            self.successInstall = False
+            return
+
+
+    def checkoutStructClust(self):
+        # Get the dependency Config
+        name = "clustering"
+        if name not in self.dependencies:
+            self.addLog("Name " + str(name) + " not in dependencies")
+            URL = None
+            REV = None
+            USE_INSTALLED = True
+        else:
+            depCfg = self.dependencies[name].split(",")
+            URL = depCfg[0]
+            self.addLog(URL)
+            if len(depCfg)<2 or depCfg[1] == "":
+                REV = "HEAD"
+            else:
+                REV = depCfg[1]
+            if len(depCfg)>=3 and depCfg[2] == "*":
+                USE_INSTALLED = True
+            else:
+                USE_INSTALLED = False
+
+        if not URL or USE_INSTALLED or self.repoInter == "no":
+           self.addLog("*Not downloading "+name)
+           return
+
+        self.__logAndExecute("rm -rf " + os.path.join(self.DepSrcDir,name))
+        os.chdir(self.DepSrcDir)
+        if self.openInstallation:
+                tarFile = "structuralClustering.tar.gz"
+                dwnldFile = os.path.split(URL)[-1].strip()
+                self.addLog("*Downloading "+name+" to trunk ("+URL+":"+REV+")")
+                self.__logAndExecute("rm -rf " + tarFile)
+                self.__logAndExecute("rm -rf " + dwnldFile)
+                self.__logAndExecute("wget " + URL )
+                self.__logAndExecute("mv "+dwnldFile+" "+tarFile)
+        else:
+                self.addLog("*Using "+name+" in SVN Repo")
+                tarFile = URL 
+        UnpackCmd = "tar "
+        if  tarFile[-6:] == "tar.gz":
+            UnpackCmd += "xfz "
+        elif tarFile[-6:] == "tar.bz2":
+            UnpackCmd += "xfj "
+        else:
+            self.addLog("#ERROR: Not a known tar file.")
+            self.successInstall = False
+            return
+        self.__logAndExecute(UnpackCmd + tarFile)
 
     def checkoutFTM(self):
         # Get the dependency Config
@@ -593,11 +683,14 @@ application/xml=AZOrange.desktop;
 
         self.__logAndExecute("rm -rf " + os.path.join(self.DepSrcDir,name))
         os.chdir(self.DepSrcDir)
-        tarFile = os.path.split(URL)[-1].strip()
+        tarFile = "ftm.tar.gz"
+        dwnldFile = os.path.split(URL)[-1].strip()
         if self.openInstallation:
                 self.addLog("*Downloading "+name+" to trunk ("+URL+":"+REV+")")
                 self.__logAndExecute("rm -rf " + tarFile)
+                self.__logAndExecute("rm -rf " + dwnldFile)
                 self.__logAndExecute("wget " + URL )
+                self.__logAndExecute("mv "+dwnldFile+" "+tarFile)
         else:
                 self.addLog("*Using "+name+" in SVN Repo (Not implemented yet)")
                 return
@@ -644,7 +737,7 @@ application/xml=AZOrange.desktop;
                 self.__logAndExecute("rm -rf " + tarFile)
                 self.__logAndExecute("wget " + URL )
         else:
-                self.addLog("*Using "+name+" in SVN Repo (Not implemented yet)")
+                self.addLog("*Using "+name+" in SVN Repo (Not implemented)")
                 return
         UnpackCmd = "tar "
         if  tarFile[-6:] == "tar.gz":
@@ -696,7 +789,7 @@ application/xml=AZOrange.desktop;
                 # Download the File 
                 self.__logAndExecute("wget " + URL + " -O " + tarFile)
         else:
-                self.addLog("*Using "+name+" in SVN Repo (Not implemented yet)")
+                self.addLog("*Using "+name+" in SVN Repo (Not implemented)")
         UnpackCmd = "tar "
         if  tarFile[-6:] == "tar.gz":
             UnpackCmd += "xfz "
@@ -738,53 +831,31 @@ application/xml=AZOrange.desktop;
            self.addLog("*Not downloading/unpacking orange")
            return 
 
-        #self.__logAndExecute("rm -rf " + os.path.join(self.trunkDir,"orange/*"))
-        #This command may have some failures, but it's no problem. We just want to delete if there is something to delete!
         self.__logAndExecute("mkdir -p " + os.path.join(self.trunkDir,"orange"))
-        if self.installType == "developer":
-            commands.getstatusoutput('find ' + os.path.join(self.trunkDir,"orange") + '| grep -v "\.svn" | xargs rm -f')
         self.__logAndExecute("rm -rf " + os.path.join(self.DepSrcDir,"orange"))
+        os.chdir(self.DepSrcDir)
         if self.openInstallation:
-                self.addLog("*Checking out from orange SVN to trunk ("+URL+":"+REV+")")
+                self.addLog("*Checking out from orange bitbucket to trunk ("+URL+":"+REV+")")
                 #os.chdir(os.path.join(self.trunkDir,"orange"))
-                self.__logAndExecute("mkdir -p " + os.path.join(self.DepSrcDir,"orange"))
-                os.chdir(os.path.join(self.DepSrcDir,"orange"))
-                self.__logAndExecute("svn export --force" + " -r " + REV + " " + os.path.join(URL,"add-ons") + " ./add-ons")
-                self.__logAndExecute("svn export --force" + " -r " + REV + " " + os.path.join(URL,"install-scripts/linux") + " ./install-scripts/linux")
-                self.__logAndExecute("svn export --force" + " -r " + REV + " " + os.path.join(URL,"source") + " ./source")
-                self.__logAndExecute("svn export --force" + " -r " + REV + " " + os.path.join(URL,"testing") + " ./testing")
-                self.__logAndExecute("svn export --force" + " -r " + REV + " " + os.path.join(URL,"orange") + " ./ --force")
+                self.__logAndExecute("hg clone " + URL + " ./orange")
+                os.chdir("orange")
+                self.__logAndExecute("hg update " + REV)
+                self.__logAndExecute("rm -rf .hg")
         else:
                 self.addLog("*Extracting orange from " + URL)
-                os.chdir(self.DepSrcDir)
                 self.__logAndExecute("tar xfz " + os.path.split(URL)[-1])
         os.chdir(self.DepSrcDir)
-        self.__logAndExecute('find '+os.path.join(self.DepSrcDir,"orange")+' -name ".svn" | xargs rm -Rf')
-        if self.installType == "developer":
-            self.__logAndExecute("cp -rf orange/* " + os.path.join(self.trunkDir,"orange/") )
-        else:
-            self.__logAndExecute("yes n | cp -R -i orange/* " + os.path.join(self.trunkDir,"orange/") )
 
         # Apply Patch
         self.addLog("#Applying Patch...")
         os.chdir(os.path.join(self.currentDir,"Patches"))
-        status,out = commands.getstatusoutput("./applyOrangePatch.sh %s" % (os.path.join(self.trunkDir,"orange")))
+        status,out = commands.getstatusoutput("./applyOrangePatch.sh %s" % (os.path.join(self.DepSrcDir,"orange")))
         if status != 0:
             self.addLog("#WARNING: Patch was not properly applied. It might be that it has been already applied.")
             self.addLog("#         Please check the next details.")
             self.addLog([0,out])
         else:
             self.addLog([status,out])
-        #Revert to the Orange GIT files for the developer version since they were removed previously and wre copied with -rf flaga
-        if self.installType == "developer":
-            os.chdir(os.path.join(self.trunkDir,"orange"))
-            self.addLog("#Reverting orange to Git version...")
-            self.__logAndExecute("git checkout -f ./")
-
-        if not self.openInstallation:
-            os.chdir(os.path.join(self.trunkDir,"orange"))
-            self.addLog("#Reverting orange to SVN version...")
-            self.__logAndExecute("svn revert -R ./*")
 
         os.chdir(self.currentDir)
 
@@ -1018,7 +1089,7 @@ application/xml=AZOrange.desktop;
         self.__logAndExecute('find ./ -name ".git" | xargs rm -Rf')
 
         #The orange core setup.py that is placed in orange/install-scripts/linux must be copied to orange
-        self.__logAndExecute("/bin/cp -f " + os.path.join(self.buildDir,"orange/install-scripts/linux/setup.py") + " " + os.path.join(self.buildDir,"orange"))
+        #self.__logAndExecute("/bin/cp -f " + os.path.join(self.buildDir,"orange/install-scripts/linux/setup.py") + " " + os.path.join(self.buildDir,"orange"))
 
         #In buildDir> python setup.py build ...
         self.addLog("#Compiling by running setup.py")
@@ -1176,7 +1247,7 @@ application/xml=AZOrange.desktop;
 
         #Scripts to run upon setting the envitonment or loading the respective module
         strFile += "\n# Startup scripts\n"
-        strFile += os.path.join("$AZORANGEHOME", "azorange", "bin", "clean.sh") + "\n"
+        strFile += "# " + os.path.join("$AZORANGEHOME", "azorange", "bin", "clean.sh") + "\n"
         #strFile += os.path.join(self.AZOrangeInstallDir, "azorange/bin/ssh_testcfg.sh")  # This will be uncommented when using local mpi for the optimizer
 
         #Write the template file to current dir

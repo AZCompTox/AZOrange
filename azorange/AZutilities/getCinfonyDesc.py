@@ -45,18 +45,17 @@ if "webel" in toolkitsEnabled:
         print "WARNING: webel is not available for cinfony."
         toolkitsEnabled.remove("webel")
 
-obabelTag = "obabel."
-rdkTag = "rdk."
-cdkTag = "cdk."
-webelTag = "webel."
+toolkitsDef = {
+        "rdk":          {"tag" : "rdk."},
+        "obabel":       {"tag" : "obabel."},
+        "webel":        {"tag" : "webel."},
+        "cdk":          {"tag" : "cdk."},
+}
 
 
 def getSMILESAttr(data):
     # Check that the data contains a SMILES attribute
-    smilesName = None
-    for attr in [a.name for a in  data.domain] + [a.name for a in data.domain.getmetas().values()]:
-        if attr.lower() in [a.lower() for a in AZOC.SMILESNAMES]:
-            smilesName = attr
+    smilesName = dataUtilities.getSMILESAttr(data)
     if not smilesName:
         print "Warning: The data set does not contain any known smiles attribute!"
         print "         Expected SMILES attribute names: "+str(AZOC.SMILESNAMES)
@@ -76,17 +75,17 @@ def getObabelDescResult(data,descList):
     smilesName = getSMILESAttr(data)
     if not smilesName: return None
 
-    myDescList = [desc.replace(obabelTag,"") for desc in descList if obabelTag in desc]
+    myDescList = [desc.replace(toolkitsDef["obabel"]["tag"],"") for desc in descList if toolkitsDef["obabel"]["tag"] in desc]
     if not myDescList: return None
        
-    resData = orange.ExampleTable(orange.Domain([data.domain[smilesName]] + [orange.FloatVariable(obabelTag+name) for name in myDescList],0))
+    resData = orange.ExampleTable(orange.Domain([data.domain[smilesName]] + [orange.FloatVariable(toolkitsDef["obabel"]["tag"]+name) for name in myDescList],0))
     for ex in data:
         newEx = orange.Example(resData.domain)
         newEx[smilesName] = ex[smilesName]
         mol = obabel.readstring("smi", str(newEx[smilesName].value)) 
         moldesc = mol.calcdesc(myDescList)
         for desc in myDescList:
-            newEx[obabelTag+desc] = moldesc[desc]
+            newEx[toolkitsDef["obabel"]["tag"]+desc] = moldesc[desc]
         resData.append(newEx)
     return resData
    
@@ -101,7 +100,7 @@ def getWebelDescResult(data,descList):
     smilesName = getSMILESAttr(data)
     if not smilesName: return None
 
-    myDescList = [desc.replace(webelTag,"") for desc in descList if webelTag in desc]
+    myDescList = [desc.replace(toolkitsDef["webel"]["tag"],"") for desc in descList if toolkitsDef["webel"]["tag"] in desc]
     if not myDescList: return None
 
     #Compute the results
@@ -117,13 +116,13 @@ def getWebelDescResult(data,descList):
             if desc not in varNames:
                 varNames.append(desc)
     # Generate the dataset assuring the same order of examples
-    resData = orange.ExampleTable(orange.Domain([data.domain[smilesName]] + [orange.FloatVariable(webelTag+name) for name in varNames],0))
+    resData = orange.ExampleTable(orange.Domain([data.domain[smilesName]] + [orange.FloatVariable(toolkitsDef["webel"]["tag"]+name) for name in varNames],0))
     for ex in data:
         newEx = orange.Example(resData.domain)
         smile = str(ex[smilesName].value)
         newEx[smilesName] =smile
         for desc in results[smile]:
-            newEx[webelTag+desc] = results[smile][desc]
+            newEx[toolkitsDef["webel"]["tag"]+desc] = results[smile][desc]
         resData.append(newEx)
 
     return resData
@@ -140,7 +139,7 @@ def getCdkDescResult(data,descList):
     smilesName = getSMILESAttr(data)
     if not smilesName: return None
 
-    myDescList = [desc.replace(cdkTag,"") for desc in descList if cdkTag in desc]
+    myDescList = [desc.replace(toolkitsDef["cdk"]["tag"],"") for desc in descList if toolkitsDef["cdk"]["tag"] in desc]
     if not myDescList: return None
     #Compute the results
     results = {}
@@ -155,13 +154,13 @@ def getCdkDescResult(data,descList):
             if desc not in varNames:
                 varNames.append(desc)
     # Generate the dataset assuring the same order of examples
-    resData = orange.ExampleTable(orange.Domain([data.domain[smilesName]] + [orange.FloatVariable(cdkTag+name) for name in varNames],0))
+    resData = orange.ExampleTable(orange.Domain([data.domain[smilesName]] + [orange.FloatVariable(toolkitsDef["cdk"]["tag"]+name) for name in varNames],0))
     for ex in data:
         newEx = orange.Example(resData.domain)
         smile = str(ex[smilesName].value)
         newEx[smilesName] =smile
         for desc in results[smile]:
-            newEx[cdkTag+desc] = results[smile][desc]
+            newEx[toolkitsDef["cdk"]["tag"]+desc] = results[smile][desc]
         resData.append(newEx)
 
     return resData
@@ -179,12 +178,22 @@ def getRdkDescResult(data,descList, radius = 1):
     smilesName = getSMILESAttr(data) 
     if not smilesName: return None
     
-    myDescList = [desc.replace(rdkTag,"") for desc in descList if rdkTag in desc]
+    FP_desc = []
+    myDescList = [desc.replace(toolkitsDef["rdk"]["tag"],"") for desc in descList if toolkitsDef["rdk"]["tag"] in desc]
     if not myDescList: return None
 
     if "FingerPrints" in myDescList:
         FingerPrints = True
         myDescList.remove("FingerPrints")
+    if sum(["FP_" in fp for fp in myDescList]):
+        tmpDescList = []
+        FingerPrints = True
+        for attr in myDescList:
+            if "FP_" not in attr:
+                tmpDescList.append(attr)
+            else:
+                FP_desc.append(attr)
+        myDescList = tmpDescList
 
     #Get fingerprints in advance
     fingerPrintsAttrs = []
@@ -203,10 +212,15 @@ def getRdkDescResult(data,descList, radius = 1):
             fingerPrintsRes[mol] = {}
             for ID in resDict:
                 count = resDict[ID]
-                name = rdkTag+"FP_"+str(ID)
+                name = toolkitsDef["rdk"]["tag"]+"FP_"+str(ID)
                 if name not in [x.name for x in fingerPrintsAttrs]:
                     fingerPrintsAttrs.append(orange.FloatVariable(name))
                 fingerPrintsRes[mol][name] = float(count)
+        #Add FP attributes even if there was no reference to it. Models will need it as FP not present, i.e. equal 0.0 !
+        for fpDesc in FP_desc:
+            name = toolkitsDef["rdk"]["tag"]+fpDesc
+            if name not in [str(attr.name) for attr in fingerPrintsAttrs]:
+                fingerPrintsAttrs.append(orange.FloatVariable(name))
     #Test attrTypes
     for ex in data:
         try:
@@ -219,14 +233,14 @@ def getRdkDescResult(data,descList, radius = 1):
              moldesc = mol.calcdesc(myDescList)
              for desc in myDescList:
 		 if type(moldesc[desc]) == str:
-                     attrObj.append(orange.StringVariable(rdkTag + desc))
+                     attrObj.append(orange.StringVariable(toolkitsDef["rdk"]["tag"] + desc))
                  else:
-                     attrObj.append(orange.FloatVariable(rdkTag + desc))
+                     attrObj.append(orange.FloatVariable(toolkitsDef["rdk"]["tag"] + desc))
 
              #Process fingerprints
              if FingerPrints:
-                 for desc in fingerPrintsAttrs:
-                     attrObj.append(orange.FloatVariable(desc.name))
+                 for desc in [fp for fp in fingerPrintsAttrs if fp.name not in attrObj]:
+                     attrObj.append(desc)#orange.FloatVariable(desc.name))
              break
         except:
             continue    
@@ -235,7 +249,7 @@ def getRdkDescResult(data,descList, radius = 1):
     resData = orange.ExampleTable(orange.Domain([data.domain[smilesName]] + attrObj,0))     
     badCompounds = 0
     for ex in data:
-        newEx = orange.Example(resData.domain)
+        newEx = orange.Example(resData.domain)   # All attrs: ?, ?, ?, ..., ?
         newEx[smilesName] = ex[smilesName]
         molStr = str(newEx[smilesName].value)
         # OBS - add something keeping count on the number of unused smiles
@@ -247,7 +261,7 @@ def getRdkDescResult(data,descList, radius = 1):
              #mol = rdk.readstring("smi", molStr)
              moldesc = mol.calcdesc(myDescList)
              for desc in myDescList:
-                 newEx[rdkTag+desc] = moldesc[desc]
+                 newEx[toolkitsDef["rdk"]["tag"]+desc] = moldesc[desc]
  
              #Process fingerprints
              if FingerPrints:
@@ -290,16 +304,12 @@ def getCinfonyDescResults(origData,descList,radius=1):
     # Calculate available descriptors
     res = getObabelDescResult(data,descList)
     if res: results.append(res)
-
     res = getRdkDescResult(data,descList,radius)
     if res: results.append(res)
-
     res = getWebelDescResult(data,descList)
     if res: results.append(res)
-
     res = getCdkDescResult(data,descList)
     if res: results.append(res)
-
     # Convert any nan to a '?'
     if len(results):
         for res in results:
@@ -314,7 +324,6 @@ def getCinfonyDescResults(origData,descList,radius=1):
     if len(results) > 1:
         for res in results[1:]:
             resData = dataUtilities.horizontalMerge(resData, res, smilesName, smilesName)
-        
     data = dataUtilities.horizontalMerge(data, resData, smilesName, smilesName)
     # Revert the SMILES back to it's original state
     for ex in data:
@@ -330,26 +339,26 @@ def getAvailableDescs(descSet = "all"):
     
     #Get descs from obabel
     if "obabel" in toolkitsEnabled:
-        obabelDescs = [obabelTag+desc for desc in obabel.descs]
+        obabelDescs = [toolkitsDef["obabel"]["tag"]+desc for desc in obabel.descs]
     else:
         obabelDescs = []
     #Get descs from RDKit
     if "rdk" in toolkitsEnabled:
-        rdkDescs = [rdkTag+desc for desc in rdk.descs] + [rdkTag+"FingerPrints"]
-        rdkFP = [rdkTag+"FingerPrints"]
-        rdkPhysChem = [rdkTag+desc for desc in rdk.descs]
+        rdkDescs = [toolkitsDef["rdk"]["tag"]+desc for desc in rdk.descs] + [toolkitsDef["rdk"]["tag"]+"FingerPrints"]
+        rdkFP = [toolkitsDef["rdk"]["tag"]+"FingerPrints"]
+        rdkPhysChem = [toolkitsDef["rdk"]["tag"]+desc for desc in rdk.descs]
     else:
         rdkDescs = [] 
     #Get cdk from CDK
     if "cdk" in toolkitsEnabled:
-        cdkDescs = [cdkTag+desc for desc in cdk.descs]
+        cdkDescs = [toolkitsDef["cdk"]["tag"]+desc for desc in cdk.descs]
     else:
         cdkDescs = []
 
     #Get descs from webel     
     try:
         if "webel" in toolkitsEnabled: 
-            webelDescs = [webelTag+desc for desc in webel.getdescs()]
+            webelDescs = [toolkitsDef["webel"]["tag"]+desc for desc in webel.getdescs()]
         else:
             webelDescs = []
     except:

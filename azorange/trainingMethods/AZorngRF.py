@@ -15,7 +15,7 @@ from opencv import ml
 from opencv import cv
 
 ##ecPA
-import orange
+import orange,Orange
 
 from AZutilities import dataUtilities
 from AZutilities import miscUtilities
@@ -336,7 +336,7 @@ class RFClassifier(AZBaseClasses.AZClassifier):
                 return self.varImportance[var.name] 
 
 
-    def __call__(self, origExample = None, resultType = orange.GetValue, returnDFV = False):
+    def _singlePredict(self, origExample = None, resultType = orange.GetValue, returnDFV = False):
         """
         orange.GetBoth -          <type 'tuple'>                     ->    (<orange.Value 'Act'='3.44158792'>, <3.442: 1.000>)
         orange.GetValue -         <type 'orange.Value'>              ->    <orange.Value 'Act'='3.44158792'>
@@ -411,8 +411,12 @@ class RFClassifier(AZBaseClasses.AZClassifier):
                         DFV = self.convert2DFV(self.classifier.predict_prob(exampleCvMat,missing_mask))
                 else:
                     #On Regression models assume the DVF as the value predicted
-                    DFV = prediction
-                    self._updateDFVExtremes(DFV)
+                    if not prediction.isSpecial():
+                        DFV = float(prediction.value)
+                        self._updateDFVExtremes(DFV)
+                    y_hat = self.classVar(prediction)
+                    probabilities = Orange.statistics.distribution.Continuous(self.classVar)
+                    probabilities[y_hat] = 1.0
                 del exampleCvMat
                 del inExample
             else:

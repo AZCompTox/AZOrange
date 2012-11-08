@@ -13,7 +13,6 @@ sudo apt-get install -y libatlas-base-dev
 sudo apt-get install -y python-numpy
 sudo apt-get install -y python-sip
 sudo apt-get install -y python-networkx 
-#Using qt Ver. 4.6.2
 sudo apt-get install -y python-qt4
 sudo apt-get install -y python-dev
 sudo apt-get install -y liblapack-dev
@@ -21,11 +20,14 @@ sudo apt-get install -y python-qwt5-qt4
 sudo apt-get install -y git-core gitosis
 sudo apt-get install -y subversion
 sudo apt-get install -y git-core gitosis
+sudo apt-get install -y mercurial
+# hg clone ssh://hg@bitbucket.org/biolab/orange
+# hg clone https://bitbucket.org/biolab/orange
 
+# ==========  Needed by cinfony ===========
 #Openbabel
 sudo apt-get install -y openbabel
 sudo apt-get install -y python-openbabel
-
 #RDKit
 sudo apt-get install -y cmake
 sudo apt-get install -y bison
@@ -33,9 +35,14 @@ sudo apt-get install -y flex
 sudo apt-get install -y sqlite3
 sudo apt-get install -y libsqlite3-dev
 sudo apt-get install -y libboost-all-dev
-
 #CDK
 sudo apt-get install -y python-jpype
+# ==========  Needed by cinfony ===========
+
+#fminer
+sudo apt-get install -y libopenbabel-dev
+sudo apt-get install -y libgsl0-dev
+
 
 echo "Updating db..."
 sudo updatedb
