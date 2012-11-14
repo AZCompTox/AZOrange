@@ -723,7 +723,7 @@ class Installer:
  
         
     def installSignSVM(self):
-        if "signSVM" not in self.dependencies or self.openInstall::
+        if "signSVM" not in self.dependencies or self.openInstall:
             print "Not using the local signSVM"
             return
         if not self.dependencies["signSVM"]:
