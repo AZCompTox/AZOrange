@@ -723,10 +723,10 @@ class Installer:
  
         
     def installSignSVM(self):
-        if "signSVM" not in self.dependencies or self.openInstall:
+        if "signsvm" not in self.dependencies or self.openInstall:
             print "Not using the local signSVM"
             return
-        if not self.dependencies["signSVM"]:
+        if not self.dependencies["signsvm"]:
             print "Not reinstalled"
             return
         # Cp the binaries to the install bin dir
