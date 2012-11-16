@@ -34,6 +34,7 @@ except:
 
 from AZutilities import dataUtilities
 from AZutilities import miscUtilities
+from AZutilities import descUtilities
 from trainingMethods import AZBaseClasses
 
 from rdkit import Chem
@@ -132,7 +133,7 @@ class AZOrangePredictor:
             for attr in attributes:
                 descList.append(attr.name)
         #    Determine Signature and non-Signature descriptor names
-        cinfonyDesc, clabDesc, signatureHeight, bbrcDesc, signDesc = self.getDescTypes(descList)
+        cinfonyDesc, clabDesc, signatureHeight, bbrcDesc, signDesc = descUtilities.getDescTypes(descList)
         #    Signatures
         if "sign" in DescMethodsAvailable and signatureHeight:
             print "Calculating signatures..."
@@ -265,35 +266,6 @@ class AZOrangePredictor:
         self.smilesData = dataUtilities.DataTable(myDomain, [[smiles]])
 
 
-    def getDescTypes(self, descList):
-        clabDescList = []
-        cinfonyDescList = []
-        bbrcDesc = []
-        signDesc = []
-        signatureHeight = None
-        cinfonyDescs = getCinfonyDesc.getAvailableDescs()
-        cinfonyTags = [tk["tag"] for tk in getCinfonyDesc.toolkitsDef.values()]
-        for desc in descList: 
-            # Cinfony
-            if desc in cinfonyDescs or sum([tag in desc for tag in cinfonyTags]):
-                cinfonyDescList.append(desc)
-            # None signature CLab
-            elif "clab" in DescMethodsAvailable and string.find(desc, "[") != 0:
-                if desc == "SMILES" or desc == "ID":
-                    print "Warning"
-                    print "The model was built with SMILES or IDs!!"
-                else:
-                    clabDescList.append(desc)
-            # BBRCDesc
-            elif "bbrc" in DescMethodsAvailable and desc[0] == "[" and desc[1] == "#" and "&" in desc:
-                bbrcDesc.append(desc)
-            # Signature descriptor by exclusion
-            elif "sign" in DescMethodsAvailable:  # else!!
-                newSignatureHeight = getSignatures.getSignatureHeight(desc)
-                signDesc.append(desc) 
-                if newSignatureHeight > signatureHeight: signatureHeight = newSignatureHeight
-        return cinfonyDescList, clabDescList, signatureHeight, bbrcDesc, signDesc
-
 
     def getDescriptors(self, smiles):
         self.getSmilesData(smiles)
@@ -311,7 +283,7 @@ class AZOrangePredictor:
                 traceLog = "Model Location:"+str(self.modelLocation)+"\n"
                 nBadEx = 0        
                 # Determine Signature and non-Signature descriptor names
-                cinfonyDesc, clabDesc, signatureHeight, bbrcDesc, signDesc = self.getDescTypes(descList)
+                cinfonyDesc, clabDesc, signatureHeight, bbrcDesc, signDesc = descUtilities.getDescTypes(descList)
                 # Signatures
                 if "sign" in DescMethodsAvailable and signatureHeight:
                     traceLog += "Calculating signatures...\n"
@@ -416,7 +388,7 @@ class AZOrangePredictor:
         """
         atomColor = None
        
-        cinfonyDesc, clabDesc, signatureHeight, bbrcDesc, signDesc = self.getDescTypes([attr.name for attr in self.model.domain.attributes])
+        cinfonyDesc, clabDesc, signatureHeight, bbrcDesc, signDesc = descUtilities.getDescTypes([attr.name for attr in self.model.domain.attributes])
 
         orderedDesc_sign =    {'Continuous': {'DOWN': [], 'UP': []}, 
                                'Discrete': {'DOWN': [], 'UP': []}}
@@ -480,12 +452,16 @@ class AZOrangePredictor:
             upAbs = 0.0
         if upAbs > downAbs:
             MSDsign = orderedDesc_sign["Continuous"]["UP"][0][0][0]
+            MSDdv = orderedDesc_sign["Continuous"]["UP"][0][0][1]
         elif downAbs > upAbs:
             MSDsign = orderedDesc_sign["Continuous"]["DOWN"][0][0][0]
+            MSDdv = orderedDesc_sign["Continuous"]["DOWN"][0][0][1]
         elif downAbs != 0.0:
             MSDsign = orderedDesc_sign["Continuous"]["DOWN"][0][0][0]
+            MSDdv = orderedDesc_sign["Continuous"]["DOWN"][0][0][1]
         else:
             MSDsign = None
+            MSDsign = 0
 
         #Process non-signatures
         if self.model.classVar.varType == orange.VarTypes.Discrete and outComeIsRev:
@@ -522,6 +498,7 @@ class AZOrangePredictor:
         if not MSDsign:
             res["imgPath"] = ""
             res["signature"] = ""
+            res["signarure_deriv_val"] = 0
             return
         if resultsPath and os.path.isdir(resultsPath):
             imgPath = os.path.join(resultsPath,"significance_"+str(idx)+"_"+str(time.time()).replace(".",'')+".png")
@@ -531,6 +508,7 @@ class AZOrangePredictor:
         res["imgPath"] , res["molStr"], res["atoms"], res["color"] = self.createSignImg(smi,MSDsign,atomColor,imgPath)
         #Fix the significant descriptors so that it is a formated string
         res["signature"] = MSDsign
+        res["signarure_deriv_val"] = MSDdv 
 
 
 
@@ -543,12 +521,13 @@ class AZOrangePredictor:
         
         descsUP = ["",""]
         descsDOWN = ["",""]
-        res =  { "signature"     : "",       
-                 "imgPath"       : "",     
-                 "non-signature" : "",
-                 "molStr"        : "", 
-                 "atoms"         : [],
-                 "color"         : []}
+        res =  { "signature"          : "",       
+                 "signarure_deriv_val": 0 ,
+                 "imgPath"            : "",     
+                 "non-signature"      : "",
+                 "molStr"             : "", 
+                 "atoms"              : [],
+                 "color"              : []}
         # Calculate the signatures id SMILES
         CLabDesc,signList = self.getClabDescSignList(smi)
         if hasattr(self.model,'getTopImportantVars') and self.exToPred:

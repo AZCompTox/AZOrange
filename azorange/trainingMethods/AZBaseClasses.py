@@ -6,6 +6,7 @@ import imp
 import orange
 import types,os
 from AZutilities import dataUtilities
+from AZutilities import descUtilities
 import pickle
 import copy
 #from trainingMethods import AZorngConsensus 
@@ -436,6 +437,9 @@ class AZClassifier(object):
             if nVars is 0, it returns all variables ordered by importance
             if c_step (costume step) is passed, force it instead of hardcoded
         """
+        #    Determine Signature and non-Signature descriptor names
+        cinfonyDesc, clabDesc, signatureHeight, bbrcDesc, signDesc = descUtilities.getDescTypes([attr.name for attr in self.domain.attributes])
+
         varGrad = []
 
         ExFix = dataUtilities.ExFix()
@@ -472,11 +476,15 @@ class AZClassifier(object):
                 #  used for testing significance: comment next and uncomment next-next
                 raise(Exception("This mode should only be used for debugging! Comment this line if debugging."))
                 #coef_step = float(c_step)
-            #   dev - Standard deviation:  http://orange.biolab.si/doc/reference/Orange.statistics.basic/
-            if "dev" in self.basicStat[var]:
-                step = self.basicStat[var]["dev"] * coef_step
+
+            if var in signDesc:
+                step = 1           # Set step to one in case od signatures
             else:
-                return ([gradRef, gradRef], 0) 
+                #   dev - Standard deviation:  http://orange.biolab.si/doc/reference/Orange.statistics.basic/
+                if "dev" in self.basicStat[var]:
+                    step = self.basicStat[var]["dev"] * coef_step
+                else:
+                    return ([gradRef, gradRef], 0) 
 
             if ex[var].isSpecial():
                 return ([gradRef, gradRef], step)
@@ -523,7 +531,11 @@ class AZClassifier(object):
             # Print used for algorithm final confirmation
             #print "  %s  " % (str(grad[1])),
 
-            if abs(grad[0]) > eps: # only consider attributes with derivative greatest than epsilon
+            if attr.name in signDesc:
+                actualEps = 0
+            else:
+                actualEps = eps
+            if abs(grad[0]) > actualEps: # only consider attributes with derivative greatest than epsilon
                 #                  f'(x)                  x             f(a) 
                 #                derivative value     direction      f(a) farest away from f(x) only setted for classification
                 varGrad.append( (grad[0],             attr.name,     grad[1]) )
