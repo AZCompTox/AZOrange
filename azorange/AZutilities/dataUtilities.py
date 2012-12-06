@@ -185,7 +185,6 @@ def getPossibleMetas(data, checkIndividuality = False):
 def loadTXT(dataPath):
     """Robust method for loading txt files into orange ExampleTable object
      WARNING:
-          This method does not assure the same order of the examples in the table compared with the file!!!
           All attributes will be considered strings
     """
     if not os.path.isfile(dataPath):
