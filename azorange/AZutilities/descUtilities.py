@@ -1,4 +1,6 @@
 import string
+import AZOrangeConfig as AZOC
+
 
 DescMethodsAvailable = []
 
@@ -37,6 +39,8 @@ def getDescTypes(descList):
         cinfonyDescs = getCinfonyDesc.getAvailableDescs()
         cinfonyTags = [tk["tag"] for tk in getCinfonyDesc.toolkitsDef.values()]
         for desc in descList:
+            if desc in AZOC.SMILESNAMES:
+                continue 
             # Cinfony
             if desc in cinfonyDescs or sum([tag in desc for tag in cinfonyTags]):
                 cinfonyDescList.append(desc)
