@@ -1589,7 +1589,9 @@ def attributeDeselectionData(data, attributeList):
     return scaledData
 
 def attributeSelectionData(data, attributeList):
-    """The returned data set will have the attributes in the same order as attribute list."""
+    """The returned data set will have the attributes in the same order as attribute list.
+       The Class var will always be selected!
+    """
 
     newDomainList = []
     for idx in range(len(data.domain.attributes)):
