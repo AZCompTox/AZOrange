@@ -397,7 +397,9 @@ class AZOrangePredictor:
             and for Regression:
                         self.significanceThreshold for which a GOOD prediction is BELOW the threshold
         
-        orderedDesc = {"height":pred[1]["height"],  # only on specialType=1
+        orderedDesc = { "molStr":''...,                                                              # only on specialType=1
+                        "height":2,                                                                  # only on specialType=1
+                        "atoms":[1,2,3],                                                             # only on specialType=1
                           'Continuous': {
                           'DOWN':[ [('[F]', -0.008885456983609475), ... ('[F]',-0,0001)],
                                  [('[O3]', -0.007324209285573964)],
@@ -416,13 +418,25 @@ class AZOrangePredictor:
         orderedDesc_nonSign = {'Continuous': {'DOWN': [], 'UP': []},
                                'Discrete': {'DOWN': [], 'UP': []}}
         
-        if  self.model.specialType == 1:
-            print "This is a special model nr 1: It calculates itself the Significant Signatures"
+
         if hasattr(self.model, "specialType") and self.model.specialType == 1:
+            print "This is a special model nr 1: It calculates itself the Significant Signatures"
+            endHeight = orderedDesc["height"]
+            try:
+                molStr = orderedDesc["molStr"]
+                atoms = eval(orderedDesc["atoms"])
+            except:
+                atoms = None
+                molStr = None
+            if not molStr or type(atoms)!=list or not atoms:
+                atoms = None
+                molStr = None
+
             orderedDesc_sign = orderedDesc
-            endHeight = orderedDesc_sign["height"]        
         else:
+            atoms = None
             endHeight = None
+            molStr = None
             cinfonyDesc, clabDesc, signatureHeight, bbrcDesc, signDesc = descUtilities.getDescTypes([attr.name for attr in self.model.domain.attributes])
             for attrType in ['Continuous', 'Discrete']:
                 for vector in ['UP','DOWN']:
@@ -533,8 +547,15 @@ class AZOrangePredictor:
             imgPath = os.path.join(resultsPath,"significance_"+str(idx)+"_"+str(time.time()).replace(".",'')+".png")
         else:
             imgPath = ""
-        # Call the method to create the image/mol specifying the color of the hilighted atoms   
-        res["imgPath"] , res["molStr"], res["atoms"], res["color"] = self.createSignImg(smi,MSDsign,atomColor,imgPath,endHeight)
+        # Call the method to create the image/mol specifying the color of the hilighted atoms  
+        if molStr and atoms and not imgPath:
+            print "Using molStr and atoms from Learner Significant Signature"
+            res["imgPath"]=''
+            res["molStr"] = molStr
+            res["atoms"] = atoms
+            res["color"] = [atomColor]*len(atoms)
+        else:
+            res["imgPath"] , res["molStr"], res["atoms"], res["color"] = self.createSignImg(smi,MSDsign,atomColor,imgPath,endHeight)
         #Fix the significant descriptors so that it is a formated string
         res["signature"] = MSDsign
         res["signarure_deriv_val"] = MSDdv 
