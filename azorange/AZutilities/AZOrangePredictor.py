@@ -160,6 +160,28 @@ class AZOrangePredictor:
         file.close()
 
         return (clabDesc,cmpdSignList[0],molFile,molStr)
+
+
+    def getNNAtoms(self, molStr, cAtoms, hight):
+        atoms = copy.deepcopy(cAtoms)
+        # create an RDKit mol
+        mol = Chem.MolFromMolBlock(molStr,True,False)
+        if not mol:
+            print "Could not create mol for compound "
+            return []
+        adj = GetAdjacencyMatrix(mol)
+        visitedAtoms = []
+        for n in range(hight):
+          for atom in copy.deepcopy(atoms):
+             if atom not in visitedAtoms:
+                lNN = findNeighbors(atom,adj)
+                visitedAtoms.append(atom)
+                for lnn in lNN:
+                    if lnn not in atoms:
+                        atoms.append(lnn)
+        atoms.sort()
+        return atoms
+
         
 
     def createSignImg(self,smi,signature,atomColor,imgPath, endHeight = None):
@@ -548,12 +570,13 @@ class AZOrangePredictor:
         else:
             imgPath = ""
         # Call the method to create the image/mol specifying the color of the hilighted atoms  
-        if molStr and atoms and not imgPath:
+        if molStr and atoms and endHeight is not None and not imgPath:
             print "Using molStr and atoms from Learner Significant Signature"
             res["imgPath"]=''
             res["molStr"] = molStr
-            res["atoms"] = atoms
-            res["color"] = [atomColor]*len(atoms)
+            allAtoms = self.getNNAtoms(molStr, atoms, endHeight)
+            res["atoms"] = allAtoms
+            res["color"] = [atomColor]*len(allAtoms)
         else:
             res["imgPath"] , res["molStr"], res["atoms"], res["color"] = self.createSignImg(smi,MSDsign,atomColor,imgPath,endHeight)
         #Fix the significant descriptors so that it is a formated string
