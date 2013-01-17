@@ -438,6 +438,7 @@ class AZClassifier(object):
             if c_step (costume step) is passed, force it instead of hardcoded
         """
         #    Determine Signature and non-Signature descriptor names
+        #signDesc = []   # This Disable distinction from signatures ans non-signatures
         cinfonyDesc, clabDesc, signatureHeight, bbrcDesc, signDesc = descUtilities.getDescTypes([attr.name for attr in self.domain.attributes])
 
         varGrad = []
