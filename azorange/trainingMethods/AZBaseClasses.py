@@ -519,7 +519,7 @@ class AZClassifier(object):
              else:
                  return 0
 
-        eps = 10E-5   # epsilon: amplitude of derivatives that will be considered 0. Attributes with derivative amplitude less than epsilon will not be considered.
+        eps = 1E-5   # epsilon: amplitude of derivatives that will be considered 0. Attributes with derivative amplitude less than epsilon will not be considered.
         # Print used for algorithm final confirmation
         #print "  %s  " % (str(gradRef)),
 
