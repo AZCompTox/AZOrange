@@ -65,6 +65,11 @@ class AZOrangePredictor:
     significanceThreshold = None # to be used in regression models
     predictionOutcomes =  None   # to be used in Classification: [PosGradComponent, NegGradComponent]
 
+
+    def NNsearch(_self, _smi):
+        pass
+
+
     def getDef(self, section, option=None):
         """
                 If Option is None, it will return True or False depending on the section being present or not.
