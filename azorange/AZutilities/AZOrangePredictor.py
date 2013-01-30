@@ -512,23 +512,74 @@ class AZOrangePredictor:
             else:
                 atomColor = 'r'
         #Process Signatures
-        if len(orderedDesc_sign["Continuous"]["DOWN"]):
-            downAbs = abs(orderedDesc_sign["Continuous"]["DOWN"][0][0][1])
-        else:       
+        # OBS Hard coded for signatures 0 to 1.  
+        smilesData = self.getAZOdata(smi)
+        dataSign, cmpdSignDict, cmpdSignList, sdfStr  = getSignatures.getSignatures(smilesData, 0, 1, returnAtomID = True, useClabSmiles = False)
+        # If signSVM model already returning one sign as the most significant
+        if not (hasattr(self.model, "specialType") and self.model.specialType == 1):
             downAbs = 0.0
-        if len(orderedDesc_sign["Continuous"]["UP"]):
-            upAbs = abs(orderedDesc_sign["Continuous"]["UP"][0][0][1])
-        else:
+            rankIdxDown = 0
+            elemIdxDown = 0
+            if len(orderedDesc_sign["Continuous"]["DOWN"]):
+                for rankIdx in range(len(orderedDesc_sign["Continuous"]["DOWN"])):
+                    if downAbs != 0.0:
+                        break
+                    for elemIdx in range(len(orderedDesc_sign["Continuous"]["DOWN"][rankIdx])):
+                        # Test that the signature exists in the molecule
+                        if orderedDesc_sign["Continuous"]["DOWN"][rankIdx][elemIdx][0] in cmpdSignDict[0].keys():
+                            downAbs = abs(orderedDesc_sign["Continuous"]["DOWN"][rankIdx][elemIdx][1])
+                            rankIdxDown = rankIdx
+                            elemIdxDown = elemIdx
+                            break
+        else: 
+            if len(orderedDesc_sign["Continuous"]["DOWN"]):
+                downAbs = abs(orderedDesc_sign["Continuous"]["DOWN"][0][0][1])
+            else:
+                downAbs = 0.0
+                        
+        # If signSVM model already returning one sign as the most significant
+        if not (hasattr(self.model, "specialType") and self.model.specialType == 1):
             upAbs = 0.0
+            rankIdxUp = 0
+            elemIdxUp = 0
+            if len(orderedDesc_sign["Continuous"]["UP"]):
+                for rankIdx in range(len(orderedDesc_sign["Continuous"]["UP"])):
+                    if upAbs != 0.0:
+                        break
+                    for elemIdx in range(len(orderedDesc_sign["Continuous"]["UP"][rankIdx])):
+                        # Test that the signature exists in the molecule
+                        if orderedDesc_sign["Continuous"]["UP"][rankIdx][elemIdx][0] in cmpdSignDict[0].keys():
+                            upAbs = abs(orderedDesc_sign["Continuous"]["UP"][rankIdx][elemIdx][1])
+                            rankIdxUp = rankIdx
+                            elemIdxUp = elemIdx
+                            break
+        else: 
+            if len(orderedDesc_sign["Continuous"]["UP"]):
+                upAbs = abs(orderedDesc_sign["Continuous"]["UP"][0][0][1])
+            else:
+                upAbs = 0.0
+
         if upAbs > downAbs:
-            MSDsign = orderedDesc_sign["Continuous"]["UP"][0][0][0]
-            MSDdv = orderedDesc_sign["Continuous"]["UP"][0][0][1]
+            if not (hasattr(self.model, "specialType") and self.model.specialType == 1):
+                MSDsign = orderedDesc_sign["Continuous"]["UP"][rankIdxUp][elemIdxUp][0]
+                MSDdv = orderedDesc_sign["Continuous"]["UP"][rankIdxUp][elemIdxUp][1]
+            else:
+                MSDsign = orderedDesc_sign["Continuous"]["UP"][0][0][0]
+                MSDdv = orderedDesc_sign["Continuous"]["UP"][0][0][1]
         elif downAbs > upAbs:
-            MSDsign = orderedDesc_sign["Continuous"]["DOWN"][0][0][0]
-            MSDdv = orderedDesc_sign["Continuous"]["DOWN"][0][0][1]
+            if not (hasattr(self.model, "specialType") and self.model.specialType == 1):
+                MSDsign = orderedDesc_sign["Continuous"]["DOWN"][rankIdxDown][elemIdxDown][0]
+                MSDdv = orderedDesc_sign["Continuous"]["DOWN"][rankIdxDown][elemIdxDown][1]
+            else:
+                MSDsign = orderedDesc_sign["Continuous"]["DOWN"][0][0][0]
+                MSDdv = orderedDesc_sign["Continuous"]["DOWN"][0][0][1]
         elif downAbs != 0.0:
-            MSDsign = orderedDesc_sign["Continuous"]["DOWN"][0][0][0]
-            MSDdv = orderedDesc_sign["Continuous"]["DOWN"][0][0][1]
+            if not (hasattr(self.model, "specialType") and self.model.specialType == 1):
+                MSDsign = orderedDesc_sign["Continuous"]["DOWN"][rankIdxDown][elemIdxDown][0]
+                MSDdv = orderedDesc_sign["Continuous"]["DOWN"][rankIdxDown][elemIdxDown][1]
+            else:
+                MSDsign = orderedDesc_sign["Continuous"]["DOWN"][0][0][0]
+                MSDdv = orderedDesc_sign["Continuous"]["DOWN"][0][0][1]
         else:
             MSDsign = None
             MSDsign = 0
@@ -588,6 +639,15 @@ class AZOrangePredictor:
         res["signature"] = MSDsign
         res["signarure_deriv_val"] = MSDdv 
 
+
+    def getAZOdata(self, smi):
+        """
+        Create an orange data set with a smiles attribute
+        """
+        smilesAttr = orange.StringVariable("SMILES")
+        smilesDomain = orange.Domain(smilesAttr, 0)
+        smilesData = dataUtilities.DataTable(smilesDomain, [[smi]])
+        return smilesData
 
 
     def getSDs(self, smi, prediction, resultsPath = "", idx = 0, c_step = None):
