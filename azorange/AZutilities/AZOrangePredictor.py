@@ -410,7 +410,7 @@ class AZOrangePredictor:
 
         return prediction
 
-    def processSignificance(self, smi, prediction, orderedDesc, res, resultsPath, idx = 0):
+    def processSignificance(self, smi, prediction, orderedDesc, res, resultsPath, idx = 0, topN = 1):
         """descs* = [(1.3, ["LogP"]), (0.2, ["[So2]", ...]), ...]
            res =  { "signature"     : "",       
                     "imgPath"       : "",      for placing the results 
@@ -483,7 +483,7 @@ class AZOrangePredictor:
                                 orderedDesc_nonSign[attrType][vector][-1].append(attr)
 
 
-        #Process color toi use if highlight is used
+        #Process color to use if highlight is used
         outComeIsRev = None
         if self.model.classVar.varType == orange.VarTypes.Discrete:
             if self.predictionOutcomes is None:
@@ -593,22 +593,35 @@ class AZOrangePredictor:
             DOWN = "DOWN"
         #Process DiscreteAttrs
         MSDnonSign = ""
-        if len(orderedDesc_nonSign["Discrete"][DOWN]): 
-            MSDnonSign += string.join(["Change "+x[0] for x in orderedDesc_nonSign["Discrete"][DOWN][0]],'\n')+'\n'
-        #Process Continuous attributes 
-        if len(orderedDesc_nonSign["Continuous"][DOWN]):
-            downAbs = abs(orderedDesc_nonSign["Continuous"][DOWN][0][0][1])
-        else:
-            downAbs = 0.0
-        if len(orderedDesc_nonSign["Continuous"][UP]):
-            upAbs = abs(orderedDesc_nonSign["Continuous"][UP][0][0][1])
-        else:
-            upAbs = 0.0
+        nD_DOWN = len(orderedDesc_nonSign["Discrete"][DOWN])
+        if nD_DOWN: 
+            for n in range(min(topN,nD_DOWN)):
+                if topN > 1:
+                    MSDnonSign += str(n+1)+": "
+                MSDnonSign += string.join(["Change "+x[0] for x in orderedDesc_nonSign["Discrete"][DOWN][n]],'\n')+'\n'
 
-        if orderedDesc_nonSign["Continuous"][UP] and upAbs >= downAbs:
-            MSDnonSign += string.join(["Decrease "+x[0] for x in orderedDesc_nonSign["Continuous"][UP][0]],'\n')+'\n'
-        if orderedDesc_nonSign["Continuous"][DOWN] and downAbs >= upAbs:
-            MSDnonSign += string.join(["Increase "+x[0] for x in orderedDesc_nonSign["Continuous"][DOWN][0]],'\n')+'\n'
+        #Process Continuous attributes 
+        for n in range(topN):
+                if topN > 1:
+                    order = str(n+1)+": "
+                else:
+                    order = ""
+                if len(orderedDesc_nonSign["Continuous"][DOWN]):
+                    downAbs = abs(orderedDesc_nonSign["Continuous"][DOWN][0][0][1])
+                else:
+                    downAbs = 0.0
+                if len(orderedDesc_nonSign["Continuous"][UP]):
+                    upAbs = abs(orderedDesc_nonSign["Continuous"][UP][0][0][1])
+                else:
+                    upAbs = 0.0
+
+                if orderedDesc_nonSign["Continuous"][UP] and upAbs >= downAbs:
+                    TOPmsd = orderedDesc_nonSign["Continuous"][UP].pop(0)
+                    MSDnonSign += order + string.join(["Decrease "+x[0] for x in TOPmsd],'\n')+'\n'
+                if orderedDesc_nonSign["Continuous"][DOWN] and downAbs >= upAbs:
+                    TOPmsd = orderedDesc_nonSign["Continuous"][DOWN].pop(0)
+                    MSDnonSign += order + string.join(["Increase "+x[0] for x in TOPmsd],'\n')+'\n'
+
         
         res["non-signature"] = MSDnonSign
 
@@ -650,7 +663,7 @@ class AZOrangePredictor:
         return smilesData
 
 
-    def getSDs(self, smi, prediction, resultsPath = "", idx = 0, c_step = None):
+    def getSDs(self, smi, prediction, resultsPath = "", idx = 0, topN=1, c_step = None):
         # descs will  have a list containg the first most significant non-signature descriptor, 
         #   and the first most significant signatures descriptor in the respective order. Ex:
         #               ["LogP","[So2]"]
@@ -677,7 +690,7 @@ class AZOrangePredictor:
             # or None
             # or     {'Discrete': [], 'Continuous': []}
             if orderedDesc and "NA" not in orderedDesc:
-                self.processSignificance(smi, prediction, orderedDesc, res, resultsPath, idx = idx)
+                self.processSignificance(smi, prediction, orderedDesc, res, resultsPath, idx = idx, topN=topN)
             else:
                 print "Model does not have the information needed to compute the Significance"
 
