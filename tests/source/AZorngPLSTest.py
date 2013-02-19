@@ -302,7 +302,7 @@ class PLSClassifierTest(AZorngTestUtil.AZorngTestUtil):
         """Test the handling of SaveModel for Data with Meta Atributes
         """
         expected_AccWMetaAfter  = [0.433333333333, 0.766666666667, 0.366666666667, 0.6, 0.5] #Ver 0.3 - Artifact: The extra values can be expected on other Systems:[AZInHouse, Ubuntu10.04, Ubuntu10.10, Ubuntu10.10] 
-        expected_AccNoMetaAfter = [0.545454545455, 0.533333333333, 0.442424242424, 0.551515151515, 0.454545454545, 0.490909090909] #Ver 0.3 - Artifact: The extra values can be expected on other Systems: [AZInHouse, Ubuntu10.04, Ubuntu10.10, Ubuntu10.10, Ubuntu11.04 64 bits] 
+        expected_AccNoMetaAfter = [0.545454545455, 0.533333333333, 0.442424242424, 0.551515151515, 0.454545454545, 0.490909090909, 0.469696969697] #Ver 0.3 - Artifact: The extra values can be expected on other Systems: [AZInHouse, Ubuntu10.04, Ubuntu10.10, Ubuntu10.10, Ubuntu11.04 64 bits] 
         
         #Test the save of a model created from a train data with meta attributes
         self.assert_(len(self.WMetaTest.domain.getmetas())>=1,"The dataset WMetaTest should have Meta Attributes")

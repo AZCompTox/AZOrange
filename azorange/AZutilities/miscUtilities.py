@@ -18,6 +18,14 @@ version = 2
 verbose = 0
 ##scPA
 
+def drawSMILES(smiles,imgPath):
+    from AZutilities import evalUtilities
+    mol = evalUtilities.Chem.MolFromSmiles(smiles)
+    # save the respective imgPath...  
+    evalUtilities.Draw.MolToImageFile(mol,imgPath,size=(300, 300), kekulize=True, wedgeBonds=True)
+    return mol
+
+
 def unescape(text):
     def fixup(m):
         text = m.group(0)

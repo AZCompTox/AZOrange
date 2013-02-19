@@ -181,6 +181,26 @@ def getPossibleMetas(data, checkIndividuality = False):
                 possMeta.append(attr.name)
     return possMeta               
 
+
+def loadTXT(dataPath):
+    """Robust method for loading txt files into orange ExampleTable object
+     WARNING:
+          All attributes will be considered strings
+    """
+    if not os.path.isfile(dataPath):
+        return None
+    fh = open(dataPath)
+    lines = fh.readlines()
+    fh.close()
+
+    domain = orange.Domain([orange.StringVariable(attr) for attr in lines[0].strip('\n').split('\t')])
+    dataTable = DataTable(domain)
+    for line in lines[1:]:
+         dataTable.append(line.strip('\n').split('\t'))
+    return dataTable
+
+
+
 class DataTable(orange.ExampleTable):
     """DataTable(filename[, classLess=False, noMeta=True, removeDuplicatedVars=False] | domain[, examples] | examples)"""
     def __new__(cls, *argTuple, **kwds):
@@ -1589,7 +1609,9 @@ def attributeDeselectionData(data, attributeList):
     return scaledData
 
 def attributeSelectionData(data, attributeList):
-    """The returned data set will have the attributes in the same order as attribute list."""
+    """The returned data set will have the attributes in the same order as attribute list.
+       The Class var will always be selected!
+    """
 
     newDomainList = []
     for idx in range(len(data.domain.attributes)):

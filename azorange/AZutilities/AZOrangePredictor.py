@@ -34,6 +34,7 @@ except:
 
 from AZutilities import dataUtilities
 from AZutilities import miscUtilities
+from AZutilities import descUtilities
 from trainingMethods import AZBaseClasses
 
 from rdkit import Chem
@@ -63,6 +64,11 @@ class AZOrangePredictor:
 
     significanceThreshold = None # to be used in regression models
     predictionOutcomes =  None   # to be used in Classification: [PosGradComponent, NegGradComponent]
+
+
+    def NNsearch(_self, _smi):
+        pass
+
 
     def getDef(self, section, option=None):
         """
@@ -132,7 +138,7 @@ class AZOrangePredictor:
             for attr in attributes:
                 descList.append(attr.name)
         #    Determine Signature and non-Signature descriptor names
-        cinfonyDesc, clabDesc, signatureHeight, bbrcDesc, signDesc = self.getDescTypes(descList)
+        cinfonyDesc, clabDesc, signatureHeight, bbrcDesc, signDesc = descUtilities.getDescTypes(descList)
         #    Signatures
         if "sign" in DescMethodsAvailable and signatureHeight:
             print "Calculating signatures..."
@@ -159,15 +165,58 @@ class AZOrangePredictor:
         file.close()
 
         return (clabDesc,cmpdSignList[0],molFile,molStr)
+
+
+    def getNNAtoms(self, molStr, cAtoms, hight):
+        atoms = copy.deepcopy(cAtoms)
+        # create an RDKit mol
+        mol = Chem.MolFromMolBlock(molStr,True,False)
+        if not mol:
+            print "Could not create mol for compound "
+            return []
+        adj = GetAdjacencyMatrix(mol)
+        visitedAtoms = []
+        for n in range(hight):
+          for atom in copy.deepcopy(atoms):
+             if atom not in visitedAtoms:
+                lNN = findNeighbors(atom,adj)
+                visitedAtoms.append(atom)
+                for lnn in lNN:
+                    if lnn not in atoms:
+                        atoms.append(lnn)
+        atoms.sort()
+        return atoms
+
         
 
-    def createSignImg(self,smi,signature,atomColor,imgPath):
+    def createSignImg(self,smi,signature,atomColor,imgPath, endHeight = None):
         colors = []
         print "Creating signature image..."
         if not signature or not atomColor or not smi:
             print "Missing inputs:",str([smi,signature,atomColor])
             return "","",[], []
-        CLabDesc,cmpdSignList, tmpFile, molStr  =  self.getClabDescSignList(smi, getMolFile=True)
+        if hasattr(self.model, "specialType") and self.model.specialType == 1:
+            # Create an Orange ExampleTable with a smiles attribute
+            smilesAttr = orange.EnumVariable("SMILEStoPred", values = [smi])
+            myDomain = orange.Domain([smilesAttr], 0)
+            smilesData = dataUtilities.DataTable(myDomain, [[smi]])
+            preCalcData = None
+            startHeight = 0
+            dataSign,cmpdSignDict, cmpdSignList, sdfStr  = getSignatures.getSignatures(smilesData, startHeight, endHeight, preCalcData, returnAtomID=True)
+            cmpdSignList = cmpdSignList[0]
+            CLabDesc = []
+            # create a mol file
+            tmpFile = miscUtilities.generateUniqueFile(desc="NN", ext = "mol")
+            file= open(tmpFile,"w")
+            molStr=""
+            for line in sdfStr[0]:
+                if "$$$$" in line:
+                    break
+                molStr += line
+                file.write(line)
+            file.close()
+        else: 
+            CLabDesc,cmpdSignList, tmpFile, molStr  =  self.getClabDescSignList(smi, getMolFile=True)
         if not cmpdSignList or not tmpFile:
             print "Couldn't get the cmpd list or the mol file"
             return "","",[], []
@@ -265,35 +314,6 @@ class AZOrangePredictor:
         self.smilesData = dataUtilities.DataTable(myDomain, [[smiles]])
 
 
-    def getDescTypes(self, descList):
-        clabDescList = []
-        cinfonyDescList = []
-        bbrcDesc = []
-        signDesc = []
-        signatureHeight = None
-        cinfonyDescs = getCinfonyDesc.getAvailableDescs()
-        cinfonyTags = [tk["tag"] for tk in getCinfonyDesc.toolkitsDef.values()]
-        for desc in descList: 
-            # Cinfony
-            if desc in cinfonyDescs or sum([tag in desc for tag in cinfonyTags]):
-                cinfonyDescList.append(desc)
-            # None signature CLab
-            elif "clab" in DescMethodsAvailable and string.find(desc, "[") != 0:
-                if desc == "SMILES" or desc == "ID":
-                    print "Warning"
-                    print "The model was built with SMILES or IDs!!"
-                else:
-                    clabDescList.append(desc)
-            # BBRCDesc
-            elif "bbrc" in DescMethodsAvailable and desc[0] == "[" and desc[1] == "#" and "&" in desc:
-                bbrcDesc.append(desc)
-            # Signature descriptor by exclusion
-            elif "sign" in DescMethodsAvailable:  # else!!
-                newSignatureHeight = getSignatures.getSignatureHeight(desc)
-                signDesc.append(desc) 
-                if newSignatureHeight > signatureHeight: signatureHeight = newSignatureHeight
-        return cinfonyDescList, clabDescList, signatureHeight, bbrcDesc, signDesc
-
 
     def getDescriptors(self, smiles):
         self.getSmilesData(smiles)
@@ -311,7 +331,7 @@ class AZOrangePredictor:
                 traceLog = "Model Location:"+str(self.modelLocation)+"\n"
                 nBadEx = 0        
                 # Determine Signature and non-Signature descriptor names
-                cinfonyDesc, clabDesc, signatureHeight, bbrcDesc, signDesc = self.getDescTypes(descList)
+                cinfonyDesc, clabDesc, signatureHeight, bbrcDesc, signDesc = descUtilities.getDescTypes(descList)
                 # Signatures
                 if "sign" in DescMethodsAvailable and signatureHeight:
                     traceLog += "Calculating signatures...\n"
@@ -390,7 +410,7 @@ class AZOrangePredictor:
 
         return prediction
 
-    def processSignificance(self, smi, prediction, orderedDesc, res, resultsPath, idx = 0):
+    def processSignificance(self, smi, prediction, orderedDesc, res, resultsPath, idx = 0, topN = 1):
         """descs* = [(1.3, ["LogP"]), (0.2, ["[So2]", ...]), ...]
            res =  { "signature"     : "",       
                     "imgPath"       : "",      for placing the results 
@@ -404,7 +424,10 @@ class AZOrangePredictor:
             and for Regression:
                         self.significanceThreshold for which a GOOD prediction is BELOW the threshold
         
-        orderedDesc = {'Continuous': {
+        orderedDesc = { "molStr":''...,                                                              # only on specialType=1
+                        "height":2,                                                                  # only on specialType=1
+                        "atoms":[1,2,3],                                                             # only on specialType=1
+                          'Continuous': {
                           'DOWN':[ [('[F]', -0.008885456983609475), ... ('[F]',-0,0001)],
                                  [('[O3]', -0.007324209285573964)],
                                  [('[C3]([C3][C3])', -0.0047175657931883405)],
@@ -415,33 +438,52 @@ class AZOrangePredictor:
  
         """
         atomColor = None
-       
-        cinfonyDesc, clabDesc, signatureHeight, bbrcDesc, signDesc = self.getDescTypes([attr.name for attr in self.model.domain.attributes])
-
-        orderedDesc_sign =    {'Continuous': {'DOWN': [], 'UP': []}, 
+      
+        orderedDesc_sign =    {'Continuous': {'DOWN': [], 'UP': []},
                                'Discrete': {'DOWN': [], 'UP': []}}
 
         orderedDesc_nonSign = {'Continuous': {'DOWN': [], 'UP': []},
                                'Discrete': {'DOWN': [], 'UP': []}}
-        for attrType in ['Continuous', 'Discrete']:
-            for vector in ['UP','DOWN']:
-                for ord in range(len(orderedDesc[attrType][vector])):
-                    signEmpty=True
-                    nonSignEmpty=True
-                    for attr in orderedDesc[attrType][vector][ord]:
-                        if attr[0] in signDesc:
-                            if signEmpty:
-                                signEmpty = False
-                                orderedDesc_sign[attrType][vector].append([])
-                            orderedDesc_sign[attrType][vector][-1].append(attr)
-                        else:
-                            if nonSignEmpty:
-                                nonSignEmpty = False
-                                orderedDesc_nonSign[attrType][vector].append([])
-                            orderedDesc_nonSign[attrType][vector][-1].append(attr)
+        
+
+        if hasattr(self.model, "specialType") and self.model.specialType == 1:
+            print "This is a special model nr 1: It calculates itself the Significant Signatures"
+            endHeight = orderedDesc["height"]
+            try:
+                molStr = orderedDesc["molStr"]
+                atoms = eval(orderedDesc["atoms"])
+            except:
+                atoms = None
+                molStr = None
+            if not molStr or type(atoms)!=list or not atoms:
+                atoms = None
+                molStr = None
+
+            orderedDesc_sign = orderedDesc
+        else:
+            atoms = None
+            endHeight = None
+            molStr = None
+            cinfonyDesc, clabDesc, signatureHeight, bbrcDesc, signDesc = descUtilities.getDescTypes([attr.name for attr in self.model.domain.attributes])
+            for attrType in ['Continuous', 'Discrete']:
+                for vector in ['UP','DOWN']:
+                    for ord in range(len(orderedDesc[attrType][vector])):
+                        signEmpty=True
+                        nonSignEmpty=True
+                        for attr in orderedDesc[attrType][vector][ord]:
+                            if attr[0] in signDesc:
+                                if signEmpty:
+                                    signEmpty = False
+                                    orderedDesc_sign[attrType][vector].append([])
+                                orderedDesc_sign[attrType][vector][-1].append(attr)
+                            else:
+                                if nonSignEmpty:
+                                    nonSignEmpty = False
+                                    orderedDesc_nonSign[attrType][vector].append([])
+                                orderedDesc_nonSign[attrType][vector][-1].append(attr)
 
 
-        #Process color toi use if highlight is used
+        #Process color to use if highlight is used
         outComeIsRev = None
         if self.model.classVar.varType == orange.VarTypes.Discrete:
             if self.predictionOutcomes is None:
@@ -470,22 +512,77 @@ class AZOrangePredictor:
             else:
                 atomColor = 'r'
         #Process Signatures
-        if len(orderedDesc_sign["Continuous"]["DOWN"]):
-            downAbs = abs(orderedDesc_sign["Continuous"]["DOWN"][0][0][1])
-        else:       
+        # OBS Hard coded for signatures 0 to 1.  
+        smilesData = self.getAZOdata(smi)
+        dataSign, cmpdSignDict, cmpdSignList, sdfStr  = getSignatures.getSignatures(smilesData, 0, 1, returnAtomID = True, useClabSmiles = False)
+        # If signSVM model already returning one sign as the most significant
+        if not (hasattr(self.model, "specialType") and self.model.specialType == 1):
             downAbs = 0.0
-        if len(orderedDesc_sign["Continuous"]["UP"]):
-            upAbs = abs(orderedDesc_sign["Continuous"]["UP"][0][0][1])
-        else:
+            rankIdxDown = 0
+            elemIdxDown = 0
+            if len(orderedDesc_sign["Continuous"]["DOWN"]):
+                for rankIdx in range(len(orderedDesc_sign["Continuous"]["DOWN"])):
+                    if downAbs != 0.0:
+                        break
+                    for elemIdx in range(len(orderedDesc_sign["Continuous"]["DOWN"][rankIdx])):
+                        # Test that the signature exists in the molecule
+                        if orderedDesc_sign["Continuous"]["DOWN"][rankIdx][elemIdx][0] in cmpdSignDict[0].keys():
+                            downAbs = abs(orderedDesc_sign["Continuous"]["DOWN"][rankIdx][elemIdx][1])
+                            rankIdxDown = rankIdx
+                            elemIdxDown = elemIdx
+                            break
+        else: 
+            if len(orderedDesc_sign["Continuous"]["DOWN"]):
+                downAbs = abs(orderedDesc_sign["Continuous"]["DOWN"][0][0][1])
+            else:
+                downAbs = 0.0
+                        
+        # If signSVM model already returning one sign as the most significant
+        if not (hasattr(self.model, "specialType") and self.model.specialType == 1):
             upAbs = 0.0
+            rankIdxUp = 0
+            elemIdxUp = 0
+            if len(orderedDesc_sign["Continuous"]["UP"]):
+                for rankIdx in range(len(orderedDesc_sign["Continuous"]["UP"])):
+                    if upAbs != 0.0:
+                        break
+                    for elemIdx in range(len(orderedDesc_sign["Continuous"]["UP"][rankIdx])):
+                        # Test that the signature exists in the molecule
+                        if orderedDesc_sign["Continuous"]["UP"][rankIdx][elemIdx][0] in cmpdSignDict[0].keys():
+                            upAbs = abs(orderedDesc_sign["Continuous"]["UP"][rankIdx][elemIdx][1])
+                            rankIdxUp = rankIdx
+                            elemIdxUp = elemIdx
+                            break
+        else: 
+            if len(orderedDesc_sign["Continuous"]["UP"]):
+                upAbs = abs(orderedDesc_sign["Continuous"]["UP"][0][0][1])
+            else:
+                upAbs = 0.0
+
         if upAbs > downAbs:
-            MSDsign = orderedDesc_sign["Continuous"]["UP"][0][0][0]
+            if not (hasattr(self.model, "specialType") and self.model.specialType == 1):
+                MSDsign = orderedDesc_sign["Continuous"]["UP"][rankIdxUp][elemIdxUp][0]
+                MSDdv = orderedDesc_sign["Continuous"]["UP"][rankIdxUp][elemIdxUp][1]
+            else:
+                MSDsign = orderedDesc_sign["Continuous"]["UP"][0][0][0]
+                MSDdv = orderedDesc_sign["Continuous"]["UP"][0][0][1]
         elif downAbs > upAbs:
-            MSDsign = orderedDesc_sign["Continuous"]["DOWN"][0][0][0]
+            if not (hasattr(self.model, "specialType") and self.model.specialType == 1):
+                MSDsign = orderedDesc_sign["Continuous"]["DOWN"][rankIdxDown][elemIdxDown][0]
+                MSDdv = orderedDesc_sign["Continuous"]["DOWN"][rankIdxDown][elemIdxDown][1]
+            else:
+                MSDsign = orderedDesc_sign["Continuous"]["DOWN"][0][0][0]
+                MSDdv = orderedDesc_sign["Continuous"]["DOWN"][0][0][1]
         elif downAbs != 0.0:
-            MSDsign = orderedDesc_sign["Continuous"]["DOWN"][0][0][0]
+            if not (hasattr(self.model, "specialType") and self.model.specialType == 1):
+                MSDsign = orderedDesc_sign["Continuous"]["DOWN"][rankIdxDown][elemIdxDown][0]
+                MSDdv = orderedDesc_sign["Continuous"]["DOWN"][rankIdxDown][elemIdxDown][1]
+            else:
+                MSDsign = orderedDesc_sign["Continuous"]["DOWN"][0][0][0]
+                MSDdv = orderedDesc_sign["Continuous"]["DOWN"][0][0][1]
         else:
             MSDsign = None
+            MSDsign = 0
 
         #Process non-signatures
         if self.model.classVar.varType == orange.VarTypes.Discrete and outComeIsRev:
@@ -496,22 +593,35 @@ class AZOrangePredictor:
             DOWN = "DOWN"
         #Process DiscreteAttrs
         MSDnonSign = ""
-        if len(orderedDesc_nonSign["Discrete"][DOWN]): 
-            MSDnonSign += string.join(["Change "+x[0] for x in orderedDesc_nonSign["Discrete"][DOWN][0]],'\n')+'\n'
-        #Process Continuous attributes 
-        if len(orderedDesc_nonSign["Continuous"][DOWN]):
-            downAbs = abs(orderedDesc_nonSign["Continuous"][DOWN][0][0][1])
-        else:
-            downAbs = 0.0
-        if len(orderedDesc_nonSign["Continuous"][UP]):
-            upAbs = abs(orderedDesc_nonSign["Continuous"][UP][0][0][1])
-        else:
-            upAbs = 0.0
+        nD_DOWN = len(orderedDesc_nonSign["Discrete"][DOWN])
+        if nD_DOWN: 
+            for n in range(min(topN,nD_DOWN)):
+                if topN > 1:
+                    MSDnonSign += str(n+1)+": "
+                MSDnonSign += string.join(["Change "+x[0] for x in orderedDesc_nonSign["Discrete"][DOWN][n]],'\n')+'\n'
 
-        if orderedDesc_nonSign["Continuous"][UP] and upAbs >= downAbs:
-            MSDnonSign += string.join(["Decrease "+x[0] for x in orderedDesc_nonSign["Continuous"][UP][0]],'\n')+'\n'
-        if orderedDesc_nonSign["Continuous"][DOWN] and downAbs >= upAbs:
-            MSDnonSign += string.join(["Increase "+x[0] for x in orderedDesc_nonSign["Continuous"][DOWN][0]],'\n')+'\n'
+        #Process Continuous attributes 
+        for n in range(topN):
+                if topN > 1:
+                    order = str(n+1)+": "
+                else:
+                    order = ""
+                if len(orderedDesc_nonSign["Continuous"][DOWN]):
+                    downAbs = abs(orderedDesc_nonSign["Continuous"][DOWN][0][0][1])
+                else:
+                    downAbs = 0.0
+                if len(orderedDesc_nonSign["Continuous"][UP]):
+                    upAbs = abs(orderedDesc_nonSign["Continuous"][UP][0][0][1])
+                else:
+                    upAbs = 0.0
+
+                if orderedDesc_nonSign["Continuous"][UP] and upAbs >= downAbs:
+                    TOPmsd = orderedDesc_nonSign["Continuous"][UP].pop(0)
+                    MSDnonSign += order + string.join(["Decrease "+x[0] for x in TOPmsd],'\n')+'\n'
+                if orderedDesc_nonSign["Continuous"][DOWN] and downAbs >= upAbs:
+                    TOPmsd = orderedDesc_nonSign["Continuous"][DOWN].pop(0)
+                    MSDnonSign += order + string.join(["Increase "+x[0] for x in TOPmsd],'\n')+'\n'
+
         
         res["non-signature"] = MSDnonSign
 
@@ -522,19 +632,38 @@ class AZOrangePredictor:
         if not MSDsign:
             res["imgPath"] = ""
             res["signature"] = ""
+            res["signarure_deriv_val"] = 0
             return
         if resultsPath and os.path.isdir(resultsPath):
             imgPath = os.path.join(resultsPath,"significance_"+str(idx)+"_"+str(time.time()).replace(".",'')+".png")
         else:
             imgPath = ""
-        # Call the method to create the image/mol specifying the color of the hilighted atoms   
-        res["imgPath"] , res["molStr"], res["atoms"], res["color"] = self.createSignImg(smi,MSDsign,atomColor,imgPath)
+        # Call the method to create the image/mol specifying the color of the hilighted atoms  
+        if molStr and atoms and endHeight is not None and not imgPath:
+            print "Using molStr and atoms from Learner Significant Signature"
+            res["imgPath"]=''
+            res["molStr"] = molStr
+            allAtoms = self.getNNAtoms(molStr, atoms, endHeight)
+            res["atoms"] = allAtoms
+            res["color"] = [atomColor]*len(allAtoms)
+        else:
+            res["imgPath"] , res["molStr"], res["atoms"], res["color"] = self.createSignImg(smi,MSDsign,atomColor,imgPath,endHeight)
         #Fix the significant descriptors so that it is a formated string
         res["signature"] = MSDsign
+        res["signarure_deriv_val"] = MSDdv 
 
 
+    def getAZOdata(self, smi):
+        """
+        Create an orange data set with a smiles attribute
+        """
+        smilesAttr = orange.StringVariable("SMILES")
+        smilesDomain = orange.Domain(smilesAttr, 0)
+        smilesData = dataUtilities.DataTable(smilesDomain, [[smi]])
+        return smilesData
 
-    def getSDs(self, smi, prediction, resultsPath = "", idx = 0, c_step = None):
+
+    def getSDs(self, smi, prediction, resultsPath = "", idx = 0, topN=1, c_step = None):
         # descs will  have a list containg the first most significant non-signature descriptor, 
         #   and the first most significant signatures descriptor in the respective order. Ex:
         #               ["LogP","[So2]"]
@@ -543,14 +672,15 @@ class AZOrangePredictor:
         
         descsUP = ["",""]
         descsDOWN = ["",""]
-        res =  { "signature"     : "",       
-                 "imgPath"       : "",     
-                 "non-signature" : "",
-                 "molStr"        : "", 
-                 "atoms"         : [],
-                 "color"         : []}
+        res =  { "signature"          : "",       
+                 "signarure_deriv_val": 0 ,
+                 "imgPath"            : "",     
+                 "non-signature"      : "",
+                 "molStr"             : "", 
+                 "atoms"              : [],
+                 "color"              : []}
         # Calculate the signatures id SMILES
-        CLabDesc,signList = self.getClabDescSignList(smi)
+        #CLabDesc,signList = self.getClabDescSignList(smi)
         if hasattr(self.model,'getTopImportantVars') and self.exToPred:
             orderedDesc = self.model.getTopImportantVars(self.exToPred[0],0, absGradient = False, c_step = c_step, getGrad = True)
             #orderedDesc = {'Discrete':   {'DOWN': [['SELMA_GC_type_058', 'SELMA_GC_type_025'], ['SELMA_GC_type_060'], ...]
@@ -559,9 +689,8 @@ class AZOrangePredictor:
             #                              'UP':   [['SELMA_GC_type_006'], ['SELMA_GC_type_024'], ...]} }                    
             # or None
             # or     {'Discrete': [], 'Continuous': []}
-
             if orderedDesc and "NA" not in orderedDesc:
-                self.processSignificance(smi, prediction, orderedDesc, res, resultsPath, idx = idx)
+                self.processSignificance(smi, prediction, orderedDesc, res, resultsPath, idx = idx, topN=topN)
             else:
                 print "Model does not have the information needed to compute the Significance"
 
@@ -571,7 +700,7 @@ class AZOrangePredictor:
 if __name__ == "__main__":
     #modelPath = "../../tests/source/data/DescModel.model"  # Just RDK descriptors and RDK Fingerprints
     modelPath = "../../tests/source/data/BBRC_RDK_RDKFP.model"
-    smi = "CCC"  
+    smi = "CCC" 
     predictor = AZOrangePredictor(modelPath)
     #Needed for classification
     predictor.predictionOutcomes = ["POS", "NEG"]#["NEG","POS"]#["POS", "NEG"]#

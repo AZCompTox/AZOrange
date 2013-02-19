@@ -212,6 +212,9 @@ class Installer:
             self.compileMPICH()
             self.compileAPPSPack()
 
+        # Install the signSVM binaries
+        self.installSignSVM()
+
 
 
 
@@ -258,6 +261,7 @@ class Installer:
         # The boost source path is the dir created when uncompressing the orangeDependencies/src/boost_1_34_1.tar.gz
         self.orngBoostDir = os.path.join(self.buildDir,"orangeDependencies/src/boost")
         self.APPSPackDir = os.path.join(self.buildDir,"orangeDependencies/src/appspack")
+        self.signSVMDir = os.path.join(self.buildDir,"orangeDependencies/src/signSVM")
         self.opencvDir = os.path.join(self.buildDir,"orangeDependencies/src/opencv")
         self.oasaDir = os.path.join(self.buildDir,"orangeDependencies/src/oasa")
         self.cinfonyDir = os.path.join(self.buildDir,"orangeDependencies/src/cinfony")
@@ -718,6 +722,16 @@ class Installer:
         sys.path.insert(0 , os.path.join(mpichInstallDir,"bin"))
  
         
+    def installSignSVM(self):
+        if "signsvm" not in self.dependencies or self.openInstall:
+            print "Not using the local signSVM"
+            return
+        if not self.dependencies["signsvm"]:
+            print "Not reinstalled"
+            return
+        # Cp the binaries to the install bin dir
+        os.system("cp "+os.path.join(self.signSVMDir,"*.jar") +" " + os.path.join(self.orangeDependenciesDir,"bin"))
+
 
     def compileAPPSPack(self):
         if "appspack" not in self.dependencies:
