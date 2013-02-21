@@ -305,6 +305,10 @@ class RFClassifier(AZBaseClasses.AZClassifier):
         self._isRealProb = False
         self.name = name
         self.domain = None
+        if self.classVar.varType == orange.VarTypes.Discrete:
+            self.oobError = self.classifier.get_train_error()
+        else:   
+            self.oobError = None
         self.ExFix = dataUtilities.ExFix()
         if self.imputeData != None:
             '''Create the imputer: the imputer needs the imputeData to exists allong it's life time'''
