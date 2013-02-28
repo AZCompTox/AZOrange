@@ -472,7 +472,10 @@ class AZClassifier(object):
         def calcContVarGrad(var,ex,gradRef):
             localEx = orange.Example(ex)
             if c_step is None:
-                coef_step = 0.5   # Needs confirmation! Coefficient step: c
+                if self.domain.classVar.varType == orange.VarTypes.Discrete:  # Classification
+                     coef_step = 1.0
+                else:
+                     coef_step = 0.08   # Needs confirmation! Coefficient step: c
             else:
                 #  used for testing significance: comment next and uncomment next-next
                 raise(Exception("This mode should only be used for debugging! Comment this line if debugging."))
