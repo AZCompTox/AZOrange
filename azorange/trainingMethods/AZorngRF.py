@@ -306,7 +306,7 @@ class RFClassifier(AZBaseClasses.AZClassifier):
         self.name = name
         self.domain = None
         if self.classVar.varType == orange.VarTypes.Discrete:
-            self.oobError = self.classifier.get_train_error()
+            self.oobError = None  #self.classifier.get_train_error()  #   This is resulting in Segmentation fault : Problem reported by others in opencv blogs!
         else:   
             self.oobError = None
         self.ExFix = dataUtilities.ExFix()
