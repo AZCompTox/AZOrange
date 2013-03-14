@@ -514,7 +514,10 @@ class AZOrangePredictor:
         #Process Signatures
         # OBS Hard coded for signatures 0 to 1.  
         smilesData = self.getAZOdata(smi)
-        dataSign, cmpdSignDict, cmpdSignList, sdfStr  = getSignatures.getSignatures(smilesData, 0, 1, returnAtomID = True, useClabSmiles = False)
+        if "sign" in DescMethodsAvailable:
+            dataSign, cmpdSignDict, cmpdSignList, sdfStr = getSignatures.getSignatures(smilesData, 0, 1, returnAtomID = True, useClabSmiles = False)
+        else:
+            dataSign, cmpdSignDict, cmpdSignList, sdfStr = None,[{}]*len(smilesData),[[]]*len(smilesData),"" 
         # If signSVM model already returning one sign as the most significant
         if not (hasattr(self.model, "specialType") and self.model.specialType == 1):
             downAbs = 0.0
