@@ -410,7 +410,7 @@ class AZOrangePredictor:
 
         return prediction
 
-    def processSignificance(self, smi, prediction, orderedDesc, res, resultsPath, idx = 0, topN = 1):
+    def processSignificance(self, smi, prediction, orderedDesc, res, resultsPath, idx = 0, topN = 1, regMinIsDesired = True):
         """descs* = [(1.3, ["LogP"]), (0.2, ["[So2]", ...]), ...]
            res =  { "signature"     : "",       
                     "imgPath"       : "",      for placing the results 
@@ -514,7 +514,10 @@ class AZOrangePredictor:
         #Process Signatures
         # OBS Hard coded for signatures 0 to 1.  
         smilesData = self.getAZOdata(smi)
-        dataSign, cmpdSignDict, cmpdSignList, sdfStr  = getSignatures.getSignatures(smilesData, 0, 1, returnAtomID = True, useClabSmiles = False)
+        if "sign" in DescMethodsAvailable:
+            dataSign, cmpdSignDict, cmpdSignList, sdfStr = getSignatures.getSignatures(smilesData, 0, 1, returnAtomID = True, useClabSmiles = False)
+        else:
+            dataSign, cmpdSignDict, cmpdSignList, sdfStr = None,[{}]*len(smilesData),[[]]*len(smilesData),"" 
         # If signSVM model already returning one sign as the most significant
         if not (hasattr(self.model, "specialType") and self.model.specialType == 1):
             downAbs = 0.0
@@ -586,6 +589,9 @@ class AZOrangePredictor:
 
         #Process non-signatures
         if self.model.classVar.varType == orange.VarTypes.Discrete and outComeIsRev:
+            UP = "DOWN"
+            DOWN = "UP"
+        elif self.model.classVar.varType != orange.VarTypes.Discrete and not regMinIsDesired:
             UP = "DOWN"
             DOWN = "UP"
         else:
@@ -663,7 +669,7 @@ class AZOrangePredictor:
         return smilesData
 
 
-    def getSDs(self, smi, prediction, resultsPath = "", idx = 0, topN=1, c_step = None):
+    def getSDs(self, smi, prediction, resultsPath = "", idx = 0, topN=1, c_step = None, regMinIsDesired = True):
         # descs will  have a list containg the first most significant non-signature descriptor, 
         #   and the first most significant signatures descriptor in the respective order. Ex:
         #               ["LogP","[So2]"]
@@ -690,7 +696,7 @@ class AZOrangePredictor:
             # or None
             # or     {'Discrete': [], 'Continuous': []}
             if orderedDesc and "NA" not in orderedDesc:
-                self.processSignificance(smi, prediction, orderedDesc, res, resultsPath, idx = idx, topN=topN)
+                self.processSignificance(smi, prediction, orderedDesc, res, resultsPath, idx = idx, topN=topN, regMinIsDesired = regMinIsDesired)
             else:
                 print "Model does not have the information needed to compute the Significance"
 
