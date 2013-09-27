@@ -243,6 +243,38 @@ def kNNratio(idx, extTrain, measure = None):
     return alpha
 
 
+def kNNratioInd(train, calSet, measure = None):
+    """
+    Use the fraction of kNN with the same response.
+    """
+    if not measure:
+        #measure = instances.MahalanobisConstructor(extTrain)
+        measure = orange.ExamplesDistanceConstructor_Euclidean(train)
+
+    alphaList = []
+    for predEx in calSet:
+        distList = [] 
+        for runIdx in range(len(train)):
+            dist = measure(predEx, train[runIdx]) 
+            distList.append(dist)
+
+        # Get the distance of the 10th NN
+        distList.sort()
+        thresDist = distList[9]
+
+        # Find the labels of the 10 NN
+        sameCount = 0
+        for runIdx in range(len(train)):
+            dist = measure(predEx, train[runIdx]) 
+            if dist <= thresDist:
+                if predEx.get_class().value == train[runIdx].get_class().value:
+                    sameCount = sameCount + 1
+        alpha = 1.00 - float(sameCount)/10.0
+        alphaList.append(alpha)
+
+    return alphaList, train
+
+
 def kNNratioStruct(idx, extTrain, measure = None):
     """
     Use the fraction of kNN with the same response.
@@ -569,7 +601,6 @@ def getPvalue(train, predEx, label, method = "avgNN", measure = None):
 
 
 def printResults(pvalues, labels, actualLabel, method, resultsFile):
-
     
     #print "OBS! Assuming two labels!!!"
     #print "Confidence level in predicting label ", labels[0]
@@ -658,7 +689,7 @@ def getRFAcc(train, work):
     print "TP\tTN\tFP\tFN\n"    
     print str(TP)+"\t"+str(TN)+"\t"+str(FP)+"\t"+str(FN)+"\n"    
 
-    fid = open("RFresults_"+method+".txt", "a")
+    fid = open("RFresults.txt", "a")
     fid.write(str(TP)+"\t"+str(TN)+"\t"+str(FP)+"\t"+str(FN)+"\n")
     fid.close()
 
@@ -693,24 +724,112 @@ def getRFprobAcc(train, work, probThres):
     print "TP\tTN\tFP\tFN\tnoPred\n"    
     print str(TP)+"\t"+str(TN)+"\t"+str(FP)+"\t"+str(FN)+"\t"+str(noPred)+"\n"    
 
-    fid = open("RFprobResults_"+method+".txt", "a")
+    fid = open("RFprobResults.txt", "a")
     fid.write(str(TP)+"\t"+str(TN)+"\t"+str(FP)+"\t"+str(FN)+"\t"+str(noPred)+"\n")
     fid.close()
 
 
+def getProbPredAlpha(model, ex):
+        predList = model(ex, returnDFV = True)
+        pred = predList[0].value
+        prob = predList[1]
+        actual = ex.get_class().value
+
+        # More non conforming if prediction is different from actual label
+        if pred != actual:
+            alpha = 1.0 + abs(prob)
+        else:
+            alpha = 1.0 - abs(prob)
+
+        return alpha
+
+
+def probPredInd(trainSet, calSet):
+    """
+    Use the RF prediction probability to set the non-conf score
+    """
+    attrList = ["SMILES_1"]
+    trainSet = dataUtilities.attributeDeselectionData(trainSet, attrList)
+
+    # Train a model
+    model = AZorngRF.RFLearner(trainSet)
+
+    # Get the list of NC for all ex in calSet
+    alphaList = []
+    for ex in calSet:
+        alpha = getProbPredAlpha(model, ex)
+        alphaList.append(alpha)
+
+    return alphaList, model
+
+
+def getScores(trainSet, calSet, method):
+
+    #if method == "minNN":
+    #    alpha = minNN(idx, extTrain, measure)
+    #elif method == "avgNN":
+    #    alpha = avgNN(idx, extTrain, measure)
+    #elif method == "scaledMinNN":
+    #    print "There is some problem with the scaling"
+    #    alpha = minNN(idx, extTrain, maxDistRatio, measure) 
+    if method == "kNNratio":
+        alphaList, model = kNNratioInd(trainSet, calSet)
+    #elif method == "kNNratioStruct":
+    #    alpha = kNNratioStruct(idx, extTrain, measure)
+    elif method == "probPred":
+        alphaList, model = probPredInd(trainSet, calSet)
+    #elif method == "LLOO":
+    #    alpha = LLOO(idx, extTrain, measure)
+    #elif method == "LLOOprob":
+    #    alpha = LLOOprob(idx, extTrain, measure)
+    #elif method == "LLOOprob_b":
+    #    alpha = LLOOprob_b(idx, extTrain, measure)
+    #else:
+    #    alpha = None
+    #    print "Method not implemented"
+
+    return alphaList, model
+
+
+def getIndPvalue(model, NClist, predEx, label, method = "avgNN", measure = None):
+    """
+    method; avgNN, scaledMinNN, minNN, kNNratio
+    """
+
+    # Set label to class of predEx
+    newPredEx = Orange.data.Table(predEx.domain, [predEx])
+    newPredEx[0][newPredEx.domain.classVar] = label
+ 
+    # Calculate the NC score of predEx
+    if method == "probPred":
+        alpha = getProbPredAlpha(model, newPredEx[0])
+    elif method == "kNNratio":
+        alphaList, model = kNNratioInd(model, newPredEx)  # model is the train set for NN methods
+        alpha = alphaList[0]
+
+    # The p-value is the fraction of ex with alpha gt that of predEx
+    moreNonConfList = []
+    for score in NClist:
+        if score > alpha:
+            moreNonConfList.append(score)
+    pvalue = len(moreNonConfList)/float(len(NClist))
+
+    return pvalue
+
+
 def getConfPred(train, work, method, measure = None, resultsFile = "CPresults.txt", verbose = False):
+    """
+    method - non-conformity score method
+    """
 
     # Get conformal predictions
     resDict = {}
     idx = 0
     for predEx in work:
-        #if idx == 0: break
         labels = predEx.domain.classVar.values
         pvalues = []
         for label in labels:
             if method == "combo":
-                #pvalue1 = getPvalue(train, predEx, label, "minNN")
-                #pvalue1 = getPvalue(train, predEx, label, "avgNN")
                 pvalue1 = getPvalue(train, predEx, label, "kNNratio", measure)
                 pvalue2 = getPvalue(train, predEx, label, "probPred")
                 pvalue = (pvalue1 + pvalue2)/2.0
@@ -729,6 +848,44 @@ def getConfPred(train, work, method, measure = None, resultsFile = "CPresults.tx
         printStat(resDict, labels)
 
 
+def getIndConfPred(train, work, method, measure = None, resultsFile = "CPresults.txt", verbose = False):
+    """
+    Partition train into a training and a calibration set (10%). Use the non-conf scores of the cal set to predict 
+    all examples in work.
+    method - non-conformity score method
+    """
+
+    # Randomily select 10% of train as a cal set
+    indices2 = Orange.data.sample.SubsetIndices2(p0=0.10)
+    ind = indices2(train)
+    calSet = train.select(ind, 0)
+    trainSet = train.select(ind, 1)
+
+    # Calculate NC for the calibration set
+    NClist, model = getScores(trainSet, calSet, method)
+
+    # Calculate p-values for all ex in work
+    resDict = {}
+    idx = 0
+    for predEx in work:
+        labels = predEx.domain.classVar.values
+        pvalues = []
+        for label in labels:
+            if method == "combo":
+                pvalue1 = getIndPvalue(model, NClist, predEx, label, "kNNratio", measure)
+                pvalue2 = getIndPvalue(model, NClist, predEx, label, "probPred")
+                pvalue = (pvalue1 + pvalue2)/2.0
+            else:
+                pvalue = getIndPvalue(model, NClist, predEx, label, method, measure)
+            pvalues.append(pvalue)
+        actualLabel = predEx.get_class().value
+        prediction = printResults(pvalues, labels, actualLabel, method, resultsFile)
+        idx = idx + 1
+        resDict[idx] = {"actualLabel": actualLabel, "prediction": prediction}
+
+        #print "Break after the first example"
+        #if idx == 1: break
+
 
 if __name__ == "__main__":
     """
@@ -739,16 +896,15 @@ if __name__ == "__main__":
     This main will test the implemented CP methods in a 10 fold CV
     """
 
-    #data = dataUtilities.DataTable("DogMyocyteAZdescTop10.tab")
-    #data = dataUtilities.DataTable("DogMyocyteAZdescTop10SMILES.tab")
     data = dataUtilities.DataTable("trainData.tab")
-    #data = dataUtilities.DataTable("DogMyocyteAZdescTop10Small.txt")
-    descList = ["SMILES_1"]
+    descList = ["SMILES", "SMILES_1"]
     data = dataUtilities.attributeDeselectionData(data, descList)
 
-    print "Please note that the probabilities are not generalized and need to be checked for a new data set"
-    methods = ["kNNratio", "minNN", "avgNN", "probPred", "combo", "LLOO", "LLOOprob"]
-    methods = ["kNNratioStruct"]
+    print "Please note that the class labels are not generalized and need to be checked for a new data set"
+    print "Assumed to be A and N"
+    #methods = ["kNNratio", "minNN", "avgNN", "probPred", "combo", "LLOO", "LLOOprob"]   # Non-conformity score method
+    methods = ["kNNratio"]
+    cpMethod = "inductive"   # inductive or transductive
 
     #print "Temp position to save comp time!!"
     # Append to python path /home/kgvf414/dev/AZOrange0.5.5/orangeDependencies/src/orange/orange/Orange/distance/
@@ -761,12 +917,6 @@ if __name__ == "__main__":
         resultsFile = "CPresults_"+method+".txt"
         fid = open(resultsFile, "w")
         fid.write("ActualLabel\tLabel1\tLabel2\tPvalue1\tPvalue2\tConf1\tConf2\tPrediction\n")
-        fid.close()
-        fid = open("RFresults_"+method+".txt", "w")
-        fid.write("TP\tTN\tFP\tFN\n")    
-        fid.close()
-        fid = open("RFprobResults_"+method+".txt", "w")
-        fid.write("TP\tTN\tFP\tFN\n")    
         fid.close()
 
         # Run a 10 fold CV
@@ -785,15 +935,16 @@ if __name__ == "__main__":
             print "Length of work ", len(work)
 
             # Create results file and get the conformal predictions
-            #getConfPred(train, work, method, measure, resultsFile, verbose = True)
-
-            # Compare with RF predictions
-            #getRFAcc(train, work)
-            prob = 0.3
-            getRFprobAcc(train, work, prob)
+            if cpMethod == "transductive":
+                getConfPred(train, work, method, measure, resultsFile, verbose = True)
+            elif cpMethod == "inductive":
+                print "Please note, only kNNratio and probPred implemented for ICP!"
+                getIndConfPred(train, work, method, measure, resultsFile, verbose = True)
+            else:
+                print "Valid cpMethod values are 'transductive' and 'inductive'"
 
             #print "Breaking after first fold"
-            #if idx == 1: break
+            #if idx == 0: break
 
 
 
