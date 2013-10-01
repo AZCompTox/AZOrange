@@ -601,6 +601,8 @@ def getPvalue(train, predEx, label, method = "avgNN", measure = None):
 
 
 def printResults(pvalues, labels, actualLabel, method, resultsFile):
+
+    confLevel = 0.95
     
     #print "OBS! Assuming two labels!!!"
     #print "Confidence level in predicting label ", labels[0]
@@ -610,16 +612,16 @@ def printResults(pvalues, labels, actualLabel, method, resultsFile):
     conf2 = round(1-pvalues[0], 3)
 
     #print "Requiering 95% confidence gives "
-    if conf1 > 0.95 and conf2 < 0.95:
+    if conf1 > confLevel and conf2 < confLevel:
     #    print "Label ", labels[0], "is predicted with at least 95% conf"
         prediction = labels[0]
-    elif conf1 < 0.95 and conf2 > 0.95:
+    elif conf1 < confLevel and conf2 > confLevel:
     #    print "Label ", labels[1], "is predicted with at least 95% conf"
         prediction = labels[1]
-    elif conf1 < 0.95 and conf2 < 0.95:
+    elif conf1 < confLevel and conf2 < confLevel:
     #    print "No prediction can be given at 95% confidence. Both?"
         prediction = "Both"
-    else:           # if conf1 > 0.95 and conf2 > 0.95:
+    else:           # if conf1 > confLevel and conf2 > confLevel:
     #    print "Predicting both labels. Empty?"
         prediction = "Empty"
 
