@@ -1126,6 +1126,9 @@ fh.close()
 #$ -pe pe_mpich """ + str(self.np) + """
 #$ -v MPICH_HOME="""+ str(mpitchHome) + """
 
+. /etc/bashrc
+module load gcc
+
 exec 2>&1
 env | sort
 echo Running on host: `hostname`
