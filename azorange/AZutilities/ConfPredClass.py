@@ -726,7 +726,7 @@ def getRFprobAcc(train, work, probThres):
     print "TP\tTN\tFP\tFN\tnoPred\n"    
     print str(TP)+"\t"+str(TN)+"\t"+str(FP)+"\t"+str(FN)+"\t"+str(noPred)+"\n"    
 
-    fid = open("RFprobResults.txt", "a")
+    fid = open("RFprob"+str(probThres)+"Results.txt", "a")
     fid.write(str(TP)+"\t"+str(TN)+"\t"+str(FP)+"\t"+str(FN)+"\t"+str(noPred)+"\n")
     fid.close()
 
@@ -904,16 +904,16 @@ if __name__ == "__main__":
 
     print "Please note that the class labels are not generalized and need to be checked for a new data set"
     print "Assumed to be A and N"
-    #methods = ["kNNratio", "minNN", "avgNN", "probPred", "combo", "LLOO", "LLOOprob"]   # Non-conformity score method
-    methods = ["kNNratio"]
-    cpMethod = "inductive"   # inductive or transductive
+    methods = ["kNNratio", "minNN", "avgNN", "probPred", "combo", "LLOO", "LLOOprob"]   # Non-conformity score method
+    #methods = ["kNNratio"]
+    cpMethod = "transductive"   # inductive or transductive
 
     #print "Temp position to save comp time!!"
     # Append to python path /home/kgvf414/dev/AZOrange0.5.5/orangeDependencies/src/orange/orange/Orange/distance/
     #import instances
     #measure = instances.MahalanobisConstructor(data)
     measure = None
-
+    methodIdx = 1
     for method in methods:
 
         resultsFile = "CPresults_"+method+".txt"
@@ -945,9 +945,19 @@ if __name__ == "__main__":
             else:
                 print "Valid cpMethod values are 'transductive' and 'inductive'"
 
+            # Compare with RF predictions
+            if methodIdx == 1:
+                getRFAcc(train, work)
+                prob = 0.1
+                getRFprobAcc(train, work, prob)
+                prob = 0.2
+                getRFprobAcc(train, work, prob)
+                prob = 0.3
+                getRFprobAcc(train, work, prob)
+
             #print "Breaking after first fold"
             #if idx == 0: break
-
+        methodIdx = methodIdx + 1      
 
 
 
