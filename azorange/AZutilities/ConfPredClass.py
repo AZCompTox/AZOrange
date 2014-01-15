@@ -618,7 +618,7 @@ def printResults(pvalues, labels, actualLabel, method, resultsFile):
     elif conf1 < confLevel and conf2 > confLevel:
     #    print "Label ", labels[1], "is predicted with at least 95% conf"
         prediction = labels[1]
-    elif conf1 < confLevel and conf2 < confLevel:
+    elif conf1 <= confLevel and conf2 <= confLevel:
     #    print "No prediction can be given at 95% confidence. Both?"
         prediction = "Both"
     else:           # if conf1 > confLevel and conf2 > confLevel:
