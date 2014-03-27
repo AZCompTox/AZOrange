@@ -3,34 +3,54 @@ import os
 
 import orange
 from AZutilities import AZOrangePredictor 
+from AZutilities import dataUtilities
 
 
 
 class AZOrangePredictorTest(unittest.TestCase):
 
-    def setUp(self):
-        #self.modelPath = "data/DescModel.model"  # Just RDK descriptors and RDK Fingerprints
-        self.modelPath = "data/BBRC.model"
-        self.smi = "C123C5C(O)C=CC2C(N(C)CC1)Cc(ccc4O)c3c4O5"  # NEG
-        #self.smi = "CCC"  # POS
 
     def test_AZOrangePredictor(self):
         """ Test of AZOrangePredictor 
         """
+        self.modelPath = "data/QTcB_SVM_Sign_Model"  # Signatures hight 3
+        train = dataUtilities.DataTable("data/QTcB_sign.txt")
+        self.ex = dataUtilities.DataTable([train[0]])  # Test with precalc signatures 
+
         predictor = AZOrangePredictor.AZOrangePredictor(self.modelPath)
-        #Needed for classification
-        predictor.predictionOutcomes = ["1", "2"]
 
         #Needed for Regression
-        #predictor.significanceThreshold = 0.4
+        predictor.significanceThreshold = 0.0
 
-        predictor.getDescriptors(self.smi)
+        predictor.setDescriptors(self.ex)
         prediction = predictor.predict()
-        significance = predictor.getSDs(self.smi, prediction)
-        self.assert_(prediction == "1", "Got:"+str(prediction))   
+        significance = predictor.getSDs(None, prediction, exWithDesc = self.ex)
 
-        # Expecting: {'color': (0, 0, 0), 'imgPath': '', 'signature': '', 'atoms': [], 'non-signature': 'rdk.FP_1510328189', 'molStr': ''}
-        self.assert_(significance['non-signature'] =='Increase [#6&A]-[#7&A](-[#6&A])(-[#6&A])\n'  , "Got: "+str(significance))   
+        print prediction
+        print significance
+        self.assertEqual(round(prediction, 5), 0.01787)
+        self.assertEqual(significance, None)    # All gradients are 0
+
+
+    def test_signHeight1(self):
+
+        self.modelPath = "data/QTcB_SVM_Sign1_Model"  # Signatures hight 1
+        train = dataUtilities.DataTable("data/QTcB_sign1.txt")
+        self.smiles = "OC(=O)C1=CN(C2CC2)c3cc(N4CCNCC4)c(F)cc3C1=O"  # Test with smiles
+
+        predictor = AZOrangePredictor.AZOrangePredictor(self.modelPath)
+
+        #Needed for Regression
+        predictor.significanceThreshold = 0.0
+
+        predictor.getDescriptors(self.smiles)
+        prediction = predictor.predict()
+        significance = predictor.getSDs(self.smiles, prediction, topN = 10)
+        
+        print prediction
+        print significance
+        self.assert_(round(prediction,5) == 0.02973, "Got: "+str(prediction))   
+        self.assert_(str(significance['signature']) =="['[Cac]', '[Car]([Car][Car][O2])', '[Cac]([Car][O.co2][O.co2])', '[C3]([C3][C3][Nar])', '[Car]([Car][Nar][O2])', '[O.co2]', '[C3]([C3][Nar])', '[C3]([C3][C3][N3])', '[Nar]([C3][Car][Car])', '[C3]([Car][N3])']"  , "Got: "+str(significance['signature']))   
 
 
 		
