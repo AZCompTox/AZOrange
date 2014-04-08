@@ -606,12 +606,23 @@ class AZOrangePredictor:
                 MSDsign = []
                 MSDdv = []
                 for idx in range(topN):
-                    if abs(orderedDesc_sign["Continuous"]["DOWN"][0][0][1]) > abs(orderedDesc_sign["Continuous"]["UP"][0][0][1]):
-                        MSDsign.append(orderedDesc_sign["Continuous"]["DOWN"][0][0][0])
-                        MSDdv.append(orderedDesc_sign["Continuous"]["DOWN"].pop(0)[0][1])
-                    else:
-                        MSDsign.append(orderedDesc_sign["Continuous"]["UP"][0][0][0])
-                        MSDdv.append(orderedDesc_sign["Continuous"]["UP"].pop(0)[0][1])
+                    try:
+                        if abs(orderedDesc_sign["Continuous"]["DOWN"][0][0][1]) > abs(orderedDesc_sign["Continuous"]["UP"][0][0][1]):
+                            MSDsign.append(orderedDesc_sign["Continuous"]["DOWN"][0][0][0])
+                            MSDdv.append(orderedDesc_sign["Continuous"]["DOWN"].pop(0)[0][1])
+                        else:
+                            MSDsign.append(orderedDesc_sign["Continuous"]["UP"][0][0][0])
+                            MSDdv.append(orderedDesc_sign["Continuous"]["UP"].pop(0)[0][1])
+                    except:
+                        try:
+                            MSDsign.append(orderedDesc_sign["Continuous"]["DOWN"][0][0][0])
+                            MSDdv.append(orderedDesc_sign["Continuous"]["DOWN"].pop(0)[0][1])
+                        except:
+                            try:
+                                MSDsign.append(orderedDesc_sign["Continuous"]["UP"][0][0][0])
+                                MSDdv.append(orderedDesc_sign["Continuous"]["UP"].pop(0)[0][1])
+                            except:
+                                pass
         else:
             MSDsign = None
             MSDsign = 0
