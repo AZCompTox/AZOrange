@@ -578,6 +578,20 @@ def getMinDistRatio(train):
     maxDistRatio = max(minRatio)
 
     return maxDistRatio 
+
+
+def getPvalueFromList(nonConfList):
+
+    trainList = nonConfList[0:len(nonConfList)-1]
+    alphaPredEx = nonConfList[len(nonConfList)-1] 
+    moreNonConfList = []
+    for score in trainList:
+        if score > alphaPredEx:
+            moreNonConfList.append(score)
+    pvalue = len(moreNonConfList)/float(len(trainList))
+
+    return pvalue
+
         
 
 def getPvalue(train, predEx, label, SVMparam, method = "avgNN", measure = None):
@@ -598,34 +612,31 @@ def getPvalue(train, predEx, label, SVMparam, method = "avgNN", measure = None):
         # Calculate average and std of min distanses in train set
         maxDistRatio = getMinDistRatio(train)
     nonConfList = []
+    nonConfListMondrian = []
     for idx in range(len(extTrain)):
         if method == "scaledMinNN":
             alpha = getScore(idx, extTrain, method, maxDistRatio)
         else:
             alpha, SVMparam = getScore(idx, extTrain, SVMparam, method, None, measure)
         nonConfList.append(alpha)
-        #if idx == 1: 
-        #    print "Breaking after one ex!!"
-        #    break
+        if extTrain[idx].get_class().value == label: 
+            nonConfListMondrian.append(alpha)
 
-    nonConfListSorted = copy.deepcopy(nonConfList)
-    nonConfListSorted.sort()
-    fid = open("NonConf.txt", "w")
-    for ex in nonConfListSorted:
-        fid.write(str(ex)+"\n")
-    fid.close()
+    #nonConfListSorted = copy.deepcopy(nonConfList)
+    #nonConfListSorted.sort()
+    #nonConfListMondrianSorted = copy.deepcopy(nonConfListMondrian)
+    #nonConfListMondrianSorted.sort()
+    #fid = open("NonConf.txt", "w")
+    #for ex in nonConfListSorted:
+    #    fid.write(str(ex)+"\n")
+    #fid.close()
 
     # The last non-conf score is that of predEx
     # The p-value is the fraction of ex with alpha gt that of predEx
-    trainList = nonConfList[0:len(nonConfList)-1]
-    alphaPredEx = nonConfList[len(nonConfList)-1] 
-    moreNonConfList = []
-    for score in trainList:
-        if score > alphaPredEx:
-            moreNonConfList.append(score)
-    pvalue = len(moreNonConfList)/float(len(trainList))
+    pvalue = getPvalueFromList(nonConfList)
+    pvalueMondrian = getPvalueFromList(nonConfListMondrian)
 
-    return pvalue, SVMparam
+    return pvalue, pvalueMondrian, SVMparam
 
 
 def printResults(pvalues, labels, actualLabel, method, resultsFile, name):
@@ -858,22 +869,24 @@ def getConfPred(train, work, method, SVMparam, measure = None, resultsFile = "CP
     for predEx in work:
         labels = predEx.domain.classVar.values
         pvalues = []
+        pvaluesMondrian = []
         for label in labels:
             if method == "combo":
                 pvalue1 = getPvalue(train, predEx, label, "kNNratio", measure)
                 pvalue2 = getPvalue(train, predEx, label, "probPred")
                 pvalue = (pvalue1 + pvalue2)/2.0
             else:
-                pvalue, SVMparam = getPvalue(train, predEx, label, SVMparam, method, measure)
+                pvalue, pvalueMondrian, SVMparam = getPvalue(train, predEx, label, SVMparam, method, measure)
             pvalues.append(pvalue)
+            pvaluesMondrian.append(pvalueMondrian)
         actualLabel = predEx.get_class().value
         name = None
         prediction = printResults(pvalues, labels, actualLabel, method, resultsFile, name)
+        fileIdx = string.find(resultsFile, "_")
+        MondrianFile = resultsFile[0:fileIdx]+"Mondrian"+resultsFile[fileIdx+1:len(resultsFile)] 
+        predictionMondrian = printResults(pvaluesMondrian, labels, actualLabel, method, MondrianFile, name)
         idx = idx + 1
         resDict[idx] = {"actualLabel": actualLabel, "prediction": prediction}
-
-        #print "Break after the first example"
-        #if idx == 1: break
 
     if verbose:
         printStat(resDict, labels)
@@ -924,18 +937,25 @@ if __name__ == "__main__":
     """
     Assumptions;
     Binary classification 
-
-    This main will test the CP methods in a 10 fold CV
+    This main will test the implemented CP methods in a 10 fold CV
     """
 
     data = dataUtilities.DataTable("trainDataCompleteCLiP.tab")
-    descListList = [# 
+    descListList = [
                     ["IT03423_Seq_BF", "Time", "Conc"],
                     ["IT03423_Seq_BF", "Time", "Conc", "ACDlogD74"],
                     ["IT03423_Seq_BF", "Time", "Conc", "ACDlogD74", "Caco2_intrinsic"],
                     ["IT03423_Seq_BF", "Time", "Conc", "ACDlogD74", "Caco2_intrinsic", "ClogP"],
                     ["IT03423_Seq_BF", "Time", "Conc", "IT03713_BF"]
                       ]
+
+    #deselectionList = ["AZ13410548"]
+    #print "Deselecting compounds ", deselectionList
+    #trainList = []
+    #for ex in data:
+    #    if ex["Name"].value not in deselectionList:
+    #        trainList.append(ex)
+    #data = dataUtilities.DataTable(trainList)
 
     #methods = ["kNNratio", "minNN", "avgNN", "probPred", "combo", "LLOO", "LLOOprob"]   # Non-conformity score method
     methods = ["probPred"]
@@ -973,6 +993,11 @@ if __name__ == "__main__":
                         train = data.select(ind, iidx)
                     else:
                         train.extend(data.select(ind, iidx))
+
+            print "Obs desc deselected in getPvalue"
+            #descList = ["IT03423_BF", "Conc", "Caco2_intrinsic", "ACDlogD74"]
+            #train = dataUtilities.attributeSelectionData(train, descList)
+            #work = dataUtilities.attributeSelectionData(work, descList)
 
             print "Length of train ", len(train)
             print "Length of work ", len(work)
