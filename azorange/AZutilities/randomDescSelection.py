@@ -31,8 +31,10 @@ def getDescComb(data, nAttr, Ndesc):
     
     # Randomly select only Ndesc combinations
     indecies = []
-    for idx in range(Ndesc):
-        indecies.append(random.randint(0, len(attrListList)))
+    while len(indecies) < Ndesc:
+        randIdx = random.randint(0, len(attrListList)-1)
+        if randIdx not in indecies:
+            indecies.append(randIdx)
     attrList = []
     for idx in indecies:
         attrList.append(attrListList[idx])
