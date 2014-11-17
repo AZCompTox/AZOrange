@@ -7,6 +7,7 @@ import Orange
 import orange
 import math
 import copy
+import string
 
 """
 Module for calculation of non conformity scores and the corresponding p-values and
@@ -113,6 +114,7 @@ def trainSVMOptParam(train, SVMparam):
 
     
     # Optimize parameters
+    #SVMparam = [1.0, 0.05]
     if not SVMparam:
         trainDataFile = "/scratch/trainDataTmp.tab"
         train.save(trainDataFile)
@@ -980,6 +982,13 @@ if __name__ == "__main__":
         fid = open(resultsFile, "w")
         fid.write("Name\tActualLabel\tLabel1\tLabel2\tPvalue1\tPvalue2\tConf1\tConf2\tPrediction\n")
         fid.close()
+
+        fileIdx = string.find(resultsFile, "_")
+        MondrianFile = resultsFile[0:fileIdx]+"Mondrian"+resultsFile[fileIdx+1:len(resultsFile)]
+        fid = open(MondrianFile, "w")
+        fid.write("Name\tActualLabel\tLabel1\tLabel2\tPvalue1\tPvalue2\tConf1\tConf2\tPrediction\n")
+        fid.close()
+
 
         # Run a 10 fold CV
         nFolds = 10
